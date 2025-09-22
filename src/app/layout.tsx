@@ -5,8 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/lib/auth-context';
 
 export const metadata: Metadata = {
-  title: 'LeadTracker.ai',
-  description: 'Create, manage and track leads with ease.',
+  title: 'Nirmala Pumps - Lead Management System',
+  description: 'Comprehensive lead management and quotation system for Nirmala Pumps.',
+  icons: {
+    icon: '/images/nirmala-logo.jpg',
+    shortcut: '/images/nirmala-logo.jpg',
+    apple: '/images/nirmala-logo.jpg',
+  },
 };
 
 export default function RootLayout({

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { validateEmail } from '@/lib/auth-utils';
+import { NirmalaLogo } from '@/components/nirmala-logo';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -44,6 +45,9 @@ export function ForgotPasswordForm() {
     return (
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <NirmalaLogo size="xl" showText={false} linkToHome={false} />
+          </div>
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
           <CardTitle className="text-2xl font-bold">Reset Link Sent!</CardTitle>
           <CardDescription>
@@ -83,7 +87,10 @@ export function ForgotPasswordForm() {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
+      <CardHeader className="space-y-4">
+        <div className="flex justify-center">
+          <NirmalaLogo size="xl" showText={false} linkToHome={false} />
+        </div>
         <CardTitle className="text-2xl font-bold text-center">Reset Password</CardTitle>
         <CardDescription className="text-center">
           Enter your email address and we'll send you a link to reset your password

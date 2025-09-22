@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { validateEmail } from '@/lib/auth-utils';
+import { NirmalaLogo } from '@/components/nirmala-logo';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -66,7 +67,10 @@ export function LoginForm() {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
+      <CardHeader className="space-y-4">
+        <div className="flex justify-center">
+          <NirmalaLogo size="xl" showText={false} linkToHome={false} />
+        </div>
         <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
         <CardDescription className="text-center">
           Enter your credentials to access your account

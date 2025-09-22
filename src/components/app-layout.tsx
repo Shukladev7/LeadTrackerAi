@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import { getInitials, isProtectedRoute } from '@/lib/auth-utils';
 import { ProtectedRoute } from '@/components/auth/protected-route';
+import { NirmalaLogo } from '@/components/nirmala-logo';
 
 
 const navItems = [
@@ -31,12 +32,7 @@ const navItems = [
     { href: '/setup', label: 'Setup', icon: Settings },
 ];
 
-const AppLogo = () => (
-  <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-    <Briefcase className="h-6 w-6" />
-    <span>LeadTracker.ai</span>
-  </Link>
-);
+const AppLogo = () => <NirmalaLogo size="lg" showText={false} />;
 
 const NavLink = ({ href, label, icon: Icon, isActive }: { href: string; label: string; icon: React.ElementType; isActive: boolean }) => (
     <Link

@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { validateEmail, validatePassword } from '@/lib/auth-utils';
+import { NirmalaLogo } from '@/components/nirmala-logo';
 
 export function SignupForm() {
   const [formData, setFormData] = useState({
@@ -89,6 +90,9 @@ export function SignupForm() {
     return (
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <NirmalaLogo size="xl" showText={false} linkToHome={false} />
+          </div>
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
           <CardTitle className="text-2xl font-bold">Account Created!</CardTitle>
           <CardDescription>
@@ -119,7 +123,10 @@ export function SignupForm() {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
+      <CardHeader className="space-y-4">
+        <div className="flex justify-center">
+          <NirmalaLogo size="xl" showText={false} linkToHome={false} />
+        </div>
         <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
         <CardDescription className="text-center">
           Enter your information to create a new account
