@@ -1,0 +1,423 @@
+{
+  "node": {
+    "7f05e84f0f97fc5a7a07e8131baefa2841070e643d": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f0f59e3c0bdc096d699ee898b0c1ba20707191d4b": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f1846f698e1887660f585d5ea9149a07c7c850f92": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f2e6eb1a1a75f8015dfce86483708dfbe658da89c": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f31e15fd4f61e5b609e4a6d50eeccb9af77aafef8": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f39761948864339837957ca91e3e944cd8e441632": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f3ae5e8f46d47652a5fb84e3089a01a9238cf9bed": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "action-browser"
+      }
+    },
+    "7f3d9e95cd0e81b0d13660c9a9a93768fb851fa506": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f4280ff5e64067f99266109815caf0860a45cc58c": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "action-browser"
+      }
+    },
+    "7f480200a3ee83c850bd3891fd7985198e896fe1ed": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f4e672b0e36e084ca5eb122016c6383de1a5a99ba": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f4eefc53973b8e6fbed50ffa2cc64fe40df104ad3": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f5591f7a8ee3bb38224df4376cdee9f8d5eb812fe": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f579d5a450a43d8b74c568f68ca2b3c2566dc4a95": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f5ad710a7cb483463fc09bb2de49c70ee34ee6c63": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f6d87f222357d05d51ddaef3bee835c24413445c4": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f7433c41b0634dc7b5f0d1c3708d79d935f8bde34": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f822c7526a05588811630fb16c06bf87327d46e27": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f90125ab01f83802f2fcb8e1f747656578c988c23": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7f93d0bb939f748aacd7331842952547c4a4a6ddf0": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fa6bcba2f1f7e8c8eeaf60c2dc415a8e405fa26f7": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fa78ef03610d4e9976fbaa4e450f34f54cf2d02fc": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fa8bc842463b1ec33e139235445fa57278ad38b35": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fabb9890e6ce6942891dc6903686fbb41d7e40da9": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fae3ad533f1dc6298a52f1957eff67f632545365d": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7faf0a91ed8cef30a4af08e9037287b354a71db7e9": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fb4f29abf3ebe0f2a94c04f8d336c3e47599188ee": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fc6f659357e4b54787c2a339bdb6e16e7ae761acb": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fc9162346222c9de85ac70b2f85d9c9be072b4bb2": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fce767cc96f1429da191f8516a9b4784b223bb47e": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fe30da5fb8303e0a863d9120c6dd29a374504a050": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "action-browser"
+      }
+    },
+    "7fe3bac712c1f2e1723b72df2734d1286a00c8a875": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7fe5d28a16cab74d9ee3acbe0aafa76ffc672cfba6": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7feddb7de602afea2493484ef7513323da3fdfb015": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "7ff71b0c7623881d0aa5c8c677cd09724481a157b2": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "action-browser"
+      }
+    },
+    "7ffd8613a6e078c5fd9d33441e4b0f2ad06720be86": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "rsc"
+      }
+    },
+    "4079fb0f286a5d20c770f582ba986360628899b35e": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "action-browser"
+      }
+    },
+    "4024aa8fb09e7f873f19d06a31fee6a52f4ca37853": {
+      "workers": {
+        "app/quotations/page": {
+          "moduleId": "[project]/.next-internal/server/app/quotations/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/lib/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/quotations/page": "action-browser"
+      }
+    }
+  },
+  "edge": {}
+}
