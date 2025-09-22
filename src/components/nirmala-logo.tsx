@@ -33,13 +33,17 @@ export function NirmalaLogo({
 }: NirmalaLogoProps) {
   const logoContent = (
     <div className={cn("flex items-center gap-2", className)}>
-      <Image 
-        src="/images/nirmala-logo.jpg" 
-        alt="Nirmala Pumps" 
-        width={size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96} 
-        height={size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96} 
-        className={cn("object-contain", sizeClasses[size])}
-      />
+      <div className={cn("relative flex-shrink-0 bg-white rounded", sizeClasses[size])}>
+        <Image 
+          src="/images/nirmala-logo.jpg" 
+          alt="Nirmala Pumps" 
+          width={size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96} 
+          height={size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96} 
+          className="object-contain w-full h-full rounded"
+          priority={size === 'lg' || size === 'xl'}
+          unoptimized
+        />
+      </div>
       {showText && (
         <span className={cn("font-bold text-primary", textSizeClasses[size])}>
           Nirmala Pumps

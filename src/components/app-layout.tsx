@@ -32,7 +32,11 @@ const navItems = [
     { href: '/setup', label: 'Setup', icon: Settings },
 ];
 
-const AppLogo = () => <NirmalaLogo size="lg" showText={false} />;
+const AppLogo = () => (
+  <div className="flex items-center">
+    <NirmalaLogo size="lg" showText={false} className="min-w-[48px]" />
+  </div>
+);
 
 const NavLink = ({ href, label, icon: Icon, isActive }: { href: string; label: string; icon: React.ElementType; isActive: boolean }) => (
     <Link
