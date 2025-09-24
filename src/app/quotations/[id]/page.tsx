@@ -9,6 +9,7 @@ import {
 } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { QuotationPreview } from './quotation-preview';
+import { EditQuotationDialog } from '../edit-quotation-dialog';
 
 export default async function QuotationDetailPage({
   params,
@@ -53,6 +54,7 @@ export default async function QuotationDetailPage({
             Quotation Details
           </h2>
         </div>
+        <EditQuotationDialog quotation={quotation} />
       </div>
       <QuotationPreview
         quotation={quotation}

@@ -18,17 +18,11 @@ import {
 import ActivityTimeline from './activity-timeline';
 import LogActivityForm from './log-activity-form';
 import { EditLeadDialog } from './edit-lead-dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from "@/components/ui/select"
-import { ALL_STATUSES, PopulatedLeadProduct } from '@/lib/types';
-import { updateLeadStatusAction } from '@/lib/actions';
+import { PopulatedLeadProduct } from '@/lib/types';
 import { CreateQuotationDialog } from '@/app/quotations/create-quotation-dialog';
 import { Badge } from '@/components/ui/badge';
+import { StatusUpdateForm } from './status-update-form';
+import { CommunicationButtons } from './communication-buttons';
 
 
 export default async function LeadDetailPage({ params }: { params: { id:string } }) {
@@ -117,23 +111,27 @@ export default async function LeadDetailPage({ params }: { params: { id:string }
                     <Zap className="h-4 w-4 text-muted-foreground" />
                     <span>Source: <strong>{lead.source}</strong></span>
                 </div>
+                {lead.createdBy && (
+                    <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>Created by: <strong>{lead.createdBy}</strong></span>
+                    </div>
+                )}
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                     <span className="text-sm font-medium">Status:</span>
-                    <form action={async (formData) => {
-                        'use server';
-                        const newStatus = formData.get('status') as typeof lead.status;
-                        await updateLeadStatusAction(lead.id, newStatus);
-                    }} className="flex items-center gap-2">
-                        <Select name="status" defaultValue={lead.status}>
-                            <SelectTrigger className="w-[180px] h-8">
-                                <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <Button type="submit" size="sm">Update</Button>
-                    </form>
+                    <StatusUpdateForm 
+                        leadId={lead.id!} 
+                        currentStatus={lead.status} 
+                        leadName={lead.name}
+                    />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pt-4 border-t">
+                    <span className="text-sm font-medium">Send Message:</span>
+                    <CommunicationButtons 
+                        leadName={lead.name}
+                        email={lead.email}
+                        whatsappNumber={lead.whatsappNumber}
+                    />
                 </div>
             </CardContent>
           </Card>

@@ -7,6 +7,7 @@ import {
   FileText,
   MessageSquare,
   Sparkles,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Activity, ActivityType } from '@/lib/types';
@@ -20,6 +21,7 @@ const activityIcons: Record<ActivityType, React.ElementType> = {
   Email: Mails,
   'Revision Request': FileText,
   'Proposal Sent': MessageSquare,
+  'Status Change': ArrowRightLeft,
 };
 
 function FormattedDate({ dateString }: { dateString: string }) {
@@ -37,6 +39,28 @@ function FormattedDate({ dateString }: { dateString: string }) {
 }
 
 
+// Helper function to parse status change information from notes
+function parseStatusChange(notes: string) {
+  const match = notes.match(/Status changed from "([^"]+)" to "([^"]+)" by (.+)/);
+  if (match) {
+    return {
+      previousStatus: match[1],
+      newStatus: match[2],
+      changedBy: match[3]
+    };
+  }
+  // Fallback for older format without user info
+  const simpleMatch = notes.match(/Status changed from "([^"]+)" to "([^"]+)"/);
+  if (simpleMatch) {
+    return {
+      previousStatus: simpleMatch[1],
+      newStatus: simpleMatch[2],
+      changedBy: 'Unknown User'
+    };
+  }
+  return null;
+}
+
 export default function ActivityTimeline({ activities }: { activities: Activity[] }) {
   if (activities.length === 0) {
     return (
@@ -52,11 +76,15 @@ export default function ActivityTimeline({ activities }: { activities: Activity[
       {activities.map((activity, index) => {
         const Icon = activityIcons[activity.type] || MessageSquare;
         const isLast = index === activities.length - 1;
+        const isStatusChange = activity.type === 'Status Change';
+        const statusChange = isStatusChange ? parseStatusChange(activity.notes) : null;
 
         return (
           <div key={activity.id} className="relative flex items-start space-x-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary z-10">
-              <Icon className="h-5 w-5 text-secondary-foreground" />
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full z-10 ${
+              isStatusChange ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-secondary-foreground'
+            }`}>
+              <Icon className="h-5 w-5" />
             </div>
             <div className="flex-1 pt-1.5">
               <div className="flex items-center justify-between">
@@ -66,7 +94,24 @@ export default function ActivityTimeline({ activities }: { activities: Activity[
                 </time>
               </div>
               <div className="mt-2 text-sm text-muted-foreground space-y-2">
-                <p className="whitespace-pre-wrap">{activity.notes}</p>
+                {isStatusChange && statusChange ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Badge variant="outline" className="text-xs">
+                        {statusChange.previousStatus}
+                      </Badge>
+                      <ArrowRightLeft className="h-3 w-3" />
+                      <Badge variant="default" className="text-xs">
+                        {statusChange.newStatus}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Changed by <span className="font-medium">{statusChange.changedBy}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap">{activity.notes}</p>
+                )}
                 {activity.summary && (
                    <Card className="bg-background">
                      <CardHeader className="p-4">

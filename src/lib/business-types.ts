@@ -78,10 +78,14 @@ export interface Product extends BusinessDocument {
 export interface LeadActivity {
   id: string;
   date: Timestamp | string;
-  type: 'Email' | 'Call' | 'Meeting' | 'Proposal Sent' | 'Revision Request' | 'Negotiation' | 'Follow-up' | 'Other';
+  type: 'Email' | 'Call' | 'Meeting' | 'Proposal Sent' | 'Revision Request' | 'Negotiation' | 'Follow-up' | 'Status Change' | 'Other';
   notes: string;
   userId?: string;
   attachments?: string[];
+  // Additional fields for status change tracking
+  previousStatus?: string;
+  newStatus?: string;
+  changedBy?: string;
 }
 
 // Lead Product interface
@@ -110,6 +114,7 @@ export interface Lead extends BusinessDocument {
   estimatedValue?: number;
   tags?: string[];
   customFields?: Record<string, any>;
+  createdBy?: string; // Name or email of the user who created the lead
 }
 
 // Quotation Product interface

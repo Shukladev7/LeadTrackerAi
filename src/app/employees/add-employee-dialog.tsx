@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { addEmployeeAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { EmployeeRoleData, Department } from '@/lib/types';
+import { EmployeeRole, Department } from '@/lib/business-types';
 import { getEmployeeRoles, getDepartments } from '@/lib/data';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -49,7 +49,7 @@ type EmployeeFormData = z.infer<typeof employeeSchema>;
 
 export function AddEmployeeDialog() {
   const [open, setOpen] = useState(false);
-  const [employeeRoles, setEmployeeRoles] = useState<EmployeeRoleData[]>([]);
+  const [employeeRoles, setEmployeeRoles] = useState<EmployeeRole[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const { toast } = useToast();
 
@@ -79,11 +79,27 @@ export function AddEmployeeDialog() {
 
     const result = await addEmployeeAction(formData);
 
-    if (result.message === 'Successfully added employee.') {
+    if (result.message.includes('Successfully added employee')) {
       toast({
         title: 'Employee Added',
-        description: `"${data.name}" has been successfully added.`,
+        description: result.message,
+        duration: 8000, // Show longer to read the message
       });
+      
+      // Show reset link in development
+      if (result.resetLink) {
+        console.log('🔗 Password reset link for', data.name, ':', result.resetLink);
+        
+        // Also show a follow-up toast with instructions
+        setTimeout(() => {
+          toast({
+            title: 'Development Mode',
+            description: `Password reset link for ${data.name} is available in the browser console. In production, this would be sent via email.`,
+            duration: 10000,
+          });
+        }, 2000);
+      }
+      
       reset();
       setOpen(false);
     } else {
@@ -107,7 +123,7 @@ export function AddEmployeeDialog() {
         <DialogHeader>
           <DialogTitle>Add New Employee</DialogTitle>
           <DialogDescription>
-            Fill in the details below to onboard a new employee.
+            Fill in the details below to onboard a new employee. A Firebase Auth account will be created and a password reset email will be sent to the employee's email address.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>

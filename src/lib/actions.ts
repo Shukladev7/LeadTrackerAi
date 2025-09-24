@@ -3,10 +3,49 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { summarizeMeetingNotes } from '@/ai/flows/summarize-meeting-notes';
-import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate } from './data';
-import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, Employee, QuotationTemplate } from './types';
+import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount } from './data';
+import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, QuotationTemplate } from './types';
+import type { Employee } from './business-types';
 import { getProducts } from './data';
+
+// Initialize Firebase Admin SDK
+function initializeFirebaseAdmin() {
+  if (getApps().length === 0) {
+    // Check if all required environment variables are present
+    const requiredEnvVars = [
+      'FIREBASE_PROJECT_ID',
+      'FIREBASE_PRIVATE_KEY',
+      'FIREBASE_CLIENT_EMAIL'
+    ];
+    
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required Firebase environment variables: ${missingVars.join(', ')}`);
+    }
+
+    const serviceAccount = {
+      type: "service_account",
+      project_id: process.env.FIREBASE_PROJECT_ID!,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL!,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${process.env.FIREBASE_CLIENT_EMAIL}`
+    };
+
+    initializeApp({
+      credential: cert(serviceAccount as any),
+      projectId: process.env.FIREBASE_PROJECT_ID,
+    });
+  }
+}
 
 const LeadProductSchema = z.object({
     productId: z.string().min(1, 'Product must be selected'),
@@ -25,6 +64,7 @@ const CreateLeadSchema = z.object({
   source: z.string().min(1, 'Please select a lead source'),
   notes: z.string().optional(),
   products: z.array(LeadProductSchema).optional(),
+  createdBy: z.string().min(1, 'Created by field is required'),
 });
 
 export async function createLead(formData: FormData) {
@@ -41,6 +81,7 @@ export async function createLead(formData: FormData) {
     source: formData.get('source'),
     notes: formData.get('notes'),
     products: products,
+    createdBy: formData.get('createdBy'),
   });
 
   if (!validatedFields.success) {
@@ -208,7 +249,7 @@ export async function addProduct(formData: FormData) {
     price: formData.get('price'),
     gstRate: formData.get('gstRate'),
     skus: skus,
-    catalogueUrl: formData.get('catalogueUrl'),
+    catalogueUrl: formData.get('catalogueUrl') || '',
     cataloguePdf: catalogPdf,
   });
 
@@ -243,7 +284,7 @@ export async function updateProduct(id: string, formData: FormData) {
       price: formData.get('price'),
       gstRate: formData.get('gstRate'),
       skus: skus,
-      catalogueUrl: formData.get('catalogueUrl'),
+      catalogueUrl: formData.get('catalogueUrl') || '',
       cataloguePdf: catalogPdf,
     });
   
@@ -326,16 +367,40 @@ export async function getSummaryForNotes(notes: string): Promise<{ summary?: str
 }
 
 
-export async function updateLeadStatusAction(leadId: string, status: LeadStatus) {
+export async function updateLeadStatusAction(leadId: string, status: LeadStatus, userId?: string, userName?: string) {
   try {
+    // Get the current lead to capture the previous status
+    const currentLead = await dbGetLeadById(leadId);
+    if (!currentLead) {
+      return { message: 'Lead not found.' };
+    }
+    
+    const previousStatus = currentLead.status;
+    
+    // Only update if status is actually changing
+    if (previousStatus === status) {
+      return { message: 'Status is already set to this value.' };
+    }
+    
+    // Update the status
     await updateStatus(leadId, status);
+    
+    // Add a status change activity
+    const changedBy = userName || userId || 'Unknown User';
+    const statusChangeNotes = `Status changed from "${previousStatus}" to "${status}" by ${changedBy}`;
+    
+    await addActivityToLead(leadId, {
+      type: 'Status Change',
+      notes: statusChangeNotes
+    });
+    
   } catch (error) {
     return { message: 'Database Error: Failed to update status.' };
   }
   revalidatePath(`/leads/${leadId}`);
   revalidatePath('/leads');
   revalidatePath('/');
-  return { message: 'Status updated.' };
+  return { message: 'Status updated successfully.' };
 }
 
 export async function deleteLeadAction(leadId: string) {
@@ -456,6 +521,58 @@ export async function addQuotation(formData: FormData) {
     revalidatePath('/quotations');
     revalidatePath(`/leads/${validatedFields.data.leadId}`);
     return { message: 'Successfully created quotation.' };
+}
+
+export async function updateQuotation(id: string, formData: FormData) {
+    const validatedFields = CreateQuotationSchema.safeParse({
+        leadId: formData.get('leadId'),
+        templateId: formData.get('templateId'),
+        date: formData.get('date'),
+        validUntil: formData.get('validUntil'),
+        status: formData.get('status'),
+        products: formData.get('products'),
+        subTotal: formData.get('subTotal'),
+        totalGst: formData.get('totalGst'),
+        grandTotal: formData.get('grandTotal'),
+        companyName: formData.get('companyName'),
+        companyAddress: formData.get('companyAddress'),
+        companyGst: formData.get('companyGst'),
+        termsAndConditions: formData.get('termsAndConditions'),
+        logoUrl: formData.get('logoUrl'),
+      });
+    
+      if (!validatedFields.success) {
+        console.error(validatedFields.error.flatten().fieldErrors);
+        return {
+          errors: validatedFields.error.flatten().fieldErrors,
+          message: 'Validation Error: Failed to update quotation.',
+        };
+      }
+      
+      try {
+        const data = validatedFields.data;
+        const parsedProducts = JSON.parse(data.products);
+        await dbUpdateQuotation(id, {
+            ...data,
+            logoUrl: data.logoUrl || undefined,
+            products: parsedProducts,
+        });
+
+        // Log activity on the lead
+        await addActivityToLead(data.leadId, {
+            type: 'Revision Request',
+            notes: `Quotation was updated.`
+        });
+
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unknown error occurred';
+        return { message: `Database Error: Failed to Update Quotation. ${message}` };
+      }
+
+    revalidatePath('/quotations');
+    revalidatePath(`/quotations/${id}`);
+    revalidatePath(`/leads/${validatedFields.data.leadId}`);
+    return { message: 'Successfully updated quotation.' };
 }
 
 export async function deleteQuotationAction(quotationId: string) {
@@ -589,15 +706,128 @@ export async function addEmployeeAction(formData: FormData) {
         return { message: 'Invalid department selected.' };
     }
 
-
     try {
-        await dbAddEmployee(validatedFields.data as NewEmployee);
-    } catch (error) {
-        return { message: 'Database Error: Failed to add employee.' };
-    }
+        // Check if Firebase Admin environment variables are configured
+        const requiredEnvVars = ['FIREBASE_PROJECT_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL'];
+        const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+        
+        if (missingVars.length > 0) {
+            console.warn(`Firebase Admin not configured. Missing: ${missingVars.join(', ')}`);
+            // Just add to database without Firebase Auth integration
+            await dbAddEmployee(validatedFields.data as NewEmployee);
+            revalidatePath('/employees');
+            return { 
+                message: 'Employee added to database. Note: Firebase Auth integration requires environment variables to be configured for automatic account creation and email sending.'
+            };
+        }
 
-    revalidatePath('/employees');
-    return { message: 'Successfully added employee.' };
+        // Initialize Firebase Admin
+        initializeFirebaseAdmin();
+        const auth = getAuth();
+
+        // Create user in Firebase Auth
+        const userRecord = await auth.createUser({
+            email: validatedFields.data.email,
+            displayName: validatedFields.data.name,
+            emailVerified: false,
+        });
+
+        // Add employee to database first
+        await dbAddEmployee(validatedFields.data as NewEmployee);
+
+        // Set a temporary password for the user
+        const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'; // Ensure it meets Firebase requirements
+        
+        // Update the user with the temporary password
+        await auth.updateUser(userRecord.uid, {
+            password: tempPassword,
+        });
+
+        // Send password reset email using Firebase Auth's REST API
+        try {
+            const webApiKey = process.env.FIREBASE_WEB_API_KEY;
+            
+            if (!webApiKey) {
+                throw new Error('FIREBASE_WEB_API_KEY not configured');
+            }
+
+            // Use Firebase Auth REST API to send password reset email
+            const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${webApiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    requestType: 'PASSWORD_RESET',
+                    email: validatedFields.data.email,
+                    continueUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/login`,
+                }),
+            });
+
+            if (response.ok) {
+                const responseData = await response.json();
+                console.log('='.repeat(80));
+                console.log(`✅ EMPLOYEE CREATED: ${validatedFields.data.name}`);
+                console.log(`📧 Email: ${validatedFields.data.email}`);
+                console.log(`📨 Password reset email sent successfully!`);
+                console.log(`📬 Email will be delivered by Firebase Auth`);
+                console.log('='.repeat(80));
+
+                revalidatePath('/employees');
+                return { 
+                    message: `Successfully added employee ${validatedFields.data.name}. Password reset email has been sent to ${validatedFields.data.email}.`,
+                };
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to send password reset email:', errorData);
+                throw new Error(`Email sending failed: ${errorData.error?.message || 'Unknown error'}`);
+            }
+        } catch (emailError) {
+            console.error('Error sending password reset email:', emailError);
+            
+            // Fallback: generate link for manual sharing
+            const resetLink = await auth.generatePasswordResetLink(validatedFields.data.email, {
+                url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/login`,
+                handleCodeInApp: false,
+            });
+
+            console.log('='.repeat(80));
+            console.log(`✅ EMPLOYEE CREATED: ${validatedFields.data.name}`);
+            console.log(`📧 Email: ${validatedFields.data.email}`);
+            console.log(`❌ Email sending failed: ${emailError.message}`);
+            console.log(`🔗 Manual Reset Link: ${resetLink}`);
+            console.log(`📝 Please share this link with the employee`);
+            console.log('='.repeat(80));
+
+            revalidatePath('/employees');
+            return { 
+                message: `Successfully added employee ${validatedFields.data.name}. Email sending failed - please share the reset link manually (check console).`,
+                resetLink: resetLink
+            };
+        }
+    } catch (error: any) {
+        console.error('Error adding employee:', error);
+        
+        // Handle specific Firebase errors
+        if (error.code === 'auth/email-already-exists') {
+            return { message: 'An account with this email already exists.' };
+        }
+        
+        if (error.message?.includes('Missing required Firebase environment variables')) {
+            // Fallback: add to database only
+            try {
+                await dbAddEmployee(validatedFields.data as NewEmployee);
+                revalidatePath('/employees');
+                return { 
+                    message: 'Employee added to database. Firebase Auth integration requires proper environment configuration for automatic account creation.'
+                };
+            } catch (dbError) {
+                return { message: 'Failed to add employee to database.' };
+            }
+        }
+        
+        return { message: 'Failed to add employee. Please check Firebase configuration and try again.' };
+    }
 }
 
 export async function deleteEmployeeAction(employeeId: string) {
@@ -753,4 +983,86 @@ export async function importProductsFromCSV(csvData: any[]) {
         message: `Import completed. ${results.success} products imported successfully${results.failed > 0 ? `, ${results.failed} failed` : ''}.`,
         errors: results.errors.length > 0 ? results.errors : undefined
     };
+}
+
+// Count Actions
+export async function getLeadsCountAction(): Promise<number> {
+    try {
+        return await getLeadsCount();
+    } catch (error) {
+        console.error('Error getting leads count:', error);
+        return 0;
+    }
+}
+
+export async function getQuotationsCountAction(): Promise<number> {
+    try {
+        return await getQuotationsCount();
+    } catch (error) {
+        console.error('Error getting quotations count:', error);
+        return 0;
+    }
+}
+
+export async function getProductsCountAction(): Promise<number> {
+    try {
+        return await getProductsCount();
+    } catch (error) {
+        console.error('Error getting products count:', error);
+        return 0;
+    }
+}
+
+export async function getEmployeesCountAction(): Promise<number> {
+    try {
+        return await getEmployeesCount();
+    } catch (error) {
+        console.error('Error getting employees count:', error);
+        return 0;
+    }
+}
+
+export async function getLeadsCountByStatusAction(status: LeadStatus): Promise<number> {
+    try {
+        return await getLeadsCountByStatus(status);
+    } catch (error) {
+        console.error(`Error getting leads count for status ${status}:`, error);
+        return 0;
+    }
+}
+
+export async function getQuotationsCountByStatusAction(status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected'): Promise<number> {
+    try {
+        return await getQuotationsCountByStatus(status);
+    } catch (error) {
+        console.error(`Error getting quotations count for status ${status}:`, error);
+        return 0;
+    }
+}
+
+export async function getActiveProductsCountAction(): Promise<number> {
+    try {
+        return await getActiveProductsCount();
+    } catch (error) {
+        console.error('Error getting active products count:', error);
+        return 0;
+    }
+}
+
+export async function getActiveEmployeesCountAction(): Promise<number> {
+    try {
+        return await getActiveEmployeesCount();
+    } catch (error) {
+        console.error('Error getting active employees count:', error);
+        return 0;
+    }
+}
+
+export async function getCurrentUserEmployeeAction(email: string): Promise<Employee | null> {
+    try {
+        return await getEmployeeByEmail(email);
+    } catch (error) {
+        console.error('Error getting current user employee:', error);
+        return null;
+    }
 }

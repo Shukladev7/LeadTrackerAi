@@ -34,7 +34,7 @@ const navItems = [
 
 const AppLogo = () => (
   <div className="flex items-center">
-    <NirmalaLogo size="lg" showText={false} className="min-w-[48px]" />
+    <NirmalaLogo size="xl" showText={false} className="min-w-[64px]" />
   </div>
 );
 
@@ -80,6 +80,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Check if this is an auth page (login, signup, etc.) where we don't want the navbar
+  const isAuthPage = pathname.startsWith('/auth/');
+
   // If this is a protected route, wrap children with ProtectedRoute
   const shouldProtect = isProtectedRoute(pathname);
   const content = shouldProtect ? (
@@ -87,6 +90,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ) : (
     children
   );
+
+  // For auth pages, render without navbar and with full screen
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen w-full">
+        {content}
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">

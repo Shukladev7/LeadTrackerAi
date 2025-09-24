@@ -39,6 +39,7 @@ import { createLead } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ALL_STATUSES, Product, LeadSource } from '@/lib/types';
 import { getProducts, getLeadSources } from '@/lib/data';
+import { useAuth } from '@/lib/auth-context';
 
 const leadProductSchema = z.object({
     productId: z.string().min(1, 'Product must be selected'),
@@ -66,6 +67,7 @@ export function CreateLeadDialog() {
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<LeadFormData>({
     resolver: zodResolver(leadSchema),
@@ -109,6 +111,10 @@ export function CreateLeadDialog() {
 
   const onSubmit = async (data: LeadFormData) => {
     const formData = new FormData();
+    
+    // Add the createdBy field
+    const createdBy = user?.displayName || user?.email || 'Unknown User';
+    formData.append('createdBy', createdBy);
     
     Object.entries(data).forEach(([key, value]) => {
         if (key === 'products') {
@@ -195,6 +201,18 @@ export function CreateLeadDialog() {
                         <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
                         <Input id="whatsappNumber" {...register('whatsappNumber')} />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="createdBy">Created By</Label>
+                        <Input 
+                            id="createdBy" 
+                            value={user?.displayName || user?.email || 'Unknown User'} 
+                            disabled 
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
+                        />
+                        <p className="text-xs text-muted-foreground">This field is automatically set to the current user</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="source">Lead Source</Label>
                         <Controller

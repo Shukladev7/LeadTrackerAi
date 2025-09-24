@@ -4,13 +4,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   User,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
   sendEmailVerification,
   updatePassword,
   reauthenticateWithCredential,
@@ -22,8 +19,6 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName?: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (displayName: string) => Promise<void>;
@@ -67,31 +62,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signUp = async (email: string, password: string, displayName?: string) => {
-    try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      
-      if (displayName && result.user) {
-        await updateProfile(result.user, { displayName });
-      }
-      
-      // Send email verification
-      if (result.user) {
-        await sendEmailVerification(result.user);
-      }
-    } catch (error: any) {
-      throw new Error(getAuthErrorMessage(error.code));
-    }
-  };
 
-  const signInWithGoogle = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      throw new Error(getAuthErrorMessage(error.code));
-    }
-  };
 
   const logout = async () => {
     try {
@@ -148,8 +119,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     loading,
     signIn,
-    signUp,
-    signInWithGoogle,
     logout,
     resetPassword,
     updateUserProfile,

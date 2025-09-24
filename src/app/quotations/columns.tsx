@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Quotation, QuotationStatus } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { deleteQuotationAction } from '@/lib/actions';
-// import { EditQuotationDialog } from './edit-quotation-dialog';
+import { EditQuotationDialog } from './edit-quotation-dialog';
 
 type PopulatedQuotation = Quotation & { leadName: string; leadCompany: string };
 
@@ -54,7 +54,7 @@ const statusStyles: Record<QuotationStatus, string> = {
   };
 
 function QuotationActions({ quotation }: { quotation: PopulatedQuotation }) {
-    // const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
     const handleDelete = async () => {
       if (confirm(`Are you sure you want to delete quotation "${quotation.quotationNumber}"? This action cannot be undone.`)) {
@@ -64,7 +64,16 @@ function QuotationActions({ quotation }: { quotation: PopulatedQuotation }) {
   
     return (
       <div className="text-right">
-        {/* <EditQuotationDialog quotation={quotation} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} /> */}
+        <EditQuotationDialog 
+          quotation={quotation}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onQuotationUpdated={() => {
+            setIsEditDialogOpen(false);
+            // Optionally refresh the page or update the data
+            window.location.reload();
+          }} 
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -81,7 +90,7 @@ function QuotationActions({ quotation }: { quotation: PopulatedQuotation }) {
                 View/Download
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem /* onSelect={() => setIsEditDialogOpen(true)} */>
+            <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Quotation
             </DropdownMenuItem>

@@ -200,6 +200,20 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                         <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
                         <Input id="whatsappNumber" {...register('whatsappNumber')} />
                     </div>
+                    {lead.createdBy && (
+                        <div className="space-y-2">
+                            <Label htmlFor="createdBy">Created By</Label>
+                            <Input 
+                                id="createdBy" 
+                                value={lead.createdBy} 
+                                disabled 
+                                className="bg-muted text-muted-foreground cursor-not-allowed"
+                            />
+                            <p className="text-xs text-muted-foreground">This field cannot be modified</p>
+                        </div>
+                    )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="source">Lead Source</Label>
                         <Controller

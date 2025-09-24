@@ -1005,7 +1005,7 @@ const taskService = new TaskService();
 
 var { g: global, __dirname } = __turbopack_context__;
 {
-/* __next_internal_action_entry_do_not_use__ [{"7f00ab86233f91668c5a1000e50510dc15113cf498":"deleteQuotationTemplate","7f0224acfe65c3f72965de8330b1b810afeea27d8d":"addActivityToLead","7f0dd792b066bbb8092ffc47605a844aa2d3c2484e":"getLeadById","7f1165072fe23db89dd94213b18a4454121f7b34aa":"getProducts","7f1aab8bb88b8592bbe787cd0842f08129435e0385":"getEmployeeById","7f2b645b23adf4ee090ab3ee967a7b750020d5f868":"addQuotation","7f2c844ab519e3e104643f68071fa93e01628398fe":"getQuotationTemplates","7f2d5a92aab0185ce394f7c57b28835349a91fe38b":"addEmployeeRole","7f3b45398bda3f32306da3f8d85147c50511647368":"addLeadSource","7f42132283a306cfc9dc1e0ccfc959953b7ac06300":"addQuotationTemplate","7f452dd3d222a0cfd8a967dcf032484953b4eddc20":"getLeads","7f4d7cd6cdc8c3ee37d7071177e504f24a63f4f7cd":"getDepartments","7f5e918e8dc891e57133fd51f3ff486ac5c832515b":"addProduct","7f63652fed02db8e81fd1014fa755316a1d2caae54":"updateProduct","7f6b82510cb6ccd5fc8cd51722abb1f8a5b42dd042":"deleteDepartment","7f7c3738d7afdb202f0de726e0e1eed1961a1ac85b":"addEmployee","7f7fc415abb93e5f8c7d6213c92ba891a42e1903bf":"deleteProduct","7f82824046936bde0d6462557c7ea1a3132d9c780c":"deleteEmployee","7f8b6c01efc7c271cbfda3531d8f9dd5b2b55a59a7":"updateQuotationTemplate","7f90f5e2b87d908e378822a090c100097405373678":"updateLead","7f93e267f2b145378718042e7b300cd3051f40d428":"updateQuotation","7f99e0e0d89d5410964178bf6bd6fa061fedd10eca":"getEmployeeRoles","7f9bdc98c180d9281ec339d6d2394bb4ddf913cb52":"deleteEmployeeRole","7fa5ffd0278e4a3f72e803eef760468a4fca7328b5":"deleteQuotation","7faf5bc0456edc43171c14c2141e0b463926716380":"deleteLead","7fbcf0aa86a497c18025397816f1c586ecfd9d39f6":"getRecentActivities","7fc8579c29e5d619cd2813afd533954594a5c35351":"getQuotationById","7fce90dba8e51f93a6a4e0bd6ece8bda3b2be6556e":"addDepartment","7fde6c94fc61d3de6f17b2d7d5ffb3003db84639e9":"updateLeadStatus","7fdf9076d4e8e6e8a4cd298e26a102353a555b203c":"deleteLeadSource","7fe1ee4a2c2fa8190af610918aca5aea86a7443a67":"getEmployees","7fe20b20b989bb6723787f6762c4dbea9915b37f61":"updateEmployee","7feba74d2050f3b8e69279693f1667e539fc6da895":"addLead","7ff161f13dc1be12191137bc8dab90f4a12b56edac":"getLeadSources","7ff19be6eb10c2328eb7ed1ed711f8d137126e19f0":"getQuotationTemplateById","7ffd451d39c0e9980696872dac1f0696c123632071":"getQuotations"},"",""] */ __turbopack_context__.s({
+/* __next_internal_action_entry_do_not_use__ [{"7f04f10f0ddeddd104b418724bb1785849c193f66a":"getQuotations","7f0b5bbbb79dabf61c8dbf70af3ffff389460f419b":"getEmployeeRoles","7f1116478ca304fed1b532ca4ce59d5d5b448efd86":"getQuotationById","7f1db3ac95e46d0fb06b447ac0f1095c4e9d7864b8":"updateProduct","7f269196162d7162085bfe24c2b6f3c9eeb8de910c":"addActivityToLead","7f298b9fe988cb1ffa83632945d936c189bd792dc0":"updateEmployee","7f2d6f92a2c75e8e3e60e49e1b34f04f7ce34b8ea1":"getQuotationsCount","7f2de586b93cabe05d91ddb2006970640cf7e23220":"getDepartments","7f2e33d68eae7df61b4f4e6c14476e66342d7dda08":"deleteLeadSource","7f306e023d33eb2f4cd6e278d2ba58f9ce4e42988b":"getActiveEmployeesCount","7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75":"getRecentActivities","7f3777aecc7cb81616bea527a08a89d4fe73e9c5db":"updateQuotation","7f3c1be380f9a0a44bfd49095f6ae6bd965a6b526a":"addQuotationTemplate","7f3e5a6e7ad6fbd5540a28118cca7087133b837324":"getLeadsCount","7f3fd23bab2d334881ddfed4ef17bd4c53e0f69adb":"getQuotationTemplateById","7f41f0cf7169835566a4dfd277c9336ebbe880987d":"addEmployee","7f4b36d049affbaa6bdaa068bf84fb1acd862b79d4":"addDepartment","7f51002bc8cb90bca5ac167052035a3341833f8f08":"getProductsCount","7f570d4070a3316a960cb012b57a19ddb32ac8bbfd":"deleteQuotationTemplate","7f5ce6beaba83630ecc0b70a473c4b2d6911512a02":"deleteEmployee","7f5f40b0c1407ddbbe339c0d4cd166f510508443ae":"getActiveProductsCount","7f695fe749c0d9aab2ac486d89622d5b4e078477f2":"deleteEmployeeRole","7f705ed144dc34aa9cf8fdfa9b395d9d5a37f9cf02":"updateLeadStatus","7f7b957907463cba62338137af33f88b010ffab0dd":"updateQuotationTemplate","7f7c2d013a463dd6ad5bb725e2388417c71247f941":"addEmployeeRole","7f7d645fddf2346cccd897ff95af0ed14f70779d3a":"getQuotationTemplates","7f81ed99bf4c4b2ad51de24a64b2ecaa4ce3145926":"deleteQuotation","7f82d5948233efc223306c44e2a01deb4873021a20":"getLeads","7f8a39cb89579cab4c851aee68a93e5fd53b7b6fe8":"deleteLead","7f8badf9865ad7abe7dda8ba51ccbdc3405643eb84":"getEmployeesCount","7f92d94703b1b49a7a12dff73eeb3935472d3cbe90":"deleteDepartment","7f9b2288f5e837ee146778e3df872c309647d27f2b":"getEmployees","7fa1ce4be69d6d70d013be75de5496caa20eb1c9a7":"getQuotationsCountByStatus","7fab33ecffebcb8db1f945c866849358614a8f4597":"getLeadsCountByStatus","7fb1cf1d568ae18c62c90b9b2d6669b292ee581f0b":"getEmployeeById","7fcc7709996a7ef75f1fd5c5b7162ef7d8527ca75d":"addLead","7fd1caa7166fa9ab076034a9a5e7a9ceb556c0fe68":"getLeadById","7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e":"addQuotation","7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7":"addLeadSource","7fec28ffd46fa758634b470c272b079775b2466584":"addProduct","7ff2088dba0bc1dec8498350114093211bd576d9dc":"getProducts","7ff228315843844dc8e238479c86860a4f482472b4":"deleteProduct","7ff68e1eba6cc22b6b0761897ef85f028eb4032583":"updateLead","7ffa98412ae44a0f974abe620c42247c1c203f8246":"getLeadSources"},"",""] */ __turbopack_context__.s({
     "addActivityToLead": (()=>addActivityToLead),
     "addDepartment": (()=>addDepartment),
     "addEmployee": (()=>addEmployee),
@@ -1023,18 +1023,26 @@ var { g: global, __dirname } = __turbopack_context__;
     "deleteProduct": (()=>deleteProduct),
     "deleteQuotation": (()=>deleteQuotation),
     "deleteQuotationTemplate": (()=>deleteQuotationTemplate),
+    "getActiveEmployeesCount": (()=>getActiveEmployeesCount),
+    "getActiveProductsCount": (()=>getActiveProductsCount),
     "getDepartments": (()=>getDepartments),
     "getEmployeeById": (()=>getEmployeeById),
     "getEmployeeRoles": (()=>getEmployeeRoles),
     "getEmployees": (()=>getEmployees),
+    "getEmployeesCount": (()=>getEmployeesCount),
     "getLeadById": (()=>getLeadById),
     "getLeadSources": (()=>getLeadSources),
     "getLeads": (()=>getLeads),
+    "getLeadsCount": (()=>getLeadsCount),
+    "getLeadsCountByStatus": (()=>getLeadsCountByStatus),
     "getProducts": (()=>getProducts),
+    "getProductsCount": (()=>getProductsCount),
     "getQuotationById": (()=>getQuotationById),
     "getQuotationTemplateById": (()=>getQuotationTemplateById),
     "getQuotationTemplates": (()=>getQuotationTemplates),
     "getQuotations": (()=>getQuotations),
+    "getQuotationsCount": (()=>getQuotationsCount),
+    "getQuotationsCountByStatus": (()=>getQuotationsCountByStatus),
     "getRecentActivities": (()=>getRecentActivities),
     "updateEmployee": (()=>updateEmployee),
     "updateLead": (()=>updateLead),
@@ -1377,6 +1385,62 @@ const deleteDepartment = async (id)=>{
         success: true
     };
 };
+const getLeadsCount = async ()=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["leadService"].count();
+};
+const getQuotationsCount = async ()=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].count();
+};
+const getProductsCount = async ()=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productService"].count();
+};
+const getEmployeesCount = async ()=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["employeeService"].count();
+};
+const getLeadsCountByStatus = async (status)=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["leadService"].count({
+        where: [
+            {
+                field: 'status',
+                operator: '==',
+                value: status
+            }
+        ]
+    });
+};
+const getQuotationsCountByStatus = async (status)=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].count({
+        where: [
+            {
+                field: 'status',
+                operator: '==',
+                value: status
+            }
+        ]
+    });
+};
+const getActiveProductsCount = async ()=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productService"].count({
+        where: [
+            {
+                field: 'isActive',
+                operator: '==',
+                value: true
+            }
+        ]
+    });
+};
+const getActiveEmployeesCount = async ()=>{
+    return await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["employeeService"].count({
+        where: [
+            {
+                field: 'isActive',
+                operator: '==',
+                value: true
+            }
+        ]
+    });
+};
 ;
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$validate$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["ensureServerEntryExports"])([
     getEmployees,
@@ -1414,44 +1478,60 @@ const deleteDepartment = async (id)=>{
     deleteEmployeeRole,
     getDepartments,
     addDepartment,
-    deleteDepartment
+    deleteDepartment,
+    getLeadsCount,
+    getQuotationsCount,
+    getProductsCount,
+    getEmployeesCount,
+    getLeadsCountByStatus,
+    getQuotationsCountByStatus,
+    getActiveProductsCount,
+    getActiveEmployeesCount
 ]);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployees, "7fe1ee4a2c2fa8190af610918aca5aea86a7443a67", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployeeById, "7f1aab8bb88b8592bbe787cd0842f08129435e0385", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addEmployee, "7f7c3738d7afdb202f0de726e0e1eed1961a1ac85b", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateEmployee, "7fe20b20b989bb6723787f6762c4dbea9915b37f61", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteEmployee, "7f82824046936bde0d6462557c7ea1a3132d9c780c", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeads, "7f452dd3d222a0cfd8a967dcf032484953b4eddc20", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadById, "7f0dd792b066bbb8092ffc47605a844aa2d3c2484e", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getRecentActivities, "7fbcf0aa86a497c18025397816f1c586ecfd9d39f6", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addLead, "7feba74d2050f3b8e69279693f1667e539fc6da895", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addActivityToLead, "7f0224acfe65c3f72965de8330b1b810afeea27d8d", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateLeadStatus, "7fde6c94fc61d3de6f17b2d7d5ffb3003db84639e9", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateLead, "7f90f5e2b87d908e378822a090c100097405373678", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteLead, "7faf5bc0456edc43171c14c2141e0b463926716380", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProducts, "7f1165072fe23db89dd94213b18a4454121f7b34aa", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addProduct, "7f5e918e8dc891e57133fd51f3ff486ac5c832515b", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateProduct, "7f63652fed02db8e81fd1014fa755316a1d2caae54", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteProduct, "7f7fc415abb93e5f8c7d6213c92ba891a42e1903bf", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadSources, "7ff161f13dc1be12191137bc8dab90f4a12b56edac", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addLeadSource, "7f3b45398bda3f32306da3f8d85147c50511647368", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteLeadSource, "7fdf9076d4e8e6e8a4cd298e26a102353a555b203c", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotations, "7ffd451d39c0e9980696872dac1f0696c123632071", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationById, "7fc8579c29e5d619cd2813afd533954594a5c35351", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addQuotation, "7f2b645b23adf4ee090ab3ee967a7b750020d5f868", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateQuotation, "7f93e267f2b145378718042e7b300cd3051f40d428", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteQuotation, "7fa5ffd0278e4a3f72e803eef760468a4fca7328b5", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationTemplates, "7f2c844ab519e3e104643f68071fa93e01628398fe", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationTemplateById, "7ff19be6eb10c2328eb7ed1ed711f8d137126e19f0", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addQuotationTemplate, "7f42132283a306cfc9dc1e0ccfc959953b7ac06300", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateQuotationTemplate, "7f8b6c01efc7c271cbfda3531d8f9dd5b2b55a59a7", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteQuotationTemplate, "7f00ab86233f91668c5a1000e50510dc15113cf498", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployeeRoles, "7f99e0e0d89d5410964178bf6bd6fa061fedd10eca", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addEmployeeRole, "7f2d5a92aab0185ce394f7c57b28835349a91fe38b", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteEmployeeRole, "7f9bdc98c180d9281ec339d6d2394bb4ddf913cb52", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getDepartments, "7f4d7cd6cdc8c3ee37d7071177e504f24a63f4f7cd", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addDepartment, "7fce90dba8e51f93a6a4e0bd6ece8bda3b2be6556e", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteDepartment, "7f6b82510cb6ccd5fc8cd51722abb1f8a5b42dd042", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployees, "7f9b2288f5e837ee146778e3df872c309647d27f2b", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployeeById, "7fb1cf1d568ae18c62c90b9b2d6669b292ee581f0b", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addEmployee, "7f41f0cf7169835566a4dfd277c9336ebbe880987d", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateEmployee, "7f298b9fe988cb1ffa83632945d936c189bd792dc0", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteEmployee, "7f5ce6beaba83630ecc0b70a473c4b2d6911512a02", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeads, "7f82d5948233efc223306c44e2a01deb4873021a20", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadById, "7fd1caa7166fa9ab076034a9a5e7a9ceb556c0fe68", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getRecentActivities, "7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addLead, "7fcc7709996a7ef75f1fd5c5b7162ef7d8527ca75d", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addActivityToLead, "7f269196162d7162085bfe24c2b6f3c9eeb8de910c", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateLeadStatus, "7f705ed144dc34aa9cf8fdfa9b395d9d5a37f9cf02", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateLead, "7ff68e1eba6cc22b6b0761897ef85f028eb4032583", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteLead, "7f8a39cb89579cab4c851aee68a93e5fd53b7b6fe8", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProducts, "7ff2088dba0bc1dec8498350114093211bd576d9dc", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addProduct, "7fec28ffd46fa758634b470c272b079775b2466584", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateProduct, "7f1db3ac95e46d0fb06b447ac0f1095c4e9d7864b8", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteProduct, "7ff228315843844dc8e238479c86860a4f482472b4", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadSources, "7ffa98412ae44a0f974abe620c42247c1c203f8246", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addLeadSource, "7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteLeadSource, "7f2e33d68eae7df61b4f4e6c14476e66342d7dda08", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotations, "7f04f10f0ddeddd104b418724bb1785849c193f66a", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationById, "7f1116478ca304fed1b532ca4ce59d5d5b448efd86", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addQuotation, "7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateQuotation, "7f3777aecc7cb81616bea527a08a89d4fe73e9c5db", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteQuotation, "7f81ed99bf4c4b2ad51de24a64b2ecaa4ce3145926", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationTemplates, "7f7d645fddf2346cccd897ff95af0ed14f70779d3a", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationTemplateById, "7f3fd23bab2d334881ddfed4ef17bd4c53e0f69adb", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addQuotationTemplate, "7f3c1be380f9a0a44bfd49095f6ae6bd965a6b526a", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateQuotationTemplate, "7f7b957907463cba62338137af33f88b010ffab0dd", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteQuotationTemplate, "7f570d4070a3316a960cb012b57a19ddb32ac8bbfd", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployeeRoles, "7f0b5bbbb79dabf61c8dbf70af3ffff389460f419b", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addEmployeeRole, "7f7c2d013a463dd6ad5bb725e2388417c71247f941", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteEmployeeRole, "7f695fe749c0d9aab2ac486d89622d5b4e078477f2", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getDepartments, "7f2de586b93cabe05d91ddb2006970640cf7e23220", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addDepartment, "7f4b36d049affbaa6bdaa068bf84fb1acd862b79d4", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteDepartment, "7f92d94703b1b49a7a12dff73eeb3935472d3cbe90", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadsCount, "7f3e5a6e7ad6fbd5540a28118cca7087133b837324", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationsCount, "7f2d6f92a2c75e8e3e60e49e1b34f04f7ce34b8ea1", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProductsCount, "7f51002bc8cb90bca5ac167052035a3341833f8f08", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployeesCount, "7f8badf9865ad7abe7dda8ba51ccbdc3405643eb84", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadsCountByStatus, "7fab33ecffebcb8db1f945c866849358614a8f4597", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationsCountByStatus, "7fa1ce4be69d6d70d013be75de5496caa20eb1c9a7", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getActiveProductsCount, "7f5f40b0c1407ddbbe339c0d4cd166f510508443ae", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getActiveEmployeesCount, "7f306e023d33eb2f4cd6e278d2ba58f9ce4e42988b", null);
 }}),
 "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript) <locals>": ((__turbopack_context__) => {
 "use strict";
@@ -1480,10 +1560,10 @@ var __TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server
 var { g: global, __dirname } = __turbopack_context__;
 {
 __turbopack_context__.s({
-    "7f1165072fe23db89dd94213b18a4454121f7b34aa": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getProducts"]),
-    "7f452dd3d222a0cfd8a967dcf032484953b4eddc20": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getLeads"]),
-    "7fbcf0aa86a497c18025397816f1c586ecfd9d39f6": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getRecentActivities"]),
-    "7ffd451d39c0e9980696872dac1f0696c123632071": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getQuotations"])
+    "7f04f10f0ddeddd104b418724bb1785849c193f66a": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getQuotations"]),
+    "7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getRecentActivities"]),
+    "7f82d5948233efc223306c44e2a01deb4873021a20": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getLeads"]),
+    "7ff2088dba0bc1dec8498350114093211bd576d9dc": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getProducts"])
 });
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i('[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => "[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) <locals>');
@@ -1494,10 +1574,10 @@ var __TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server
 var { g: global, __dirname } = __turbopack_context__;
 {
 __turbopack_context__.s({
-    "7f1165072fe23db89dd94213b18a4454121f7b34aa": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f1165072fe23db89dd94213b18a4454121f7b34aa"]),
-    "7f452dd3d222a0cfd8a967dcf032484953b4eddc20": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f452dd3d222a0cfd8a967dcf032484953b4eddc20"]),
-    "7fbcf0aa86a497c18025397816f1c586ecfd9d39f6": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7fbcf0aa86a497c18025397816f1c586ecfd9d39f6"]),
-    "7ffd451d39c0e9980696872dac1f0696c123632071": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7ffd451d39c0e9980696872dac1f0696c123632071"])
+    "7f04f10f0ddeddd104b418724bb1785849c193f66a": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f04f10f0ddeddd104b418724bb1785849c193f66a"]),
+    "7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75"]),
+    "7f82d5948233efc223306c44e2a01deb4873021a20": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f82d5948233efc223306c44e2a01deb4873021a20"]),
+    "7ff2088dba0bc1dec8498350114093211bd576d9dc": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7ff2088dba0bc1dec8498350114093211bd576d9dc"])
 });
 var __TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$module__evaluation$3e$__ = __turbopack_context__.i('[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => "[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) <module evaluation>');
 var __TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__ = __turbopack_context__.i('[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => "[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)" } [app-rsc] (server actions loader, ecmascript) <exports>');

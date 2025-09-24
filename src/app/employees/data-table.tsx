@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { AddEmployeeDialog } from './add-employee-dialog';
+import { useUserRole } from '@/hooks/use-user-role';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -37,6 +38,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   const table = useReactTable({
     data,
@@ -65,7 +67,7 @@ export function DataTable<TData, TValue>({
                     className="pl-10 w-full"
                 />
             </div>
-            <AddEmployeeDialog />
+            {!roleLoading && isAdmin && <AddEmployeeDialog />}
         </div>
       <div className="rounded-md border">
         <Table>

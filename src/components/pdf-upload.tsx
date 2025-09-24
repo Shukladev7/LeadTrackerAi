@@ -1,6 +1,23 @@
 'use client';
 
 import { useState, useRef } from 'react';
+
+function PdfPreviewModal({ pdfUrl, onClose }: { pdfUrl: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2">
+      <div className="bg-white rounded-lg shadow-2xl w-full h-full max-w-[98vw] max-h-[98vh] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center p-4 border-b">
+          <h3 className="text-lg font-semibold">PDF Preview</h3>
+          <Button variant="ghost" size="sm" onClick={onClose}>            <X className="h-5 w-5" />
+          </Button>
+        </div>
+        <div className="flex-grow">
+          <iframe src={pdfUrl} className="w-full h-full" title="PDF Preview" />
+        </div>
+      </div>
+    </div>
+  );
+}
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +53,7 @@ export function PDFUpload({
 }: PDFUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,6 +137,9 @@ export function PDFUpload({
 
   return (
     <div className="space-y-2">
+      {isModalOpen && currentPdf && (
+        <PdfPreviewModal pdfUrl={currentPdf.url} onClose={() => setIsModalOpen(false)} />
+      )}
       <Label>{label}</Label>
       
       {currentPdf ? (
@@ -137,7 +158,7 @@ export function PDFUpload({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => window.open(currentPdf.url, '_blank')}
+              onClick={() => setIsModalOpen(true)}
               disabled={disabled}
             >
               View

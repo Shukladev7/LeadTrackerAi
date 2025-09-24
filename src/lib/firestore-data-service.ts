@@ -72,6 +72,13 @@ export interface NewProduct {
   gstRate: number;
   skus?: string[];
   catalogueUrl?: string;
+  cataloguePdf?: {
+    url: string;
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
+    base64Data: string;
+  };
 }
 
 export interface UpdatableLeadData {
@@ -94,6 +101,11 @@ export const getEmployees = async (): Promise<Employee[]> => {
 export const getEmployeeById = async (id: string): Promise<Employee | undefined> => {
   const employee = await employeeService.getById(id);
   return employee ? convertFirestoreDocToPlain(employee) : undefined;
+};
+
+export const getEmployeeByEmail = async (email: string): Promise<Employee | null> => {
+  const employee = await employeeService.getEmployeeByEmail(email);
+  return employee ? convertFirestoreDocToPlain(employee) : null;
 };
 
 export const addEmployee = async (employeeData: NewEmployee): Promise<Employee> => {
@@ -442,4 +454,46 @@ export const addDepartment = async (name: string): Promise<Department> => {
 export const deleteDepartment = async (id: string): Promise<{ success: boolean }> => {
   await departmentsService.delete(id);
   return { success: true };
+};
+
+// Count functions
+export const getLeadsCount = async (): Promise<number> => {
+  return await leadService.count();
+};
+
+export const getQuotationsCount = async (): Promise<number> => {
+  return await quotationService.count();
+};
+
+export const getProductsCount = async (): Promise<number> => {
+  return await productService.count();
+};
+
+export const getEmployeesCount = async (): Promise<number> => {
+  return await employeeService.count();
+};
+
+// Count by status functions
+export const getLeadsCountByStatus = async (status: Lead['status']): Promise<number> => {
+  return await leadService.count({
+    where: [{ field: 'status', operator: '==', value: status }]
+  });
+};
+
+export const getQuotationsCountByStatus = async (status: Quotation['status']): Promise<number> => {
+  return await quotationService.count({
+    where: [{ field: 'status', operator: '==', value: status }]
+  });
+};
+
+export const getActiveProductsCount = async (): Promise<number> => {
+  return await productService.count({
+    where: [{ field: 'isActive', operator: '==', value: true }]
+  });
+};
+
+export const getActiveEmployeesCount = async (): Promise<number> => {
+  return await employeeService.count({
+    where: [{ field: 'isActive', operator: '==', value: true }]
+  });
 };

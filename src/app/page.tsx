@@ -18,12 +18,15 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { getLeads, getRecentActivities, getProducts, getQuotations } from "@/lib/data";
+import { getLeadsCountAction, getQuotationsCountAction, getProductsCountAction } from "@/lib/actions";
 import {
   Users,
   Briefcase,
   Handshake,
   User,
   Package,
+  FileText,
+  ShoppingCart,
 } from "lucide-react";
 import { format, parseISO, differenceInDays, subMonths } from "date-fns";
 import DashboardChart from "./dashboard-chart";
@@ -68,6 +71,11 @@ type DashboardData = {
     productDemand: ProductDemandData[];
     averageConversionTime: number;
     quotationsByMonth: QuotationsByMonthData[];
+    counts: {
+        leads: number;
+        quotations: number;
+        products: number;
+    };
 };
 
 function getConversionDate(lead: Lead): Date | null {
@@ -92,7 +100,7 @@ function getConversionDate(lead: Lead): Date | null {
 }
 
 function Dashboard({ data }: { data: DashboardData }) {
-    const { leads, recentActivities, productDemand, averageConversionTime, quotationsByMonth } = data;
+    const { leads, recentActivities, productDemand, averageConversionTime, quotationsByMonth, counts } = data;
     const stats = {
         total: leads.length,
         new: leads.filter((l) => l.status === "New").length,
@@ -115,16 +123,40 @@ function Dashboard({ data }: { data: DashboardData }) {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold">{counts.leads}</div>
             <p className="text-xs text-muted-foreground">
               All leads in the system
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Quotations</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{counts.quotations}</div>
+            <p className="text-xs text-muted-foreground">
+              All quotations created
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{counts.products}</div>
+            <p className="text-xs text-muted-foreground">
+              Products in catalog
             </p>
           </CardContent>
         </Card>
@@ -149,6 +181,18 @@ function Dashboard({ data }: { data: DashboardData }) {
             <div className="text-2xl font-bold">{stats.negotiation}</div>
             <p className="text-xs text-muted-foreground">
               Leads in negotiation phase
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Closed Won</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.closedWon}</div>
+            <p className="text-xs text-muted-foreground">
+              Successfully closed deals
             </p>
           </CardContent>
         </Card>
@@ -242,11 +286,14 @@ export default function DashboardPage() {
 
     React.useEffect(() => {
       async function fetchData() {
-        const [leads, recentActivities, allProducts, quotations] = await Promise.all([
+        const [leads, recentActivities, allProducts, quotations, leadsCount, quotationsCount, productsCount] = await Promise.all([
           getLeads(),
           getRecentActivities(5),
           getProducts(),
           getQuotations(),
+          getLeadsCountAction(),
+          getQuotationsCountAction(),
+          getProductsCountAction(),
         ]);
         
         let productDemand: ProductDemandData[] = [];
@@ -309,7 +356,18 @@ export default function DashboardPage() {
             .sort((a, b) => parseISO(format(new Date(a.month), 'yyyy-MM-dd')).getTime() - parseISO(format(new Date(b.month), 'yyyy-MM-dd')).getTime());
 
         
-        setData({ leads, recentActivities, productDemand, averageConversionTime, quotationsByMonth });
+        setData({ 
+          leads, 
+          recentActivities, 
+          productDemand, 
+          averageConversionTime, 
+          quotationsByMonth,
+          counts: {
+            leads: leadsCount,
+            quotations: quotationsCount,
+            products: productsCount,
+          }
+        });
       }
       fetchData();
     }, []);

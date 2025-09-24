@@ -3,7 +3,7 @@ export type LeadStatus = 'New' | 'In Discussion' | 'Negotiation' | 'Closed - Won
 
 export const ALL_STATUSES: LeadStatus[] = ['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
 
-export type ActivityType = 'Meeting' | 'Call' | 'Email' | 'Revision Request' | 'Proposal Sent';
+export type ActivityType = 'Meeting' | 'Call' | 'Email' | 'Revision Request' | 'Proposal Sent' | 'Status Change';
 
 export type LeadSource = {
   id: string;
@@ -61,6 +61,7 @@ export type Lead = {
   createdAt: string; // ISO 8601 format
   activities: Activity[];
   products: LeadProduct[];
+  createdBy?: string; // Name or email of the user who created the lead
 };
 
 export type UpdatableLeadData = Omit<Lead, 'id' | 'createdAt' | 'activities'>;

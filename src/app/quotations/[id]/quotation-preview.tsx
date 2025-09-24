@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Download, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { PDFViewer } from '@/components/pdf-viewer';
+import { QuotationCommunicationButtons } from './quotation-communication-buttons';
 
 type QuotationPreviewProps = {
   quotation: Quotation;
@@ -245,31 +247,32 @@ export function QuotationPreview({
 
   return (
     <div ref={completePreviewRef}>
-      <div className="flex justify-end gap-2 mb-4">
-        <Button onClick={handleDownload} variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Quotation Only
-        </Button>
-        {catalogPdfCount > 0 && (
-          <>
-            <Button 
-              onClick={handleDownloadCompletePreview} 
-              disabled={isGeneratingMerged}
-              variant="outline"
-              size="sm"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              {isGeneratingMerged ? 'Generating...' : 'Complete Preview'}
-            </Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div className="flex gap-2">
+          <Button onClick={handleDownload} variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            Quotation Only
+          </Button>
+          {catalogPdfCount > 0 && (
             <Button 
               onClick={handleDownloadWithCatalogs} 
               disabled={isGeneratingMerged}
             >
               <FileText className="mr-2 h-4 w-4" />
-              {isGeneratingMerged ? 'Generating...' : `Merged PDFs (${catalogPdfCount})`}
+              {isGeneratingMerged ? 'Generating...' : `Download Merged`}
             </Button>
-          </>
-        )}
+          )}
+        </div>
+        
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Send to Customer:</span>
+          <QuotationCommunicationButtons
+            quotation={quotation}
+            lead={lead}
+            products={products}
+            quotationRef={previewRef}
+          />
+        </div>
       </div>
       <div
         ref={previewRef}
@@ -425,7 +428,7 @@ export function QuotationPreview({
           {products
             .filter(p => p.product.cataloguePdf?.base64Data)
             .map((productItem, index) => (
-              <div key={productItem.productId} className="bg-white rounded-lg shadow-lg border">
+              <div key={productItem.productId} className="bg-white rounded-lg shadow-lg border max-w-4xl mx-auto">
                 {/* Product Header */}
                 <div className="bg-gray-50 px-6 py-4 border-b">
                   <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -442,6 +445,18 @@ export function QuotationPreview({
                 
                 {/* PDF Viewer */}
                 <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-gray-700">Catalog Preview</p>
+                    <PDFViewer 
+                      pdfData={productItem.product.cataloguePdf!}
+                      trigger={
+                        <Button variant="outline" size="sm" className="flex items-center gap-1">
+                          <FileText className="h-4 w-4" />
+                          View Full PDF
+                        </Button>
+                      }
+                    />
+                  </div>
                   <div className="w-full h-96 border rounded">
                     <iframe
                       src={productItem.product.cataloguePdf!.url}
