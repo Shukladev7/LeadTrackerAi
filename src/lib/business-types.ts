@@ -78,7 +78,7 @@ export interface Product extends BusinessDocument {
 export interface LeadActivity {
   id: string;
   date: Timestamp | string;
-  type: 'Email' | 'Call' | 'Meeting' | 'Proposal Sent' | 'Revision Request' | 'Negotiation' | 'Follow-up' | 'Status Change' | 'Other';
+  type: 'Email' | 'WhatsApp' | 'Call' | 'Meeting' | 'Proposal Sent' | 'Revision Request' | 'Negotiation' | 'Follow-up' | 'Status Change' | 'Other';
   notes: string;
   userId?: string;
   attachments?: string[];

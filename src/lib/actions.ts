@@ -1058,6 +1058,47 @@ export async function getActiveEmployeesCountAction(): Promise<number> {
     }
 }
 
+// Communication Activity Actions
+const CommunicationActivitySchema = z.object({
+  leadId: z.string().min(1, 'Lead ID is required'),
+  type: z.enum(['WhatsApp', 'Email']),
+  message: z.string().min(1, 'Message is required'),
+  contact: z.string().min(1, 'Contact is required'),
+  sentBy: z.string().min(1, 'Sent by is required'),
+});
+
+export async function logCommunicationActivityAction(formData: FormData) {
+  const validatedFields = CommunicationActivitySchema.safeParse({
+    leadId: formData.get('leadId'),
+    type: formData.get('type'),
+    message: formData.get('message'),
+    contact: formData.get('contact'),
+    sentBy: formData.get('sentBy'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to log communication activity.',
+    };
+  }
+
+  const { leadId, type, message, contact, sentBy } = validatedFields.data;
+
+  try {
+    const activityNotes = `${type} message sent to ${contact} by ${sentBy}:\n\n"${message}"`;
+    
+    await addActivityToLead(leadId, {
+      type: type as 'WhatsApp' | 'Email',
+      notes: activityNotes
+    });
+  } catch (error) {
+    return { message: 'Database Error: Failed to log communication activity.' };
+  }
+
+  return { message: `Successfully logged ${type} communication.` };
+}
+
 export async function getCurrentUserEmployeeAction(email: string): Promise<Employee | null> {
     try {
         return await getEmployeeByEmail(email);

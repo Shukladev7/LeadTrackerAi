@@ -3,7 +3,7 @@ export type LeadStatus = 'New' | 'In Discussion' | 'Negotiation' | 'Closed - Won
 
 export const ALL_STATUSES: LeadStatus[] = ['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
 
-export type ActivityType = 'Meeting' | 'Call' | 'Email' | 'Revision Request' | 'Proposal Sent' | 'Status Change';
+export type ActivityType = 'Meeting' | 'Call' | 'Email' | 'WhatsApp' | 'Revision Request' | 'Proposal Sent' | 'Status Change';
 
 export type LeadSource = {
   id: string;

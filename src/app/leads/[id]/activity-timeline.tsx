@@ -19,6 +19,7 @@ const activityIcons: Record<ActivityType, React.ElementType> = {
   Meeting: Briefcase,
   Call: Phone,
   Email: Mails,
+  WhatsApp: MessageSquare,
   'Revision Request': FileText,
   'Proposal Sent': MessageSquare,
   'Status Change': ArrowRightLeft,
@@ -77,12 +78,17 @@ export default function ActivityTimeline({ activities }: { activities: Activity[
         const Icon = activityIcons[activity.type] || MessageSquare;
         const isLast = index === activities.length - 1;
         const isStatusChange = activity.type === 'Status Change';
+        const isWhatsApp = activity.type === 'WhatsApp';
+        const isEmail = activity.type === 'Email';
         const statusChange = isStatusChange ? parseStatusChange(activity.notes) : null;
 
         return (
           <div key={activity.id} className="relative flex items-start space-x-4">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full z-10 ${
-              isStatusChange ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-secondary-foreground'
+              isStatusChange ? 'bg-blue-100 text-blue-600' : 
+              isWhatsApp ? 'bg-green-100 text-green-600' :
+              isEmail ? 'bg-purple-100 text-purple-600' :
+              'bg-secondary text-secondary-foreground'
             }`}>
               <Icon className="h-5 w-5" />
             </div>

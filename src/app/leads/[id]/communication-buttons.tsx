@@ -6,12 +6,13 @@ import { MessageSquare, Mail } from 'lucide-react';
 import { CommunicationDialog } from './communication-dialog';
 
 interface CommunicationButtonsProps {
+  leadId: string;
   leadName: string;
   email: string;
   whatsappNumber?: string;
 }
 
-export function CommunicationButtons({ leadName, email, whatsappNumber }: CommunicationButtonsProps) {
+export function CommunicationButtons({ leadId, leadName, email, whatsappNumber }: CommunicationButtonsProps) {
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
@@ -46,6 +47,7 @@ export function CommunicationButtons({ leadName, email, whatsappNumber }: Commun
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}
         type="email"
+        leadId={leadId}
         leadName={leadName}
         contact={email}
       />
@@ -56,6 +58,7 @@ export function CommunicationButtons({ leadName, email, whatsappNumber }: Commun
           open={whatsappDialogOpen}
           onOpenChange={setWhatsappDialogOpen}
           type="whatsapp"
+          leadId={leadId}
           leadName={leadName}
           contact={whatsappNumber}
         />

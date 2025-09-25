@@ -13,7 +13,9 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth-context';
 import { MessageSquare, Mail, Send, FileText, Loader2 } from 'lucide-react';
+import { logCommunicationActivityAction } from '@/lib/actions';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { PDFDocument } from 'pdf-lib';
@@ -43,6 +45,7 @@ export function QuotationCommunicationDialog({
   const [message, setMessage] = useState(defaultMessage);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const generateCombinedPDF = async (): Promise<Blob | null> => {
     try {
@@ -156,6 +159,21 @@ export function QuotationCommunicationDialog({
     const pdfBlob = await generateCombinedPDF();
     if (!pdfBlob) {
       return; // Error already shown in generateCombinedPDF
+    }
+
+    // Log the communication activity
+    try {
+      const formData = new FormData();
+      formData.append('leadId', lead.id || '');
+      formData.append('type', type === 'whatsapp' ? 'WhatsApp' : 'Email');
+      formData.append('message', `${message}\n\n📎 Quotation ${quotation.quotationNumber} with product catalogs attached.`);
+      formData.append('contact', type === 'whatsapp' ? (lead.whatsappNumber || lead.phone) : lead.email);
+      formData.append('sentBy', user?.displayName || user?.email || 'Unknown User');
+      
+      await logCommunicationActivityAction(formData);
+    } catch (error) {
+      console.error('Error logging communication activity:', error);
+      // Continue with sending even if logging fails
     }
 
     if (type === 'whatsapp') {

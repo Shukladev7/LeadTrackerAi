@@ -34,7 +34,7 @@ export function QuotationCommunicationButtons({
         className="flex items-center gap-2"
       >
         <Mail className="h-4 w-4" />
-        Email PDF
+        Email
       </Button>
 
       {/* WhatsApp Button - show if WhatsApp number or phone exists */}
@@ -46,7 +46,7 @@ export function QuotationCommunicationButtons({
           className="flex items-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
         >
           <MessageSquare className="h-4 w-4" />
-          WhatsApp PDF
+          WhatsApp
         </Button>
       )}
 

@@ -128,6 +128,7 @@ export default async function LeadDetailPage({ params }: { params: { id:string }
                 <div className="flex flex-wrap items-center gap-2 pt-4 border-t">
                     <span className="text-sm font-medium">Send Message:</span>
                     <CommunicationButtons 
+                        leadId={lead.id}
                         leadName={lead.name}
                         email={lead.email}
                         whatsappNumber={lead.whatsappNumber}

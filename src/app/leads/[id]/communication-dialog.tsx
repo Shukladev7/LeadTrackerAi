@@ -13,12 +13,15 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth-context';
 import { MessageSquare, Mail, Send } from 'lucide-react';
+import { logCommunicationActivityAction } from '@/lib/actions';
 
 interface CommunicationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: 'whatsapp' | 'email';
+  leadId: string;
   leadName: string;
   contact: string; // WhatsApp number or email address
   defaultMessage?: string;
@@ -28,14 +31,16 @@ export function CommunicationDialog({
   open,
   onOpenChange,
   type,
+  leadId,
   leadName,
   contact,
   defaultMessage = "Thank you for contacting us. We appreciate your interest and will get back to you soon."
 }: CommunicationDialogProps) {
   const [message, setMessage] = useState(defaultMessage);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim()) {
       toast({
         title: "Message Required",
@@ -43,6 +48,21 @@ export function CommunicationDialog({
         variant: "destructive",
       });
       return;
+    }
+
+    // Log the communication activity
+    try {
+      const formData = new FormData();
+      formData.append('leadId', leadId);
+      formData.append('type', type === 'whatsapp' ? 'WhatsApp' : 'Email');
+      formData.append('message', message);
+      formData.append('contact', contact);
+      formData.append('sentBy', user?.displayName || user?.email || 'Unknown User');
+      
+      await logCommunicationActivityAction(formData);
+    } catch (error) {
+      console.error('Error logging communication activity:', error);
+      // Continue with sending even if logging fails
     }
 
     if (type === 'whatsapp') {
