@@ -79,7 +79,7 @@ export interface LeadActivity {
   id: string;
   date: Timestamp | string;
   type: 'Email' | 'WhatsApp' | 'Call' | 'Meeting' | 'Proposal Sent' | 'Revision Request' | 'Negotiation' | 'Follow-up' | 'Status Change' | 'Other';
-  notes: string;
+  notes?: string;
   userId?: string;
   attachments?: string[];
   // Additional fields for status change tracking

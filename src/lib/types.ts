@@ -14,7 +14,7 @@ export type Activity = {
   id: string;
   date: string; // ISO 8601 format
   type: ActivityType;
-  notes: string;
+  notes?: string;
   summary?: string;
 };
 

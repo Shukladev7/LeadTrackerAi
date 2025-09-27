@@ -77,13 +77,12 @@ type DashboardData = {
         products: number;
     };
 };
-
 function getConversionDate(lead: Lead): Date | null {
     if (lead.status !== 'Closed - Won') return null;
     
     // Find the activity where status was changed to 'Closed - Won'
     const statusChangeActivity = lead.activities.find(a => 
-      a.notes.includes("Status changed from") && a.notes.includes(`to "${'Closed - Won'}"`)
+      a.notes && a.notes.includes("Status changed from") && a.notes.includes(`to "${'Closed - Won'}"`)
     );
 
     if (statusChangeActivity) {

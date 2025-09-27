@@ -10,18 +10,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { logActivity, getSummaryForNotes } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { ActivityType } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const activitySchema = z.object({
   type: z.enum(['Meeting', 'Call', 'Email', 'Revision Request', 'Proposal Sent']),
-  notes: z.string().min(10, { message: 'Notes must be at least 10 characters.' }),
+  notes: z.string().optional(),
   summary: z.string().optional(),
 });
 
 type ActivityFormData = z.infer<typeof activitySchema>;
+type LogActivityType = 'Meeting' | 'Call' | 'Email' | 'Revision Request' | 'Proposal Sent';
 
-const activityTypes: ActivityType[] = ['Meeting', 'Call', 'Email', 'Revision Request', 'Proposal Sent'];
+const activityTypes: LogActivityType[] = ['Meeting', 'Call', 'Email', 'Revision Request', 'Proposal Sent'];
 
 export default function LogActivityForm({ leadId }: { leadId: string }) {
   const { toast } = useToast();
@@ -37,6 +37,7 @@ export default function LogActivityForm({ leadId }: { leadId: string }) {
   const summary = watch('summary');
 
   const handleSummarize = async () => {
+    if (!notes) return;
     setIsSummarizing(true);
     const result = await getSummaryForNotes(notes);
     if (result.summary) {
@@ -59,9 +60,8 @@ export default function LogActivityForm({ leadId }: { leadId: string }) {
     const formData = new FormData();
     formData.append('leadId', leadId);
     Object.entries(data).forEach(([key, value]) => {
-      if (value) {
-        formData.append(key, value as string);
-      }
+      // Always append the field, even if empty (for optional fields like notes)
+      formData.append(key, value as string || '');
     });
 
     const result = await logActivity(formData);
@@ -83,7 +83,7 @@ export default function LogActivityForm({ leadId }: { leadId: string }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <Select onValueChange={(value: ActivityType) => setValue('type', value)} defaultValue="Meeting">
+        <Select onValueChange={(value: LogActivityType) => setValue('type', value)} defaultValue="Meeting">
           <SelectTrigger>
             <SelectValue placeholder="Select activity type" />
           </SelectTrigger>
@@ -96,7 +96,7 @@ export default function LogActivityForm({ leadId }: { leadId: string }) {
       </div>
       <div>
         <Textarea
-          placeholder="Log notes from your meeting, call, or email..."
+          placeholder="Add notes from your meeting, call, or email (optional)..."
           rows={6}
           {...register('notes')}
           className={errors.notes ? 'border-destructive' : ''}

@@ -322,7 +322,7 @@ export async function updateProduct(id: string, formData: FormData) {
 const LogActivitySchema = z.object({
     leadId: z.string(),
     type: z.enum(['Meeting', 'Call', 'Email', 'Revision Request', 'Proposal Sent']),
-    notes: z.string().min(10, 'Notes must be at least 10 characters long.'),
+    notes: z.string().optional(),
     summary: z.string().optional(),
 });
 

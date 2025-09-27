@@ -41,7 +41,8 @@ function FormattedDate({ dateString }: { dateString: string }) {
 
 
 // Helper function to parse status change information from notes
-function parseStatusChange(notes: string) {
+function parseStatusChange(notes?: string) {
+  if (!notes) return null;
   const match = notes.match(/Status changed from "([^"]+)" to "([^"]+)" by (.+)/);
   if (match) {
     return {
@@ -116,7 +117,11 @@ export default function ActivityTimeline({ activities }: { activities: Activity[
                     </p>
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap">{activity.notes}</p>
+                  activity.notes ? (
+                    <p className="whitespace-pre-wrap">{activity.notes}</p>
+                  ) : (
+                    <p className="text-muted-foreground italic">No notes provided</p>
+                  )
                 )}
                 {activity.summary && (
                    <Card className="bg-background">

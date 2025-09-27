@@ -119,8 +119,9 @@ export function CreateLeadDialog() {
     Object.entries(data).forEach(([key, value]) => {
         if (key === 'products') {
             formData.append('products', JSON.stringify(value));
-        } else if (value) {
-            formData.append(key, value as string);
+        } else {
+            // Always append the field, even if empty (for optional fields like notes)
+            formData.append(key, value as string || '');
         }
     });
 
@@ -338,8 +339,8 @@ export function CreateLeadDialog() {
                 </div>
                 
                 <div className="space-y-2">
-                    <Label htmlFor="notes">Initial Notes</Label>
-                    <Textarea id="notes" placeholder="Initial notes about the lead..." {...register('notes')} />
+                    <Label htmlFor="notes">Initial Notes (Optional)</Label>
+                    <Textarea id="notes" placeholder="Add any initial notes about the lead (optional)..." {...register('notes')} />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="status">Initial Status</Label>

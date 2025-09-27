@@ -130,8 +130,9 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
     Object.entries(data).forEach(([key, value]) => {
         if (key === 'products') {
             formData.append('products', JSON.stringify(value));
-        } else if (value) {
-            formData.append(key, value as string);
+        } else {
+            // Always append the field, even if empty (for optional fields like notes)
+            formData.append(key, value as string || '');
         }
     });
 
