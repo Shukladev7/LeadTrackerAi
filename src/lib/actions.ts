@@ -274,10 +274,11 @@ export async function addProduct(formData: FormData) {
 export async function updateProduct(id: string, formData: FormData) {
     const skusJSON = formData.get('skus');
     const skus = skusJSON ? JSON.parse(skusJSON as string) : [];
-    
+
     const catalogPdfJSON = formData.get('catalogPdf');
     const catalogPdf = catalogPdfJSON ? JSON.parse(catalogPdfJSON as string) : undefined;
-    
+    const removeCatalogPdf = String(formData.get('removeCatalogPdf') || '').toLowerCase() === 'true';
+
     const validatedFields = ProductSchema.safeParse({
       name: formData.get('name'),
       description: formData.get('description'),
@@ -287,22 +288,27 @@ export async function updateProduct(id: string, formData: FormData) {
       catalogueUrl: formData.get('catalogueUrl') || '',
       cataloguePdf: catalogPdf,
     });
-  
+
     if (!validatedFields.success) {
       return {
         errors: validatedFields.error.flatten().fieldErrors,
         message: 'Failed to update product.',
       };
     }
-  
+
     try {
-      await dbUpdateProduct(id, validatedFields.data);
+      const updateData = { ...validatedFields.data } as any;
+      // If user explicitly removed the existing PDF and didn't upload a new one, clear the field
+      if (removeCatalogPdf && !catalogPdf) {
+        updateData.cataloguePdf = null; // This will clear the field in Firestore
+      }
+      await dbUpdateProduct(id, updateData);
     } catch (error) {
       return { message: 'Database Error: Failed to update product.' };
     }
-  
+
     revalidatePath('/products');
-    revalidatePath('/leads'); 
+    revalidatePath('/leads');
     return { message: 'Successfully updated product.' };
   }
   

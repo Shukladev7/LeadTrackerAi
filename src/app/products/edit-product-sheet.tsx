@@ -44,6 +44,8 @@ type EditProductSheetProps = {
 export function EditProductSheet({ product, open, onOpenChange }: EditProductSheetProps) {
   const [currentSku, setCurrentSku] = useState('');
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
+  // Track if user explicitly removed the existing PDF (when editing an item that already had a catalogue)
+  const [removedExistingPdf, setRemovedExistingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string>('');
   const { toast } = useToast();
   const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
@@ -61,6 +63,10 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
         ...product,
         skus: product.skus?.map(sku => ({ value: sku })) || [],
       });
+      // Reset local PDF state flags whenever the sheet is (re)opened
+      setCatalogPdf(null);
+      setRemovedExistingPdf(false);
+      setPdfError('');
     }
   }, [product, open, reset]);
 
@@ -92,6 +98,11 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       }));
     }
 
+    // If user removed the existing PDF and did not upload a new one, inform backend to clear it
+    if (!catalogPdf && removedExistingPdf) {
+      formData.append('removeCatalogPdf', 'true');
+    }
+
     if (!product.id) {
       toast({
         variant: 'destructive',
@@ -103,18 +114,18 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
 
     const result = await updateProduct(product.id, formData);
 
-    if (result.message === 'Successfully updated product.') {
+    if (result?.message === 'Successfully updated product.') {
       toast({
         title: 'Product Updated',
         description: `"${data.name}" has been successfully updated.`,
       });
       onOpenChange(false);
     } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: result.message,
-        });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: result?.message || 'An error occurred while updating the product.',
+      });
     }
   };
 
@@ -156,20 +167,30 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
               onUploadComplete={(result) => {
                 setCatalogPdf(result);
                 setPdfError('');
+                setRemovedExistingPdf(false); // A new upload supersedes any prior removal
               }}
               onUploadError={(error) => {
                 setPdfError(error);
                 setCatalogPdf(null);
               }}
-              currentPdf={catalogPdf || (product.cataloguePdf ? {
-                url: product.cataloguePdf.url,
-                fileName: product.cataloguePdf.fileName,
-                filePath: product.cataloguePdf.filePath,
-                base64Data: product.cataloguePdf.base64Data
-              } : null)}
+              currentPdf={
+                // If user removed existing PDF, don't show it. Otherwise prefer newly uploaded, else show existing.
+                removedExistingPdf
+                  ? null
+                  : (catalogPdf || (product.cataloguePdf ? {
+                      url: product.cataloguePdf.url,
+                      fileName: product.cataloguePdf.fileName,
+                      filePath: product.cataloguePdf.filePath,
+                      base64Data: product.cataloguePdf.base64Data
+                    } : null))
+              }
               onRemove={() => {
                 setCatalogPdf(null);
                 setPdfError('');
+                // Mark the existing PDF as removed so UI hides it and backend clears it if no new upload
+                if (product.cataloguePdf) {
+                  setRemovedExistingPdf(true);
+                }
               }}
               label="Catalog PDF"
               description="Upload a PDF catalog file (max 5MB)"
@@ -214,3 +235,4 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
     </Sheet>
   );
 }
+
