@@ -27,11 +27,16 @@ export type Product = {
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
-    url: string; // Base64 data URL
+    url: string; // Firebase Storage download URL
     fileName: string;
     filePath: string;
     uploadedAt: string;
-    base64Data: string; // The actual base64 string for storage
+  };
+  productImage?: {
+    url: string; // Firebase Storage download URL
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
   };
 };
 
@@ -74,6 +79,7 @@ export type QuotationProduct = {
   quantity: number;
   rate: number;
   gstRate: number;
+  discount?: number;
 };
 
 export type PopulatedQuotationProduct = QuotationProduct & {
@@ -106,6 +112,7 @@ export type Quotation = {
 export type QuotationTemplate = {
     id: string;
     name: string;
+    prefix: string; // e.g., QUO, SALES
     logoUrl?: string;
     companyName: string;
     companyAddress: string;

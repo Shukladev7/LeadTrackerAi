@@ -77,7 +77,6 @@ export interface NewProduct {
     fileName: string;
     filePath: string;
     uploadedAt: string;
-    base64Data: string;
   };
 }
 
@@ -232,8 +231,13 @@ export const addActivityToLead = async (leadId: string, activityData: Omit<Activ
     throw new Error('Lead not found');
   }
 
+  // Remove any undefined values since Firestore does not allow them
+  const sanitizedActivityData = Object.fromEntries(
+    Object.entries(activityData as Record<string, unknown>).filter(([, value]) => value !== undefined)
+  ) as Omit<Activity, 'id' | 'date'>;
+
   const newActivity: LeadActivity = {
-    ...activityData,
+    ...sanitizedActivityData,
     id: `act-${leadId}-${Date.now()}`,
     date: new Date().toISOString(),
   };
@@ -328,14 +332,10 @@ export const deleteLeadSource = async (id: string): Promise<{ success: boolean }
 
 // Quotation functions
 export const getQuotations = async (): Promise<Quotation[]> => {
-  const quotations = await quotationService.getAll();
-  const plainQuotations = quotations.map(q => convertFirestoreDocToPlain(q));
-  
-  return plainQuotations.sort((a, b) => {
-    const aDate = a.createdAt ? new Date(a.createdAt.toString()).getTime() : 0;
-    const bDate = b.createdAt ? new Date(b.createdAt.toString()).getTime() : 0;
-    return bDate - aDate;
+  const quotations = await quotationService.getWithQuery({
+    orderBy: { field: 'createdAt', direction: 'desc' }
   });
+  return quotations.map(q => convertFirestoreDocToPlain(q));
 };
 
 export const getQuotationById = async (id: string): Promise<Quotation | undefined> => {
@@ -343,8 +343,12 @@ export const getQuotationById = async (id: string): Promise<Quotation | undefine
   return quotation ? convertFirestoreDocToPlain(quotation) : undefined;
 };
 
-export const addQuotation = async (quotationData: Omit<Quotation, 'id' | 'createdAt' | 'quotationNumber'>): Promise<Quotation> => {
-  const quotationNumber = await quotationService.generateQuotationNumber();
+export const addQuotation = async (quotationData: Omit<Quotation, 'id' | 'createdAt' | 'quotationNumber'>, quotationPrefix: string): Promise<Quotation> => {
+  console.log('Data service received prefix:', quotationPrefix);
+  const prefix = quotationPrefix?.trim() || 'QUO';
+  console.log('Final prefix being used:', prefix);
+  const quotationNumber = await quotationService.generateQuotationNumber(prefix);
+  console.log('Generated quotation number:', quotationNumber);
   
   const id = await quotationService.create({
     ...quotationData,

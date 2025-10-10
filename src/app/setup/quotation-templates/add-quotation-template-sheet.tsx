@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const templateSchema = z.object({
   name: z.string().min(3, 'Template name must be at least 3 characters.'),
+  prefix: z.string().min(1, 'Prefix is required.'),
   companyName: z.string().min(3, 'Company name is required.'),
   companyAddress: z.string().min(10, 'Full company address is required.'),
   companyGst: z.string().length(15, 'GSTIN must be 15 characters.'),
@@ -110,6 +111,11 @@ export function AddQuotationTemplateSheet() {
             {errors.logoUrl && <p className="text-xs text-destructive mt-1">{errors.logoUrl.message}</p>}
           </div>
            <div className="space-y-2">
+            <Label htmlFor="prefix">Quotation Prefix</Label>
+            <Input id="prefix" placeholder="e.g., QUO" {...register('prefix')} className={errors.prefix ? 'border-destructive' : ''} />
+            {errors.prefix && <p className="text-xs text-destructive mt-1">{errors.prefix.message}</p>}
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="companyName">Company Name</Label>
             <Input id="companyName" {...register('companyName')} className={errors.companyName ? 'border-destructive' : ''} />
             {errors.companyName && <p className="text-xs text-destructive mt-1">{errors.companyName.message}</p>}

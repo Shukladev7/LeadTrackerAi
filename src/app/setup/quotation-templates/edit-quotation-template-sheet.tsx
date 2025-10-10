@@ -24,6 +24,7 @@ import { updateQuotationTemplateAction } from '@/lib/actions';
 
 const templateSchema = z.object({
   name: z.string().min(3, 'Template name must be at least 3 characters.'),
+  prefix: z.string().min(1, 'Prefix is required.'),
   companyName: z.string().min(3, 'Company name is required.'),
   companyAddress: z.string().min(10, 'Full company address is required.'),
   companyGst: z.string().length(15, 'GSTIN must be 15 characters.'),
@@ -105,6 +106,11 @@ export function EditQuotationTemplateSheet({ template, open, onOpenChange }: Edi
             <Label htmlFor="name">Template Name</Label>
             <Input id="name" placeholder="e.g., Standard Web Services Template" {...register('name')} className={errors.name ? 'border-destructive' : ''} />
             {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="prefix">Quotation Prefix</Label>
+            <Input id="prefix" placeholder="e.g., QUO" {...register('prefix')} className={errors.prefix ? 'border-destructive' : ''} />
+            {errors.prefix && <p className="text-xs text-destructive mt-1">{errors.prefix.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="logoUrl">Company Logo</Label>

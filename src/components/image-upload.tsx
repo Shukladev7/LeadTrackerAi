@@ -1,35 +1,17 @@
 'use client';
 
 import { useState, useRef } from 'react';
-
-function PdfPreviewModal({ pdfUrl, onClose }: { pdfUrl: string; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2">
-      <div className="bg-white rounded-lg shadow-2xl w-full h-full max-w-[98vw] max-h-[98vh] flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold">PDF Preview</h3>
-          <Button variant="ghost" size="sm" onClick={onClose}>            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        <div className="flex-grow">
-          <iframe src={pdfUrl} className="w-full h-full" title="PDF Preview" />
-        </div>
-      </div>
-    </div>
-  );
-}
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, File, X, CheckCircle, AlertCircle } from 'lucide-react';
-import { uploadPDFToStorage, validatePDFFile, formatFileSize, UploadResult } from '@/lib/storage-utils';
+import { Upload, X, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { uploadImageToStorage, validateImageFile, UploadResult } from '@/lib/storage-utils';
+import Image from 'next/image';
 
-interface PDFUploadProps {
+interface ImageUploadProps {
   onUploadComplete: (result: UploadResult) => void;
   onUploadError: (error: string) => void;
-  currentPdf?: {
+  currentImage?: {
     url: string;
     fileName: string;
     filePath?: string;
@@ -41,34 +23,38 @@ interface PDFUploadProps {
   description?: string;
 }
 
-export function PDFUpload({
+export function ImageUpload({
   onUploadComplete,
   onUploadError,
-  currentPdf,
+  currentImage,
   onRemove,
   disabled = false,
-  label = "Catalog PDF",
-  description = "Upload a PDF file (max 5MB)"
-}: PDFUploadProps) {
+  label = "Product Image",
+  description = "Upload an image (max 5MB, JPG/PNG/GIF/WebP)"
+}: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (file: File) => {
     // Validate file
-    const validation = validatePDFFile(file);
+    const validation = validateImageFile(file);
     if (!validation.isValid) {
       onUploadError(validation.error || 'Invalid file');
       return;
     }
 
+    // Create local preview
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl(localPreview);
+
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      const result = await uploadPDFToStorage(file, 'catalogs', (percent) => {
+      const result = await uploadImageToStorage(file, 'products', (percent) => {
         setUploadProgress(percent);
       });
       
@@ -78,11 +64,14 @@ export function PDFUpload({
         onUploadComplete(result);
         setIsUploading(false);
         setUploadProgress(0);
+        URL.revokeObjectURL(localPreview);
       }, 500);
 
     } catch (error) {
       setIsUploading(false);
       setUploadProgress(0);
+      setPreviewUrl(null);
+      URL.revokeObjectURL(localPreview);
       onUploadError(error instanceof Error ? error.message : 'Upload failed');
     }
   };
@@ -119,50 +108,59 @@ export function PDFUpload({
   };
 
   const handleRemove = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
     if (onRemove) {
       onRemove();
     }
   };
 
+  const displayUrl = previewUrl || currentImage?.url;
+
   return (
     <div className="space-y-2">
-      {isModalOpen && currentPdf && (
-        <PdfPreviewModal pdfUrl={currentPdf.url} onClose={() => setIsModalOpen(false)} />
-      )}
       <Label>{label}</Label>
       
-      {currentPdf ? (
-        // Show current PDF
-        <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <File className="h-4 w-4 text-gray-600" />
-            <div>
-              <p className="text-sm font-medium text-gray-900">{currentPdf.fileName}</p>
-              <p className="text-xs text-gray-500">PDF uploaded successfully</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsModalOpen(true)}
-              disabled={disabled}
-            >
-              View
-            </Button>
-            {onRemove && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleRemove}
-                disabled={disabled}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+      {currentImage || previewUrl ? (
+        // Show current/preview image
+        <div className="space-y-2">
+          <div className="relative w-full aspect-video rounded-lg overflow-hidden border bg-gray-50">
+            {displayUrl && (
+              <Image
+                src={displayUrl}
+                alt={currentImage?.fileName || 'Product image'}
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, 600px"
+              />
             )}
+          </div>
+          <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <ImageIcon className="h-4 w-4 text-gray-600" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {currentImage?.fileName || 'Image uploaded'}
+                </p>
+                <p className="text-xs text-gray-500">Image uploaded successfully</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {onRemove && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemove}
+                  disabled={disabled}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       ) : (
@@ -182,7 +180,7 @@ export function PDFUpload({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
               onChange={handleFileInputChange}
               className="hidden"
               disabled={disabled}
@@ -191,13 +189,13 @@ export function PDFUpload({
             {isUploading ? (
               <div className="space-y-2">
                 <Upload className="h-8 w-8 mx-auto text-primary animate-pulse" />
-                <p className="text-sm font-medium">Uploading PDF...</p>
+                <p className="text-sm font-medium">Uploading image...</p>
                 <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
                 <p className="text-xs text-gray-500">{uploadProgress}% complete</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                <ImageIcon className="h-8 w-8 mx-auto text-gray-400" />
                 <div>
                   <p className="text-sm font-medium">Click to upload or drag and drop</p>
                   <p className="text-xs text-gray-500">{description}</p>

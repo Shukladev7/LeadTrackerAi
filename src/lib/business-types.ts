@@ -60,11 +60,16 @@ export interface Product extends BusinessDocument {
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
-    url: string; // Base64 data URL
+    url: string; // Firebase Storage download URL
     fileName: string;
     filePath: string;
     uploadedAt: string;
-    base64Data: string; // The actual base64 string for storage
+  };
+  productImage?: {
+    url: string; // Firebase Storage download URL
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
   };
   category?: string;
   isActive?: boolean;
@@ -137,6 +142,7 @@ export interface PopulatedQuotationProduct extends QuotationProduct {
 // Quotation Template interface
 export interface QuotationTemplate extends BusinessDocument {
   name: string;
+  prefix: string;
   companyName: string;
   companyAddress: string;
   companyGst: string;

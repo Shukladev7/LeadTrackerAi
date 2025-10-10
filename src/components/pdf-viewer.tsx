@@ -15,11 +15,10 @@ import { Badge } from '@/components/ui/badge';
 
 interface PDFViewerProps {
   pdfData: {
-    url: string; // Base64 data URL
+    url: string; // Firebase Storage download URL
     fileName: string;
     filePath: string;
     uploadedAt: string;
-    base64Data: string;
   };
   trigger?: React.ReactNode;
 }
@@ -67,12 +66,10 @@ export function PDFViewer({ pdfData, trigger }: PDFViewerProps) {
     });
   };
 
-  const formatFileSize = (base64String: string) => {
-    // Approximate file size from base64 string (base64 is ~33% larger than original)
-    const sizeInBytes = (base64String.length * 3) / 4;
-    if (sizeInBytes < 1024) return `${Math.round(sizeInBytes)} B`;
-    if (sizeInBytes < 1024 * 1024) return `${Math.round(sizeInBytes / 1024)} KB`;
-    return `${Math.round(sizeInBytes / (1024 * 1024))} MB`;
+  const formatFileSize = () => {
+    // Since we're using Firebase Storage, we can't easily get file size from URL
+    // This is a placeholder - in a real implementation, you might want to store file size in metadata
+    return 'PDF File';
   };
 
   return (
@@ -93,7 +90,7 @@ export function PDFViewer({ pdfData, trigger }: PDFViewerProps) {
           </DialogTitle>
           <DialogDescription className="flex items-center gap-4">
             <span>Uploaded: {formatDate(pdfData.uploadedAt)}</span>
-            <Badge variant="secondary">{formatFileSize(pdfData.base64Data)}</Badge>
+            <Badge variant="secondary">{formatFileSize()}</Badge>
           </DialogDescription>
         </DialogHeader>
         

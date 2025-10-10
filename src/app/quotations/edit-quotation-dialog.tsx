@@ -51,6 +51,7 @@ const quotationProductSchema = z.object({
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     rate: z.coerce.number().min(0, 'Rate must be a positive number'),
     gstRate: z.coerce.number().min(0),
+    discount: z.coerce.number().min(0).max(100).optional(),
 });
 
 const quotationSchema = z.object({
@@ -127,11 +128,21 @@ export function EditQuotationDialog({
   const watchedProducts = watch('products');
 
   const productTotals = watchedProducts?.map(p => {
-    const amount = p.quantity * p.rate;
+    const baseAmount = p.quantity * p.rate;
+    const discountAmount = baseAmount * ((p.discount || 0) / 100);
+    const amount = baseAmount - discountAmount;
     const gstAmount = amount * (p.gstRate / 100);
-    return { amount, gstAmount, total: amount + gstAmount };
+    return { 
+      baseAmount, 
+      discountAmount, 
+      amount, 
+      gstAmount, 
+      total: amount + gstAmount 
+    };
   }) || [];
   
+  const totalBaseAmount = productTotals.reduce((acc, curr) => acc + curr.baseAmount, 0);
+  const totalDiscountAmount = productTotals.reduce((acc, curr) => acc + curr.discountAmount, 0);
   const subTotal = productTotals.reduce((acc, curr) => acc + curr.amount, 0);
   const totalGst = productTotals.reduce((acc, curr) => acc + curr.gstAmount, 0);
   const grandTotal = subTotal + totalGst;
@@ -400,9 +411,10 @@ export function EditQuotationDialog({
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[30%]">Product Name</TableHead>
+                                    <TableHead className="w-[25%]">Product Name</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
+                                    <TableHead>Discount %</TableHead>
                                     <TableHead>GST</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
@@ -433,6 +445,7 @@ export function EditQuotationDialog({
                                         </TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" /></TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.rate`)} min="0" className="w-24" /></TableCell>
+                                        <TableCell><Input type="number" {...register(`products.${index}.discount`)} min="0" max="100" step="0.01" className="w-20" placeholder="0" /></TableCell>
                                         <TableCell>{watchedProducts?.[index]?.gstRate || 0}%</TableCell>
                                         <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
                                         <TableCell>
@@ -443,18 +456,22 @@ export function EditQuotationDialog({
                                     </TableRow>
                                 )})}
                                 {fields.length === 0 && (
-                                    <TableRow><TableCell colSpan={6} className="text-center h-24">No products added.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={7} className="text-center h-24">No products added.</TableCell></TableRow>
                                 )}
                             </TableBody>
                             <UiTableFooter>
-                                <TableRow><TableCell colSpan={4} className="text-right">Sub-total</TableCell><TableCell className="text-right">{formatCurrency(subTotal)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={4} className="text-right">Total GST</TableCell><TableCell className="text-right">{formatCurrency(totalGst)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={4} className="text-right font-bold text-lg">Grand Total</TableCell><TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={5} className="text-right">Base Amount</TableCell><TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell><TableCell></TableCell></TableRow>
+                                {totalDiscountAmount > 0 && (
+                                    <TableRow><TableCell colSpan={5} className="text-right text-green-600">Total Discount</TableCell><TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell><TableCell></TableCell></TableRow>
+                                )}
+                                <TableRow><TableCell colSpan={5} className="text-right">Sub-total</TableCell><TableCell className="text-right">{formatCurrency(subTotal)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={5} className="text-right">Total GST</TableCell><TableCell className="text-right">{formatCurrency(totalGst)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={5} className="text-right font-bold text-lg">Grand Total</TableCell><TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell><TableCell></TableCell></TableRow>
                             </UiTableFooter>
                         </Table>
                     </div>
                      {errors.products && <p className="text-xs text-destructive mt-1">{errors.products.message || errors.products.root?.message}</p>}
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0 })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0 })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                     </Button>
                 </div>

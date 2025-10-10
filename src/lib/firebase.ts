@@ -29,7 +29,10 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
     // Uncomment these lines if you want to use Firebase emulators in development
     // connectFirestoreEmulator(db, 'localhost', 8080);
     // connectAuthEmulator(auth, 'http://localhost:9099');
-    // Note: Storage emulator not needed for Base64 storage approach
+    
+    // Storage emulator disabled - using production Firebase Storage with CORS configured
+    // connectStorageEmulator(storage, 'localhost', 9299);
+    // console.log('Connected to Firebase Storage emulator');
   } catch (error) {
     console.log('Emulators already connected or not available');
   }

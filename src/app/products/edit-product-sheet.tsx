@@ -23,7 +23,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Product } from '@/lib/business-types';
 import { PDFUpload } from '@/components/pdf-upload';
-import { UploadResult, deletePDF } from '@/lib/storage-utils';
+import { ImageUpload } from '@/components/image-upload';
+import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
@@ -47,6 +48,9 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
   // Track if user explicitly removed the existing PDF (when editing an item that already had a catalogue)
   const [removedExistingPdf, setRemovedExistingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string>('');
+  const [productImage, setProductImage] = useState<UploadResult | null>(null);
+  const [removedExistingImage, setRemovedExistingImage] = useState(false);
+  const [imageError, setImageError] = useState<string>('');
   const { toast } = useToast();
   const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -63,10 +67,13 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
         ...product,
         skus: product.skus?.map(sku => ({ value: sku })) || [],
       });
-      // Reset local PDF state flags whenever the sheet is (re)opened
+      // Reset local PDF and image state flags whenever the sheet is (re)opened
       setCatalogPdf(null);
       setRemovedExistingPdf(false);
       setPdfError('');
+      setProductImage(null);
+      setRemovedExistingImage(false);
+      setImageError('');
     }
   }, [product, open, reset]);
 
@@ -87,20 +94,34 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       }
     });
 
-    // Add catalog PDF data if available
+    // Add catalog PDF data if available (only send URL + metadata)
     if (catalogPdf) {
       formData.append('catalogPdf', JSON.stringify({
         url: catalogPdf.url,
         fileName: catalogPdf.fileName,
         filePath: catalogPdf.path,
-        uploadedAt: new Date().toISOString(),
-        base64Data: catalogPdf.base64Data
+        uploadedAt: new Date().toISOString()
       }));
     }
 
     // If user removed the existing PDF and did not upload a new one, inform backend to clear it
     if (!catalogPdf && removedExistingPdf) {
       formData.append('removeCatalogPdf', 'true');
+    }
+
+    // Add product image data if available
+    if (productImage) {
+      formData.append('productImage', JSON.stringify({
+        url: productImage.url,
+        fileName: productImage.fileName,
+        filePath: productImage.path,
+        uploadedAt: new Date().toISOString()
+      }));
+    }
+
+    // If user removed the existing image and did not upload a new one, inform backend to clear it
+    if (!productImage && removedExistingImage) {
+      formData.append('removeProductImage', 'true');
     }
 
     if (!product.id) {
@@ -180,8 +201,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
                   : (catalogPdf || (product.cataloguePdf ? {
                       url: product.cataloguePdf.url,
                       fileName: product.cataloguePdf.fileName,
-                      filePath: product.cataloguePdf.filePath,
-                      base64Data: product.cataloguePdf.base64Data
+                      filePath: product.cataloguePdf.filePath
                     } : null))
               }
               onRemove={() => {
@@ -196,6 +216,39 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
               description="Upload a PDF catalog file (max 5MB)"
             />
             {pdfError && <p className="text-xs text-destructive mt-1">{pdfError}</p>}
+          </div>
+          
+          <div>
+            <ImageUpload
+              onUploadComplete={(result) => {
+                setProductImage(result);
+                setImageError('');
+                setRemovedExistingImage(false);
+              }}
+              onUploadError={(error) => {
+                setImageError(error);
+                setProductImage(null);
+              }}
+              currentImage={
+                removedExistingImage
+                  ? null
+                  : (productImage || (product.productImage ? {
+                      url: product.productImage.url,
+                      fileName: product.productImage.fileName,
+                      filePath: product.productImage.filePath
+                    } : null))
+              }
+              onRemove={() => {
+                setProductImage(null);
+                setImageError('');
+                if (product.productImage) {
+                  setRemovedExistingImage(true);
+                }
+              }}
+              label="Product Image"
+              description="Upload a product image (max 5MB)"
+            />
+            {imageError && <p className="text-xs text-destructive mt-1">{imageError}</p>}
           </div>
           <div className="space-y-2">
             <Label>SKUs</Label>

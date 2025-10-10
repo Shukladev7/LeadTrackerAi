@@ -23,7 +23,8 @@ import { addProduct } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { PDFUpload } from '@/components/pdf-upload';
-import { UploadResult, deletePDF } from '@/lib/storage-utils';
+import { ImageUpload } from '@/components/image-upload';
+import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
@@ -40,6 +41,8 @@ export function AddProductSheet() {
   const [currentSku, setCurrentSku] = useState('');
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   const [pdfError, setPdfError] = useState<string>('');
+  const [productImage, setProductImage] = useState<UploadResult | null>(null);
+  const [imageError, setImageError] = useState<string>('');
   const { toast } = useToast();
   const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -71,14 +74,23 @@ export function AddProductSheet() {
       }
     });
 
-    // Add catalog PDF data if available
+    // Add catalog PDF data if available (only send URL + metadata)
     if (catalogPdf) {
       formData.append('catalogPdf', JSON.stringify({
         url: catalogPdf.url,
         fileName: catalogPdf.fileName,
         filePath: catalogPdf.path,
-        uploadedAt: new Date().toISOString(),
-        base64Data: catalogPdf.base64Data
+        uploadedAt: new Date().toISOString()
+      }));
+    }
+
+    // Add product image data if available
+    if (productImage) {
+      formData.append('productImage', JSON.stringify({
+        url: productImage.url,
+        fileName: productImage.fileName,
+        filePath: productImage.path,
+        uploadedAt: new Date().toISOString()
       }));
     }
 
@@ -92,14 +104,23 @@ export function AddProductSheet() {
       reset();
       setCatalogPdf(null);
       setPdfError('');
+      setProductImage(null);
+      setImageError('');
       setOpen(false);
     } else {
-        // If product creation failed and we uploaded a PDF, clean it up
+        // If product creation failed and we uploaded files, clean them up
         if (catalogPdf) {
           try {
             await deletePDF(catalogPdf.path);
           } catch (error) {
             console.error('Failed to cleanup uploaded PDF:', error);
+          }
+        }
+        if (productImage) {
+          try {
+            await deleteImageFromStorage(productImage.path);
+          } catch (error) {
+            console.error('Failed to cleanup uploaded image:', error);
           }
         }
         toast({
@@ -178,6 +199,37 @@ export function AddProductSheet() {
               description="Upload product catalog (max 10MB)"
             />
             {pdfError && <p className="text-xs text-destructive mt-1">{pdfError}</p>}
+          </div>
+          <div>
+            <ImageUpload
+              onUploadComplete={(result) => {
+                setProductImage(result);
+                setImageError('');
+              }}
+              onUploadError={(error) => {
+                setImageError(error);
+                setProductImage(null);
+              }}
+              currentImage={productImage ? {
+                url: productImage.url,
+                fileName: productImage.fileName,
+                filePath: productImage.path
+              } : null}
+              onRemove={async () => {
+                if (productImage) {
+                  try {
+                    await deleteImageFromStorage(productImage.path);
+                    setProductImage(null);
+                    setImageError('');
+                  } catch (error) {
+                    setImageError('Failed to remove image');
+                  }
+                }
+              }}
+              label="Product Image"
+              description="Upload product image (max 5MB)"
+            />
+            {imageError && <p className="text-xs text-destructive mt-1">{imageError}</p>}
           </div>
           <div className="space-y-2">
             <Label>SKUs</Label>

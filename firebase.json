@@ -13,5 +13,14 @@
       "**/.*",
       "**/node_modules/**"
     ]
+  },
+  "emulators": {
+    "storage": {
+      "port": 9299
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4001
+    }
   }
 }

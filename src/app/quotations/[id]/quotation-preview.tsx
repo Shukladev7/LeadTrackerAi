@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PDFViewer } from '@/components/pdf-viewer';
 import { QuotationCommunicationButtons } from './quotation-communication-buttons';
+import Image from 'next/image';
 
 type QuotationPreviewProps = {
   quotation: Quotation;
@@ -153,7 +154,7 @@ export function QuotationPreview({
       quotationPages.forEach((page) => mergedPdf.addPage(page));
 
       // Get products with catalog PDFs
-      const productsWithCatalogs = products.filter(p => p.product.cataloguePdf?.base64Data);
+      const productsWithCatalogs = products.filter(p => p.product.cataloguePdf?.url);
       
       if (productsWithCatalogs.length === 0) {
         toast({
@@ -168,18 +169,14 @@ export function QuotationPreview({
       // Add catalog PDFs
       for (const productItem of productsWithCatalogs) {
         const catalogPdf = productItem.product.cataloguePdf;
-        if (catalogPdf?.base64Data) {
+        if (catalogPdf?.url) {
           try {
-            // Convert base64 to array buffer
-            const base64Data = catalogPdf.base64Data;
-            const binaryString = atob(base64Data);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
+            // Fetch PDF from Firebase Storage URL
+            const response = await fetch(catalogPdf.url);
+            const arrayBuffer = await response.arrayBuffer();
 
             // Load the catalog PDF
-            const catalogPdfDoc = await PDFDocument.load(bytes);
+            const catalogPdfDoc = await PDFDocument.load(arrayBuffer);
             
             // Add a separator page with product name
             const separatorPage = mergedPdf.addPage();
@@ -243,7 +240,7 @@ export function QuotationPreview({
   };
 
   // Check products with catalog PDFs for button state
-  const catalogPdfCount = products.filter(p => p.product.cataloguePdf?.base64Data).length;
+  const catalogPdfCount = products.filter(p => p.product.cataloguePdf?.url).length;
 
   return (
     <div ref={completePreviewRef}>
@@ -350,6 +347,9 @@ export function QuotationPreview({
                 <th className="p-3 text-xs font-semibold uppercase tracking-wider text-right">
                   Rate
                 </th>
+                <th className="p-3 text-xs font-semibold uppercase tracking-wider text-center">
+                  Discount
+                </th>
                 <th className="p-3 text-xs font-semibold uppercase tracking-wider text-right">
                   Amount
                 </th>
@@ -359,19 +359,34 @@ export function QuotationPreview({
               {products.map((p) => (
                 <tr key={p.productId} className="border-b">
                   <td className="p-3">
-                    <p className="font-semibold text-gray-800">
-                      {p.product.name}
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {p.product.description}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {p.product.cataloguePdf?.base64Data && (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          Catalog PDF Available
-                        </span>
+                    <div className="flex items-start gap-3">
+                      {p.product.productImage && (
+                        <div className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                          <Image
+                            src={p.product.productImage.url}
+                            alt={p.product.name}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                        </div>
                       )}
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">
+                          {p.product.name}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {p.product.description}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {p.product.cataloguePdf?.url && (
+                            <span className="text-xs text-green-600 flex items-center gap-1">
+                              <FileText className="h-3 w-3" />
+                              Catalog PDF Available
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="p-3 text-center text-gray-700">
@@ -379,6 +394,9 @@ export function QuotationPreview({
                   </td>
                   <td className="p-3 text-right text-gray-700">
                     {formatCurrency(p.rate)}
+                  </td>
+                  <td className="p-3 text-center text-gray-700">
+                    {p.discount ? `${p.discount}%` : '-'}
                   </td>
                   <td className="p-3 text-right text-gray-800 font-semibold">
                     {formatCurrency(p.amount)}
@@ -391,19 +409,43 @@ export function QuotationPreview({
 
         <section className="flex justify-end mt-6">
           <div className="w-full max-w-xs space-y-2 text-sm">
-            <div className="flex justify-between text-gray-700">
-              <span>Sub-total</span>
-              <span>{formatCurrency(quotation.subTotal)}</span>
-            </div>
-            <div className="flex justify-between text-gray-700">
-              <span>Total GST</span>
-              <span>{formatCurrency(quotation.totalGst)}</span>
-            </div>
-            <Separator className="bg-gray-800" />
-            <div className="flex justify-between text-lg font-bold text-gray-900">
-              <span>Grand Total</span>
-              <span>{formatCurrency(quotation.grandTotal)}</span>
-            </div>
+            {(() => {
+              // Calculate totals including discount breakdown
+              const totalBaseAmount = products.reduce((acc, p) => acc + (p.quantity * p.rate), 0);
+              const totalDiscountAmount = products.reduce((acc, p) => {
+                const baseAmount = p.quantity * p.rate;
+                return acc + (baseAmount * ((p.discount || 0) / 100));
+              }, 0);
+              const hasDiscounts = totalDiscountAmount > 0;
+              
+              return (
+                <>
+                  <div className="flex justify-between text-gray-700">
+                    <span>Base Amount</span>
+                    <span>{formatCurrency(totalBaseAmount)}</span>
+                  </div>
+                  {hasDiscounts && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Total Discount</span>
+                      <span>-{formatCurrency(totalDiscountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-700">
+                    <span>Sub-total</span>
+                    <span>{formatCurrency(quotation.subTotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-700">
+                    <span>Total GST</span>
+                    <span>{formatCurrency(quotation.totalGst)}</span>
+                  </div>
+                  <Separator className="bg-gray-800" />
+                  <div className="flex justify-between text-lg font-bold text-gray-900">
+                    <span>Grand Total</span>
+                    <span>{formatCurrency(quotation.grandTotal)}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </section>
         
@@ -418,7 +460,7 @@ export function QuotationPreview({
       </div>
 
       {/* Product Catalogs Section */}
-      {products.filter(p => p.product.cataloguePdf?.base64Data).length > 0 && (
+      {products.filter(p => p.product.cataloguePdf?.url).length > 0 && (
         <div className="mt-8 space-y-8">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Product Catalogs</h2>
@@ -426,7 +468,7 @@ export function QuotationPreview({
           </div>
           
           {products
-            .filter(p => p.product.cataloguePdf?.base64Data)
+            .filter(p => p.product.cataloguePdf?.url)
             .map((productItem, index) => (
               <div key={productItem.productId} className="bg-white rounded-lg shadow-lg border max-w-4xl mx-auto">
                 {/* Product Header */}

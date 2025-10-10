@@ -18,6 +18,7 @@ import {
 import type { Employee, EmployeeRole } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { deleteEmployeeAction } from '@/lib/actions';
+import { EditEmployeeDialog } from './edit-employee-dialog';
 
 function FormattedDate({ dateString }: { dateString: string }) {
     const [formattedDate, setFormattedDate] = useState('');
@@ -43,6 +44,7 @@ const roleStyles: Record<EmployeeRole, string> = {
   };
 
 function EmployeeActions({ employee }: { employee: Employee }) {
+  const [editOpen, setEditOpen] = useState(false);
   const handleDelete = async () => {
     if (confirm(`Are you sure you want to delete employee "${employee.name}"? This action cannot be undone.`)) {
       await deleteEmployeeAction(employee.id);
@@ -51,6 +53,7 @@ function EmployeeActions({ employee }: { employee: Employee }) {
 
   return (
     <div className="text-right">
+      <EditEmployeeDialog open={editOpen} onOpenChange={setEditOpen} employee={employee} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -61,7 +64,7 @@ function EmployeeActions({ employee }: { employee: Employee }) {
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setEditOpen(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit Employee
           </DropdownMenuItem>

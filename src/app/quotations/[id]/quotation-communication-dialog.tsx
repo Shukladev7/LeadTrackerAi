@@ -85,23 +85,19 @@ export function QuotationCommunicationDialog({
       quotationPages.forEach((page) => mergedPdf.addPage(page));
 
       // Get products with catalog PDFs
-      const productsWithCatalogs = products.filter(p => p.product.cataloguePdf?.base64Data);
+      const productsWithCatalogs = products.filter(p => p.product.cataloguePdf?.url);
       
       // Add catalog PDFs if available
       for (const productItem of productsWithCatalogs) {
         const catalogPdf = productItem.product.cataloguePdf;
-        if (catalogPdf?.base64Data) {
+        if (catalogPdf?.url) {
           try {
-            // Convert base64 to array buffer
-            const base64Data = catalogPdf.base64Data;
-            const binaryString = atob(base64Data);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
+            // Fetch PDF from Firebase Storage URL
+            const response = await fetch(catalogPdf.url);
+            const arrayBuffer = await response.arrayBuffer();
 
             // Load the catalog PDF
-            const catalogPdfDoc = await PDFDocument.load(bytes);
+            const catalogPdfDoc = await PDFDocument.load(arrayBuffer);
             
             // Add a separator page with product name
             const separatorPage = mergedPdf.addPage();
@@ -252,7 +248,7 @@ export function QuotationCommunicationDialog({
   const contact = type === 'whatsapp' ? (lead.whatsappNumber || lead.phone) : lead.email;
   const description = `Send quotation with catalog PDF to ${lead.name} (${contact})`;
 
-  const catalogCount = products.filter(p => p.product.cataloguePdf?.base64Data).length;
+  const catalogCount = products.filter(p => p.product.cataloguePdf?.url).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -6,7 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { summarizeMeetingNotes } from '@/ai/flows/summarize-meeting-notes';
-import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount } from './data';
+import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount } from './data';
+import { deletePDFFromStorage, deleteImageFromStorage } from './storage-utils';
 import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, QuotationTemplate } from './types';
 import type { Employee } from './business-types';
 import { getProducts } from './data';
@@ -232,7 +233,12 @@ const ProductSchema = z.object({
         fileName: z.string(),
         filePath: z.string(),
         uploadedAt: z.string(),
-        base64Data: z.string(),
+    }).optional(),
+    productImage: z.object({
+        url: z.string(),
+        fileName: z.string(),
+        filePath: z.string(),
+        uploadedAt: z.string(),
     }).optional(),
 });
 
@@ -243,6 +249,9 @@ export async function addProduct(formData: FormData) {
   const catalogPdfJSON = formData.get('catalogPdf');
   const catalogPdf = catalogPdfJSON ? JSON.parse(catalogPdfJSON as string) : undefined;
   
+  const productImageJSON = formData.get('productImage');
+  const productImage = productImageJSON ? JSON.parse(productImageJSON as string) : undefined;
+  
   const validatedFields = ProductSchema.safeParse({
     name: formData.get('name'),
     description: formData.get('description'),
@@ -251,6 +260,7 @@ export async function addProduct(formData: FormData) {
     skus: skus,
     catalogueUrl: formData.get('catalogueUrl') || '',
     cataloguePdf: catalogPdf,
+    productImage: productImage,
   });
 
   if (!validatedFields.success) {
@@ -261,7 +271,8 @@ export async function addProduct(formData: FormData) {
   }
 
   try {
-    await dbAddProduct(validatedFields.data);
+    const data = validatedFields.data;
+    await dbAddProduct(data);
   } catch (error) {
     return { message: 'Database Error: Failed to add product.' };
   }
@@ -279,6 +290,10 @@ export async function updateProduct(id: string, formData: FormData) {
     const catalogPdf = catalogPdfJSON ? JSON.parse(catalogPdfJSON as string) : undefined;
     const removeCatalogPdf = String(formData.get('removeCatalogPdf') || '').toLowerCase() === 'true';
 
+    const productImageJSON = formData.get('productImage');
+    const productImage = productImageJSON ? JSON.parse(productImageJSON as string) : undefined;
+    const removeProductImage = String(formData.get('removeProductImage') || '').toLowerCase() === 'true';
+
     const validatedFields = ProductSchema.safeParse({
       name: formData.get('name'),
       description: formData.get('description'),
@@ -287,6 +302,7 @@ export async function updateProduct(id: string, formData: FormData) {
       skus: skus,
       catalogueUrl: formData.get('catalogueUrl') || '',
       cataloguePdf: catalogPdf,
+      productImage: productImage,
     });
 
     if (!validatedFields.success) {
@@ -297,11 +313,60 @@ export async function updateProduct(id: string, formData: FormData) {
     }
 
     try {
-      const updateData = { ...validatedFields.data } as any;
+      // Get the current product to check for existing PDF
+      const currentProduct = await getProducts().then(products => 
+        products.find(p => p.id === id)
+      );
+      
+      const data = validatedFields.data as any;
+      const updateData: any = { ...data };
+      
       // If user explicitly removed the existing PDF and didn't upload a new one, clear the field
       if (removeCatalogPdf && !catalogPdf) {
+        // Delete the old PDF from Firebase Storage if it exists
+        if (currentProduct?.cataloguePdf?.filePath) {
+          try {
+            await deletePDFFromStorage(currentProduct.cataloguePdf.filePath);
+          } catch (error) {
+            console.error('Failed to delete PDF from storage:', error);
+            // Continue with the update even if PDF deletion fails
+          }
+        }
         updateData.cataloguePdf = null; // This will clear the field in Firestore
+      } else if (catalogPdf && currentProduct?.cataloguePdf?.filePath && 
+                 currentProduct.cataloguePdf.filePath !== catalogPdf.filePath) {
+        // If a new PDF was uploaded, delete the old one from storage
+        try {
+          await deletePDFFromStorage(currentProduct.cataloguePdf.filePath);
+        } catch (error) {
+          console.error('Failed to delete old PDF from storage:', error);
+          // Continue with the update even if old PDF deletion fails
+        }
       }
+      
+      // Handle product image removal and updates
+      if (removeProductImage && !productImage) {
+        // Delete the old image from Firebase Storage if it exists
+        if (currentProduct?.productImage?.filePath) {
+          try {
+            await deleteImageFromStorage(currentProduct.productImage.filePath);
+          } catch (error) {
+            console.error('Failed to delete image from storage:', error);
+            // Continue with the update even if image deletion fails
+          }
+        }
+        updateData.productImage = null; // This will clear the field in Firestore
+      } else if (productImage && currentProduct?.productImage?.filePath && 
+                 currentProduct.productImage.filePath !== productImage.filePath) {
+        // If a new image was uploaded, delete the old one from storage
+        try {
+          await deleteImageFromStorage(currentProduct.productImage.filePath);
+        } catch (error) {
+          console.error('Failed to delete old image from storage:', error);
+          // Continue with the update even if old image deletion fails
+        }
+      }
+      
       await dbUpdateProduct(id, updateData);
     } catch (error) {
       return { message: 'Database Error: Failed to update product.' };
@@ -314,11 +379,26 @@ export async function updateProduct(id: string, formData: FormData) {
   
   export async function deleteProduct(id: string) {
     try {
+      // Get the current product to check for PDF before deletion
+      const currentProduct = await getProducts().then(products => 
+        products.find(p => p.id === id)
+      );
+      
+      // Delete the PDF from Firebase Storage if it exists
+      if (currentProduct?.cataloguePdf?.filePath) {
+        try {
+          await deletePDFFromStorage(currentProduct.cataloguePdf.filePath);
+        } catch (error) {
+          console.error('Failed to delete PDF from storage:', error);
+          // Continue with product deletion even if PDF deletion fails
+        }
+      }
+      
       await dbDeleteProduct(id);
     } catch (error) {
       return { message: 'Database Error: Failed to delete product.' };
     }
-  
+
     revalidatePath('/products');
     revalidatePath('/leads');
     return { message: 'Successfully deleted product.' };
@@ -351,6 +431,11 @@ export async function logActivity(formData: FormData) {
         const { leadId, ...activityData } = validatedFields.data;
         await addActivityToLead(leadId, activityData);
     } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('LogActivity Error:', message);
+        if (message.includes('Lead not found')) {
+            return { message: 'Lead not found. Please refresh the page and try again.' };
+        }
         return { message: 'Database Error: Failed to log activity.' };
     }
 
@@ -468,6 +553,7 @@ const CreateQuotationSchema = z.object({
   subTotal: z.coerce.number(),
   totalGst: z.coerce.number(),
   grandTotal: z.coerce.number(),
+  quotationPrefix: z.string().optional(),
   // Overridable template fields
   companyName: z.string().min(1),
   companyAddress: z.string().min(1),
@@ -478,6 +564,7 @@ const CreateQuotationSchema = z.object({
 
 
 export async function addQuotation(formData: FormData) {
+    console.log('Server received quotationPrefix:', formData.get('quotationPrefix'));
     const validatedFields = CreateQuotationSchema.safeParse({
         leadId: formData.get('leadId'),
         templateId: formData.get('templateId'),
@@ -488,6 +575,7 @@ export async function addQuotation(formData: FormData) {
         subTotal: formData.get('subTotal'),
         totalGst: formData.get('totalGst'),
         grandTotal: formData.get('grandTotal'),
+        quotationPrefix: formData.get('quotationPrefix') || '',
         companyName: formData.get('companyName'),
         companyAddress: formData.get('companyAddress'),
         companyGst: formData.get('companyGst'),
@@ -507,11 +595,15 @@ export async function addQuotation(formData: FormData) {
       try {
         const data = validatedFields.data;
         const parsedProducts = JSON.parse(data.products);
-        newQuotation = await dbAddQuotation({
-            ...data,
-            logoUrl: data.logoUrl || undefined,
-            products: parsedProducts,
-        });
+        const prefix = (data.quotationPrefix?.trim() || 'QUO');
+        console.log('Using prefix:', prefix);
+        const { quotationPrefix: _omitPrefix, logoUrl, ...rest } = data as any;
+        const payload: any = {
+          ...rest,
+          products: parsedProducts,
+        };
+        if (logoUrl) payload.logoUrl = logoUrl;
+        newQuotation = await dbAddQuotation(payload, prefix);
 
         // Log activity on the lead
         await addActivityToLead(data.leadId, {
@@ -595,6 +687,7 @@ export async function deleteQuotationAction(quotationId: string) {
 
 const QuotationTemplateSchema = z.object({
     name: z.string().min(3, 'Template name must be at least 3 characters.'),
+    prefix: z.string().min(1, 'Prefix is required.'),
     companyName: z.string().min(3, 'Company name is required.'),
     companyAddress: z.string().min(10, 'Full company address is required.'),
     companyGst: z.string().min(15, 'A valid GSTIN is required.').max(15),
@@ -605,6 +698,7 @@ const QuotationTemplateSchema = z.object({
 export async function addQuotationTemplateAction(formData: FormData) {
     const validatedFields = QuotationTemplateSchema.safeParse({
         name: formData.get('name'),
+        prefix: formData.get('prefix'),
         companyName: formData.get('companyName'),
         companyAddress: formData.get('companyAddress'),
         companyGst: formData.get('companyGst'),
@@ -632,6 +726,7 @@ export async function addQuotationTemplateAction(formData: FormData) {
 export async function updateQuotationTemplateAction(id: string, formData: FormData) {
     const validatedFields = QuotationTemplateSchema.safeParse({
         name: formData.get('name'),
+        prefix: formData.get('prefix'),
         companyName: formData.get('companyName'),
         companyAddress: formData.get('companyAddress'),
         companyGst: formData.get('companyGst'),
@@ -845,6 +940,43 @@ export async function deleteEmployeeAction(employeeId: string) {
   revalidatePath('/employees');
   revalidatePath('/');
   return { message: 'Successfully deleted employee.' };
+}
+
+const UpdateEmployeeSchema = z.object({
+    name: z.string().min(2, 'Name must be at least 2 characters.'),
+    email: z.string().email('Please enter a valid email.'),
+    phone: z.string().min(10, 'Please enter a valid phone number.'),
+    role: z.string(),
+    department: z.string(),
+    address: z.string().min(10, 'Address is required.'),
+});
+
+export async function updateEmployeeAction(id: string, formData: FormData) {
+    const validatedFields = UpdateEmployeeSchema.safeParse({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        role: formData.get('role'),
+        department: formData.get('department'),
+        address: formData.get('address'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Failed to update employee.',
+        };
+    }
+
+    try {
+        await dbUpdateEmployee(id, validatedFields.data as NewEmployee);
+    } catch (error) {
+        return { message: 'Database Error: Failed to update employee.' };
+    }
+
+    revalidatePath('/employees');
+    revalidatePath('/');
+    return { message: 'Successfully updated employee.' };
 }
 
 
@@ -1099,6 +1231,11 @@ export async function logCommunicationActivityAction(formData: FormData) {
       notes: activityNotes
     });
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('LogCommunicationActivity Error:', errMsg);
+    if (errMsg.includes('Lead not found')) {
+      return { message: 'Lead not found. Please refresh the page and try again.' };
+    }
     return { message: 'Database Error: Failed to log communication activity.' };
   }
 

@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { Link2, FileText } from 'lucide-react';
 import { ProductActions } from "./product-actions";
 import { PDFViewer } from "@/components/pdf-viewer";
+import Image from 'next/image';
 
 export default async function ProductsPage() {
   const products = await getProducts();
@@ -53,6 +54,7 @@ export default async function ProductsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>SKUs</TableHead>
@@ -65,6 +67,23 @@ export default async function ProductsPage() {
             <TableBody>
               {products.map((product) => (
                 <TableRow key={product.id}>
+                  <TableCell>
+                    {product.productImage ? (
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-100">
+                        <Image
+                          src={product.productImage.url}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">No image</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.description}</TableCell>
                   <TableCell>

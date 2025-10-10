@@ -109,8 +109,12 @@ export class LeadService extends FirestoreService<Lead> {
   async addActivity(leadId: string, activity: Omit<Lead['activities'][0], 'id'>): Promise<void> {
     const lead = await this.getById(leadId);
     if (lead) {
+      // Remove undefined values before persisting
+      const sanitized = Object.fromEntries(
+        Object.entries(activity as Record<string, unknown>).filter(([, v]) => v !== undefined)
+      ) as Omit<Lead['activities'][0], 'id'>;
       const newActivity = {
-        ...activity,
+        ...sanitized,
         id: `act-${leadId}-${Date.now()}`
       };
       
@@ -200,18 +204,21 @@ export class QuotationService extends FirestoreService<Quotation> {
     });
   }
 
-  async generateQuotationNumber(): Promise<string> {
+  async generateQuotationNumber(prefix: string): Promise<string> {
     const quotations = await this.getAll();
+    const regex = new RegExp(`^${prefix}-\\d{4}$`);
+    const numberRegex = new RegExp(`^${prefix}-(\\d+)$`);
     const maxNumber = quotations.reduce((max, quotation) => {
-      const match = quotation.quotationNumber.match(/QUO-(\d+)/);
+      if (!quotation.quotationNumber) return max;
+      if (!regex.test(quotation.quotationNumber)) return max;
+      const match = quotation.quotationNumber.match(numberRegex);
       if (match) {
-        const num = parseInt(match[1]);
+        const num = parseInt(match[1], 10);
         return num > max ? num : max;
       }
       return max;
     }, 0);
-    
-    return `QUO-${String(maxNumber + 1).padStart(4, '0')}`;
+    return `${prefix}-${String(maxNumber + 1).padStart(4, '0')}`;
   }
 
   async markAsSent(quotationId: string): Promise<void> {
