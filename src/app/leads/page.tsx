@@ -15,7 +15,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   return (
     <>
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Leads</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Leads {leads.length}</h2>
       </div>
       <DataTable columns={columns} data={leads} />
     </>
