@@ -367,7 +367,12 @@ export async function updateProduct(id: string, formData: FormData) {
         }
       }
       
-      await dbUpdateProduct(id, updateData);
+      // Remove undefined values from updateData as Firestore doesn't accept them
+      const cleanedUpdateData: any = Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      );
+      
+      await dbUpdateProduct(id, cleanedUpdateData);
     } catch (error) {
       return { message: 'Database Error: Failed to update product.' };
     }
