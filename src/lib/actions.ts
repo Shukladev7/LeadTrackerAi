@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { summarizeMeetingNotes } from '@/ai/flows/summarize-meeting-notes';
-import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount } from './data';
+import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductModel as dbAddProductModel, deleteProductModel as dbDeleteProductModel, getProductModels, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount } from './data';
 import { deletePDFFromStorage, deleteImageFromStorage } from './storage-utils';
 import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, QuotationTemplate } from './types';
 import type { Employee } from './business-types';
@@ -226,6 +226,7 @@ const ProductSchema = z.object({
     description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
     price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
     gstRate: z.coerce.number().min(0).max(100),
+    modelId: z.string().optional(),
     skus: z.array(z.string()).optional(),
     catalogueUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
     cataloguePdf: z.object({
@@ -252,11 +253,14 @@ export async function addProduct(formData: FormData) {
   const productImageJSON = formData.get('productImage');
   const productImage = productImageJSON ? JSON.parse(productImageJSON as string) : undefined;
   
+  const modelId = formData.get('modelId');
+  
   const validatedFields = ProductSchema.safeParse({
     name: formData.get('name'),
     description: formData.get('description'),
     price: formData.get('price'),
     gstRate: formData.get('gstRate'),
+    modelId: modelId && modelId !== '' ? String(modelId) : undefined,
     skus: skus,
     catalogueUrl: formData.get('catalogueUrl') || '',
     cataloguePdf: catalogPdf,
@@ -272,7 +276,11 @@ export async function addProduct(formData: FormData) {
 
   try {
     const data = validatedFields.data;
-    await dbAddProduct(data);
+    // Remove undefined values before sending to Firestore
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined)
+    );
+    await dbAddProduct(cleanData as any);
   } catch (error) {
     return { message: 'Database Error: Failed to add product.' };
   }
@@ -294,11 +302,14 @@ export async function updateProduct(id: string, formData: FormData) {
     const productImage = productImageJSON ? JSON.parse(productImageJSON as string) : undefined;
     const removeProductImage = String(formData.get('removeProductImage') || '').toLowerCase() === 'true';
 
+    const modelId = formData.get('modelId');
+    
     const validatedFields = ProductSchema.safeParse({
       name: formData.get('name'),
       description: formData.get('description'),
       price: formData.get('price'),
       gstRate: formData.get('gstRate'),
+      modelId: modelId && modelId !== '' ? String(modelId) : undefined,
       skus: skus,
       catalogueUrl: formData.get('catalogueUrl') || '',
       cataloguePdf: catalogPdf,
@@ -368,9 +379,17 @@ export async function updateProduct(id: string, formData: FormData) {
       }
       
       // Remove undefined values from updateData as Firestore doesn't accept them
-      const cleanedUpdateData: any = Object.fromEntries(
-        Object.entries(updateData).filter(([_, value]) => value !== undefined)
-      );
+      // Also handle empty modelId by removing it from the update
+      const cleanedUpdateData: any = {};
+      for (const [key, value] of Object.entries(updateData)) {
+        if (value !== undefined) {
+          // Skip modelId if it's an empty string
+          if (key === 'modelId' && value === '') {
+            continue;
+          }
+          cleanedUpdateData[key] = value;
+        }
+      }
       
       await dbUpdateProduct(id, cleanedUpdateData);
     } catch (error) {
@@ -546,6 +565,58 @@ export async function deleteLeadSourceAction(id: string) {
     revalidatePath('/setup');
     revalidatePath('/leads');
     return { message: 'Successfully deleted lead source.' };
+}
+
+const AddProductModelSchema = z.object({
+    name: z.string().min(2, 'Model name must be at least 2 characters'),
+    description: z.string().optional().nullable(),
+});
+
+export async function addProductModelAction(formData: FormData) {
+    const validatedFields = AddProductModelSchema.safeParse({
+        name: formData.get('name'),
+        description: formData.get('description'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            message: validatedFields.error.flatten().fieldErrors.name?.[0] ?? 'Invalid name',
+        };
+    }
+
+    try {
+        // Convert null to undefined for optional description
+        const description = validatedFields.data.description || undefined;
+        await dbAddProductModel(validatedFields.data.name, description);
+    } catch (error) {
+        return { message: 'Database Error: Failed to add product model.' };
+    }
+
+    revalidatePath('/setup');
+    revalidatePath('/products');
+    return { message: `Successfully added '${validatedFields.data.name}'.` };
+}
+
+export async function deleteProductModelAction(id: string) {
+    try {
+        await dbDeleteProductModel(id);
+    } catch (error) {
+        return { message: 'Database Error: Failed to delete product model.' };
+    }
+
+    revalidatePath('/setup');
+    revalidatePath('/products');
+    return { message: 'Successfully deleted product model.' };
+}
+
+export async function getProductModelsAction() {
+    try {
+        const models = await getProductModels();
+        return models;
+    } catch (error) {
+        console.error('Error fetching product models:', error);
+        return [];
+    }
 }
 
 const CreateQuotationSchema = z.object({

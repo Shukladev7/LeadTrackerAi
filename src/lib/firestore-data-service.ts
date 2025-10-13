@@ -8,6 +8,7 @@ import {
   departmentsService,
   employeeRolesService,
   leadSourcesService,
+  productModelsService,
   quotationTemplatesService
 } from './business-services';
 import { 
@@ -19,6 +20,7 @@ import {
   Department,
   EmployeeRole,
   LeadSource,
+  ProductModel,
   LeadActivity
 } from './business-types';
 import { Timestamp } from 'firebase/firestore';
@@ -70,9 +72,16 @@ export interface NewProduct {
   description: string;
   price: number;
   gstRate: number;
+  modelId?: string;
   skus?: string[];
   catalogueUrl?: string;
   cataloguePdf?: {
+    url: string;
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
+  };
+  productImage?: {
     url: string;
     fileName: string;
     filePath: string;
@@ -327,6 +336,46 @@ export const addLeadSource = async (name: string): Promise<LeadSource> => {
 
 export const deleteLeadSource = async (id: string): Promise<{ success: boolean }> => {
   await leadSourcesService.delete(id);
+  return { success: true };
+};
+
+// Product Model functions
+export const getProductModels = async (): Promise<ProductModel[]> => {
+  const models = await productModelsService.getAll();
+  return models.map(model => convertFirestoreDocToPlain(model));
+};
+
+export const getProductModelById = async (id: string): Promise<ProductModel | undefined> => {
+  const model = await productModelsService.getById(id);
+  return model ? convertFirestoreDocToPlain(model) : undefined;
+};
+
+export const addProductModel = async (name: string, description?: string): Promise<ProductModel> => {
+  const id = await productModelsService.create({
+    name,
+    description,
+    isActive: true
+  });
+  
+  const newModel = await productModelsService.getById(id);
+  if (!newModel) {
+    throw new Error('Failed to create product model');
+  }
+  
+  return convertFirestoreDocToPlain(newModel);
+};
+
+export const updateProductModel = async (id: string, name: string, description?: string): Promise<ProductModel> => {
+  await productModelsService.update(id, { name, description });
+  const updatedModel = await productModelsService.getById(id);
+  if (!updatedModel) {
+    throw new Error('Product model not found after update');
+  }
+  return convertFirestoreDocToPlain(updatedModel);
+};
+
+export const deleteProductModel = async (id: string): Promise<{ success: boolean }> => {
+  await productModelsService.delete(id);
   return { success: true };
 };
 

@@ -41,8 +41,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Product, QuotationTemplate, ALL_QUOTATION_STATUSES } from '@/lib/types';
+import type { ProductModel } from '@/lib/business-types';
 import { getLeads, getProducts, getQuotationTemplates, getLeadById } from '@/lib/data';
-import { addQuotation } from '@/lib/actions';
+import { addQuotation, getProductModelsAction } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
@@ -52,6 +53,7 @@ const quotationProductSchema = z.object({
     rate: z.coerce.number().min(0, 'Rate must be a positive number'),
     gstRate: z.coerce.number().min(0),
     discount: z.coerce.number().min(0).max(100).optional(),
+    modelId: z.string().optional(),
 });
 
 const quotationSchema = z.object({
@@ -84,6 +86,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   const [leads, setLeads] = useState<Lead[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<QuotationTemplate[]>([]);
+  const [productModels, setProductModels] = useState<ProductModel[]>([]);
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<QuotationFormData>({
@@ -134,14 +137,16 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   useEffect(() => {
     async function fetchData() {
         if (open) {
-            const [fetchedLeads, fetchedProducts, fetchedTemplates] = await Promise.all([
+            const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedModels] = await Promise.all([
                 getLeads(),
                 getProducts(),
                 getQuotationTemplates(),
+                getProductModelsAction(),
             ]);
             setLeads(fetchedLeads);
             setAvailableProducts(fetchedProducts);
             setTemplates(fetchedTemplates);
+            setProductModels(fetchedModels);
         }
     }
     fetchData();
@@ -180,6 +185,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                         rate: lp.rate,
                         gstRate: productDetails?.gstRate || 0,
                         discount: 0,
+                        modelId: productDetails?.modelId || '',
                     };
                 });
                 setValue('products', quotationProducts, { shouldValidate: true });
@@ -401,7 +407,8 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[25%]">Product Name</TableHead>
+                                    <TableHead className="w-[20%]">Product Name</TableHead>
+                                    <TableHead className="w-[15%]">Model</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
                                     <TableHead>Discount %</TableHead>
@@ -429,8 +436,21 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                                                 )}
                                             />
                                         </TableCell>
+                                        <TableCell>
+                                            <Controller
+                                                control={control}
+                                                name={`products.${index}.modelId`}
+                                                render={({ field }) => (
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <SelectTrigger><SelectValue placeholder="Select model (optional)" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {productModels.filter(m => m.id).map(m => <SelectItem key={m.id} value={m.id!}>{m.name}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
+                                            />
+                                        </TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" /></TableCell>
-                                        <TableCell><Input type="number" {...register(`products.${index}.rate`)} min="0" className="w-24" /></TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.discount`)} min="0" max="100" step="0.01" className="w-20" placeholder="0" /></TableCell>
                                         <TableCell>{watchedProducts?.[index]?.gstRate || 0}%</TableCell>
                                         <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
@@ -457,7 +477,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                         </Table>
                     </div>
                      {errors.products && <p className="text-xs text-destructive mt-1">{errors.products.message || errors.products.root?.message}</p>}
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0 })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0, modelId: '' })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                     </Button>
                 </div>

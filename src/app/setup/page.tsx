@@ -8,20 +8,21 @@ import {
   } from "@/components/ui/card";
   import { Button } from "@/components/ui/button";
   import { Input } from "@/components/ui/input";
-  import { PlusCircle, Trash2, FileText, Building2 } from "lucide-react";
+  import { PlusCircle, Trash2, FileText, Building2, Box } from "lucide-react";
   import { ALL_STATUSES } from "@/lib/types";
   import { StatusBadge } from "@/components/status-badge";
-  import { getLeadSources, getEmployeeRoles, getDepartments } from "@/lib/data";
-  import { addLeadSourceAction, deleteLeadSourceAction, addEmployeeRoleAction, deleteEmployeeRoleAction, addDepartmentAction, deleteDepartmentAction } from "@/lib/actions";
+  import { getLeadSources, getEmployeeRoles, getDepartments, getProductModels } from "@/lib/data";
+  import { addLeadSourceAction, deleteLeadSourceAction, addProductModelAction, deleteProductModelAction, addEmployeeRoleAction, deleteEmployeeRoleAction, addDepartmentAction, deleteDepartmentAction } from "@/lib/actions";
   import { revalidatePath } from "next/cache";
   import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
   
   export default async function SetupPage() {
-    const [leadSources, employeeRoles, departments] = await Promise.all([
+    const [leadSources, employeeRoles, departments, productModels] = await Promise.all([
         getLeadSources(),
         getEmployeeRoles(),
         getDepartments(),
+        getProductModels(),
     ]);
   
     return (
@@ -169,6 +170,41 @@ import { Badge } from "@/components/ui/badge";
                         <Button type="submit" className="w-full sm:w-auto">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add Department
+                        </Button>
+                    </form>
+                </CardFooter>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Product Models</CardTitle>
+                    <CardDescription>Manage product models for your inventory.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                     {productModels.map((model) => (
+                        <div key={model.id} className="flex items-center justify-between p-2 rounded-md bg-secondary">
+                            <span className="text-sm font-medium flex items-center gap-2">
+                                <Box className="h-4 w-4 text-muted-foreground" />
+                                {model.name}
+                            </span>
+                            <form action={async () => {
+                                "use server";
+                                await deleteProductModelAction(model.id);
+                                revalidatePath('/setup');
+                            }}>
+                                <Button type="submit" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </form>
+                        </div>
+                    ))}
+                </CardContent>
+                 <CardFooter className="border-t pt-6">
+                    <form action={addProductModelAction} className="flex w-full flex-col sm:flex-row items-center gap-2">
+                        <Input name="name" placeholder="Add new model" />
+                        <Button type="submit" className="w-full sm:w-auto">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add Model
                         </Button>
                     </form>
                 </CardFooter>

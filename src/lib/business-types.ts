@@ -51,12 +51,20 @@ export interface LeadSource extends BusinessDocument {
   conversionRate?: number;
 }
 
+// Product Model interface
+export interface ProductModel extends BusinessDocument {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
 // Product interface
 export interface Product extends BusinessDocument {
   name: string;
   description: string;
   price: number;
   gstRate: number;
+  modelId?: string;
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
@@ -130,6 +138,7 @@ export interface QuotationProduct {
   gstRate: number;
   discount?: number;
   total?: number;
+  modelId?: string;
 }
 
 // Populated Quotation Product interface (with product details)
@@ -348,6 +357,7 @@ export const COLLECTIONS = {
   DEPARTMENTS: 'departments',
   EMPLOYEE_ROLES: 'employeeRoles',
   LEAD_SOURCES: 'leadSources',
+  PRODUCT_MODELS: 'productModels',
   PRODUCTS: 'products',
   LEADS: 'leads',
   QUOTATIONS: 'quotations',

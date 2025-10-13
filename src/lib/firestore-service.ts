@@ -42,8 +42,16 @@ export class FirestoreService<T extends FirestoreDocument> {
    */
   async create(data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
+      // Remove undefined values as Firestore doesn't accept them
+      const cleanData: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          cleanData[key] = value;
+        }
+      }
+      
       const docData = {
-        ...data,
+        ...cleanData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -61,8 +69,16 @@ export class FirestoreService<T extends FirestoreDocument> {
    */
   async createWithId(id: string, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
     try {
+      // Remove undefined values as Firestore doesn't accept them
+      const cleanData: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          cleanData[key] = value;
+        }
+      }
+      
       const docData = {
-        ...data,
+        ...cleanData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -181,8 +197,17 @@ export class FirestoreService<T extends FirestoreDocument> {
   async update(id: string, data: Partial<Omit<T, 'id' | 'createdAt'>>): Promise<void> {
     try {
       const docRef = doc(db, this.collectionName, id);
+      
+      // Remove undefined values as Firestore doesn't accept them
+      const cleanData: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          cleanData[key] = value;
+        }
+      }
+      
       const updateData = {
-        ...data,
+        ...cleanData,
         updatedAt: serverTimestamp(),
       };
       

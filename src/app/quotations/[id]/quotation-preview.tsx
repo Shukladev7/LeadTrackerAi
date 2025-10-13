@@ -10,6 +10,7 @@ import {
   Quotation,
   Lead,
   PopulatedQuotationProduct,
+  ProductModel,
 } from '@/lib/business-types';
 import { Button } from '@/components/ui/button';
 import { Download, FileText } from 'lucide-react';
@@ -22,7 +23,7 @@ import Image from 'next/image';
 type QuotationPreviewProps = {
   quotation: Quotation;
   lead: Lead;
-  products: PopulatedQuotationProduct[];
+  products: (PopulatedQuotationProduct & { model?: ProductModel })[];
 };
 
 const formatCurrency = (amount: number) => {
@@ -180,7 +181,10 @@ export function QuotationPreview({
             
             // Add a separator page with product name
             const separatorPage = mergedPdf.addPage();
-            separatorPage.drawText(`Product Catalog: ${productItem.product.name}`, {
+            const productTitle = productItem.model 
+              ? `Product Catalog: ${productItem.product.name} (${productItem.model.name})`
+              : `Product Catalog: ${productItem.product.name}`;
+            separatorPage.drawText(productTitle, {
               x: 50,
               y: separatorPage.getHeight() - 100,
               size: 20,
@@ -374,8 +378,13 @@ export function QuotationPreview({
                       <div className="flex-1">
                         <p className="font-semibold text-gray-800">
                           {p.product.name}
+                          {p.model && (
+                            <span className="ml-2 text-sm font-normal text-gray-600">
+                              ({p.model.name})
+                            </span>
+                          )}
                         </p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-600 max-w-[25ch] break-words">
                           {p.product.description}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
@@ -475,9 +484,20 @@ export function QuotationPreview({
                 <div className="bg-gray-50 px-6 py-4 border-b">
                   <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                     <FileText className="h-5 w-5 text-blue-600" />
-                    {productItem.product.name} - Catalog
+                    {productItem.product.name}
+                    {productItem.model && (
+                      <span className="text-base font-normal text-gray-600">
+                        ({productItem.model.name})
+                      </span>
+                    )}
+                    {' '}- Catalog
                   </h3>
-                  <p className="text-gray-600 mt-1">{productItem.product.description}</p>
+
+
+
+                  <p className="text-gray-600 mt-1 break-words w-[30ch]">
+  {productItem.product.description}
+</p>
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                     <span>Quantity: {productItem.quantity}</span>
                     <span>Rate: {formatCurrency(productItem.rate)}</span>

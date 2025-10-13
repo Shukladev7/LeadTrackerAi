@@ -10,6 +10,12 @@ export type LeadSource = {
   name: string;
 };
 
+export type ProductModel = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
 export type Activity = {
   id: string;
   date: string; // ISO 8601 format
@@ -24,6 +30,7 @@ export type Product = {
   description: string;
   price: number;
   gstRate: number;
+  modelId?: string;
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
@@ -80,6 +87,7 @@ export type QuotationProduct = {
   rate: number;
   gstRate: number;
   discount?: number;
+  modelId?: string;
 };
 
 export type PopulatedQuotationProduct = QuotationProduct & {
