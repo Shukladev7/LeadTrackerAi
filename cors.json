@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["http://localhost:9002", "http://localhost:3000", "https://localhost:9002"],
+    "origin": ["*"],
     "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
     "maxAgeSeconds": 3600,
     "responseHeader": ["Content-Type", "Access-Control-Allow-Origin", "x-goog-resumable"]
