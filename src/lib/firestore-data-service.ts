@@ -145,7 +145,7 @@ export const deleteEmployee = async (id: string): Promise<{ success: boolean }> 
 };
 
 // Lead functions
-export const getLeads = async (query?: string, status?: string): Promise<Lead[]> => {
+export const getLeads = async (query?: string, status?: string, source?: string, product?: string): Promise<Lead[]> => {
   let leads: Lead[] = [];
   
   if (status) {
@@ -157,12 +157,25 @@ export const getLeads = async (query?: string, status?: string): Promise<Lead[]>
   // Convert to plain objects
   leads = leads.map(lead => convertFirestoreDocToPlain(lead));
   
+  // Apply text search filter
   if (query) {
     const lowercasedQuery = query.toLowerCase();
     leads = leads.filter(
       lead =>
         lead.name.toLowerCase().includes(lowercasedQuery) ||
         lead.company.toLowerCase().includes(lowercasedQuery)
+    );
+  }
+  
+  // Apply source filter
+  if (source) {
+    leads = leads.filter(lead => lead.source === source);
+  }
+  
+  // Apply product filter
+  if (product) {
+    leads = leads.filter(lead => 
+      lead.products && lead.products.some(p => p.productId === product)
     );
   }
   

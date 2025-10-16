@@ -3,14 +3,16 @@ import { columns } from "./columns";
 import { DataTable } from "./data-table";
 
 type LeadsPageProps = {
-  searchParams: {
+  searchParams?: {
     q?: string;
     status?: string;
+    source?: string;
+    product?: string;
   };
 };
 
-export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  const leads = await getLeads(searchParams.q, searchParams.status);
+export default async function LeadsPage({ searchParams = {} }: LeadsPageProps) {
+  const leads = await getLeads(searchParams.q, searchParams.status, searchParams.source, searchParams.product);
   
   return (
     <>

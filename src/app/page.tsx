@@ -34,6 +34,7 @@ import { Lead, Activity, Product, LeadStatus } from '@/lib/types';
 import ProductDemandChart from './product-demand-chart';
 import AverageConversionTimeChart from './average-conversion-time-chart';
 import QuotationsByMonthChart from './quotations-by-month-chart';
+import SourceDistributionChart from './source-distribution-chart';
 
 
 // We can't render the time on the server, as it may be in a different timezone than the client.
@@ -65,10 +66,16 @@ type QuotationsByMonthData = {
     count: number;
 }
 
+type SourceDistributionData = {
+    name: string;
+    count: number;
+}
+
 type DashboardData = {
     leads: Lead[];
     recentActivities: { lead: Lead; activity: Activity }[];
     productDemand: ProductDemandData[];
+    sourceDistribution: SourceDistributionData[];
     averageConversionTime: number;
     quotationsByMonth: QuotationsByMonthData[];
     counts: {
@@ -99,7 +106,7 @@ function getConversionDate(lead: Lead): Date | null {
 }
 
 function Dashboard({ data }: { data: DashboardData }) {
-    const { leads, recentActivities, productDemand, averageConversionTime, quotationsByMonth, counts } = data;
+    const { leads, recentActivities, productDemand, sourceDistribution, averageConversionTime, quotationsByMonth, counts } = data;
     const stats = {
         total: leads.length,
         new: leads.filter((l) => l.status === "New").length,
@@ -201,7 +208,7 @@ function Dashboard({ data }: { data: DashboardData }) {
         <Card className="xl:col-span-4">
           <CardHeader>
             <CardTitle>Leads Overview</CardTitle>
-            <CardDescription>A summary of leads by current status.</CardDescription>
+            <CardDescription>A summary of leads by current status. Click on bars to filter leads by status.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <DashboardChart data={chartData} />
@@ -265,6 +272,19 @@ function Dashboard({ data }: { data: DashboardData }) {
           </Card>
         <Card>
             <CardHeader>
+              <CardTitle>Source-wise Leads Distribution</CardTitle>
+              <CardDescription>
+                Number of leads by source. Click on bars to filter leads by source.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <SourceDistributionChart data={sourceDistribution} />
+            </CardContent>
+          </Card>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+            <CardHeader>
               <CardTitle>Product Demand</CardTitle>
               <CardDescription>
                 Number of leads interested in each product.
@@ -315,6 +335,21 @@ export default function DashboardPage() {
             }).sort((a, b) => b.count - a.count);
         }
 
+        // Calculate source distribution
+        let sourceDistribution: SourceDistributionData[] = [];
+        if (leads.length > 0) {
+            const sourceCounts = new Map<string, number>();
+            leads.forEach(lead => {
+                const source = lead.source || 'Unknown';
+                sourceCounts.set(source, (sourceCounts.get(source) || 0) + 1);
+            });
+
+            sourceDistribution = Array.from(sourceCounts.entries()).map(([source, count]) => ({
+                name: source,
+                count: count
+            })).sort((a, b) => b.count - a.count);
+        }
+
         const wonLeads = leads.filter(lead => lead.status === 'Closed - Won');
         let totalConversionDays = 0;
         let convertedCount = 0;
@@ -359,6 +394,7 @@ export default function DashboardPage() {
           leads, 
           recentActivities, 
           productDemand, 
+          sourceDistribution,
           averageConversionTime, 
           quotationsByMonth,
           counts: {

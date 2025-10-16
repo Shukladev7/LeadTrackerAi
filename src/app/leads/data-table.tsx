@@ -35,6 +35,7 @@ import { CreateLeadDialog } from './create-lead-dialog';
 import { ALL_STATUSES, Lead } from '@/lib/types';
 import { Search, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import { getProducts, getLeadSources } from '@/lib/data';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -51,12 +52,33 @@ export function DataTable<TData extends Lead, TValue>({
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState(searchParams.get('q') || '');
-  const [columnFilters, setColumnFilters] = React.useState([
+  const [columnFilters, setColumnFilters] = React.useState<any[]>([
     {
         id: 'status',
         value: searchParams.get('status') || '',
     }
   ]);
+
+  // State for filter options
+  const [sources, setSources] = React.useState<any[]>([]);
+  const [products, setProducts] = React.useState<any[]>([]);
+
+  // Load filter options
+  React.useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const [sourcesData, productsData] = await Promise.all([
+          getLeadSources(),
+          getProducts()
+        ]);
+        setSources(sourcesData);
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Failed to load filter options:', error);
+      }
+    };
+    loadFilterOptions();
+  }, []);
 
 
   const table = useReactTable({
@@ -68,7 +90,7 @@ export function DataTable<TData extends Lead, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnFiltersChange: setColumnFilters,
+    // onColumnFiltersChange: setColumnFilters,
     state: {
       sorting,
       globalFilter,
@@ -97,6 +119,30 @@ export function DataTable<TData extends Lead, TValue>({
       params.set('status', value);
     } else {
       params.delete('status');
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleSourceFilter = (source: string) => {
+    const value = source === 'all' ? '' : source;
+    
+    const params = new URLSearchParams(searchParams);
+    if (value) {
+      params.set('source', value);
+    } else {
+      params.delete('source');
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleProductFilter = (product: string) => {
+    const value = product === 'all' ? '' : product;
+    
+    const params = new URLSearchParams(searchParams);
+    if (value) {
+      params.set('product', value);
+    } else {
+      params.delete('product');
     }
     router.replace(`${pathname}?${params.toString()}`);
   };
@@ -147,8 +193,8 @@ export function DataTable<TData extends Lead, TValue>({
 
   return (
     <div>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col items-center justify-between gap-4 py-4">
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
                 <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -169,9 +215,31 @@ export function DataTable<TData extends Lead, TValue>({
                         ))}
                     </SelectContent>
                 </Select>
+                <Select onValueChange={handleSourceFilter} value={searchParams.get('source') || 'all'}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Sources</SelectItem>
+                        {sources.map(source => (
+                            <SelectItem key={source.id || source.name} value={source.name}>{source.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select onValueChange={handleProductFilter} value={searchParams.get('product') || 'all'}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Products</SelectItem>
+                        {products.map(product => (
+                            <SelectItem key={product.id || product.name} value={product.id || product.name}>{product.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
+            <div className="flex items-center justify-end gap-2 w-full">
+                <Button variant="outline" onClick={handleExport} className="w-auto">
                     <Download className="mr-2 h-4 w-4" />
                     Export
                 </Button>

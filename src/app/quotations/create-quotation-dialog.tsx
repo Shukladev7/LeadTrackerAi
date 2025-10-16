@@ -418,62 +418,135 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {fields.map((field, index) => {
-                                    const { total } = productTotals[index] || { total: 0 };
-                                    return (
-                                    <TableRow key={field.id}>
-                                        <TableCell>
-                                            <Controller
-                                                control={control}
-                                                name={`products.${index}.productId`}
-                                                render={({ field }) => (
-                                                    <Select onValueChange={(value) => { field.onChange(value); handleProductChange(value, index); }} value={field.value}>
-                                                        <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {availableProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Controller
-                                                control={control}
-                                                name={`products.${index}.modelId`}
-                                                render={({ field }) => (
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <SelectTrigger><SelectValue placeholder="Select model (optional)" /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {productModels.filter(m => m.id).map(m => <SelectItem key={m.id} value={m.id!}>{m.name}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            />
-                                        </TableCell>
-                                        <TableCell><Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" /></TableCell>
-                                        <TableCell><Input type="number" {...register(`products.${index}.discount`)} min="0" max="100" step="0.01" className="w-20" placeholder="0" /></TableCell>
-                                        <TableCell>{watchedProducts?.[index]?.gstRate || 0}%</TableCell>
-                                        <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
-                                        <TableCell>
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                )})}
-                                {fields.length === 0 && (
-                                    <TableRow><TableCell colSpan={7} className="text-center h-24">No products added.</TableCell></TableRow>
-                                )}
-                            </TableBody>
-                            <UiTableFooter>
-                                <TableRow><TableCell colSpan={5} className="text-right">Base Amount</TableCell><TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell><TableCell></TableCell></TableRow>
-                                {totalDiscountAmount > 0 && (
-                                    <TableRow><TableCell colSpan={5} className="text-right text-green-600">Total Discount</TableCell><TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell><TableCell></TableCell></TableRow>
-                                )}
-                                <TableRow><TableCell colSpan={5} className="text-right">Sub-total</TableCell><TableCell className="text-right">{formatCurrency(subTotal)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={5} className="text-right">Total GST</TableCell><TableCell className="text-right">{formatCurrency(totalGst)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={5} className="text-right font-bold text-lg">Grand Total</TableCell><TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell><TableCell></TableCell></TableRow>
-                            </UiTableFooter>
+  {fields.map((field, index) => {
+    const { total } = productTotals[index] || { total: 0 };
+    return (
+      <TableRow key={field.id}>
+        <TableCell>
+          <Controller
+            control={control}
+            name={`products.${index}.productId`}
+            render={({ field }) => (
+              <Select onValueChange={(value) => { field.onChange(value); handleProductChange(value, index); }} value={field.value}>
+                <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                <SelectContent>
+                  {availableProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </TableCell>
+
+        <TableCell>
+          <Controller
+            control={control}
+            name={`products.${index}.modelId`}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger><SelectValue placeholder="Select model (optional)" /></SelectTrigger>
+                <SelectContent>
+                  {productModels.filter(m => m.id).map(m => <SelectItem key={m.id} value={m.id!}>{m.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </TableCell>
+
+        {/* Quantity */}
+        <TableCell>
+          <Input
+            type="number"
+            {...register(`products.${index}.quantity`, { valueAsNumber: true })}
+            min="1"
+            className="w-20"
+          />
+        </TableCell>
+
+        {/* RATE (was missing) */}
+        <TableCell>
+          <Input
+            type="number"
+            {...register(`products.${index}.rate`, { valueAsNumber: true })}
+            min="0"
+            className="w-28"
+            placeholder="Rate"
+          />
+        </TableCell>
+
+        {/* Discount */}
+        <TableCell>
+          <Input
+            type="number"
+            {...register(`products.${index}.discount`, { valueAsNumber: true })}
+            min="0"
+            max="100"
+            step="0.01"
+            className="w-20"
+            placeholder="0"
+          />
+        </TableCell>
+
+        {/* GST (read-only display) */}
+        <TableCell>
+          {watchedProducts?.[index]?.gstRate ?? 0}%
+        </TableCell>
+
+        {/* Amount */}
+        <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
+
+        {/* Delete */}
+        <TableCell>
+          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </TableCell>
+      </TableRow>
+    );
+  })}
+
+  {fields.length === 0 && (
+    <TableRow>
+      {/* updated colspan to span full columns (8 total columns) */}
+      <TableCell colSpan={8} className="text-center h-24">No products added.</TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
+<UiTableFooter>
+  {/* colSpan set to 6 so the amount column lines up with the Amount column (7th column) */}
+  <TableRow>
+    <TableCell colSpan={6} className="text-right">Base Amount</TableCell>
+    <TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell>
+    <TableCell></TableCell>
+  </TableRow>
+
+  {totalDiscountAmount > 0 && (
+    <TableRow>
+      <TableCell colSpan={6} className="text-right text-green-600">Total Discount</TableCell>
+      <TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell>
+      <TableCell></TableCell>
+    </TableRow>
+  )}
+
+  <TableRow>
+    <TableCell colSpan={6} className="text-right">Sub-total</TableCell>
+    <TableCell className="text-right">{formatCurrency(subTotal)}</TableCell>
+    <TableCell></TableCell>
+  </TableRow>
+
+  <TableRow>
+    <TableCell colSpan={6} className="text-right">Total GST</TableCell>
+    <TableCell className="text-right">{formatCurrency(totalGst)}</TableCell>
+    <TableCell></TableCell>
+  </TableRow>
+
+  <TableRow>
+    <TableCell colSpan={6} className="text-right font-bold text-lg">Grand Total</TableCell>
+    <TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell>
+    <TableCell></TableCell>
+  </TableRow>
+</UiTableFooter>
+
                         </Table>
                     </div>
                      {errors.products && <p className="text-xs text-destructive mt-1">{errors.products.message || errors.products.root?.message}</p>}

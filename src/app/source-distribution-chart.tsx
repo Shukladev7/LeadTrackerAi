@@ -12,46 +12,51 @@ import {
   Cell,
 } from 'recharts';
 
-const statusColors: { [key: string]: string } = {
-  New: 'hsl(var(--chart-1))',
-  'In Discussion': 'hsl(var(--chart-2))',
-  Negotiation: 'hsl(var(--chart-3))',
-  'Closed - Won': 'hsl(var(--chart-4))',
-  'Closed - Lost': 'hsl(var(--chart-5))',
-};
+// Different color scheme for sources
+const sourceColors = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+  '#8884d8',
+  '#82ca9d',
+  '#ffc658',
+  '#ff7c7c',
+  '#8dd1e1',
+];
 
-type ChartData = {
+type SourceChartData = {
     name: string;
-    value: number;
+    count: number;
 }
 
-// Map display names to actual status values for filtering
-const statusMapping: { [key: string]: string } = {
-  'New': 'New',
-  'Discussion': 'In Discussion',
-  'Negotiation': 'Negotiation',
-  'Won': 'Closed - Won',
-  'Lost': 'Closed - Lost',
-};
-
-const statusToColor = (status: string) => {
-    if (status === 'Discussion') return statusColors['In Discussion'];
-    if (status === 'Won') return statusColors['Closed - Won'];
-    if (status === 'Lost') return statusColors['Closed - Lost'];
-    return statusColors[status] || '#8884d8';
-  };
-
-export default function DashboardChart({ data }: { data: ChartData[] }) {
+export default function SourceDistributionChart({ data }: { data: SourceChartData[] }) {
   const router = useRouter();
 
   const handleBarClick = (data: any) => {
     if (data && data.activePayload && data.activePayload.length > 0) {
-      const statusName = data.activePayload[0].payload.name;
-      const actualStatus = statusMapping[statusName] || statusName;
-      // Navigate to leads page with status filter
-      router.push(`/leads?status=${encodeURIComponent(actualStatus)}`);
+      const sourceName = data.activePayload[0].payload.name;
+      // Navigate to leads page with source filter
+      router.push(`/leads?source=${encodeURIComponent(sourceName)}`);
     }
   };
+
+  const getSourceColor = (index: number) => {
+    return sourceColors[index % sourceColors.length];
+  };
+
+  // Debug logging
+  console.log('SourceDistributionChart data:', data);
+
+  // Handle empty data case
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+        No source data available
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height={350}>
@@ -63,6 +68,9 @@ export default function DashboardChart({ data }: { data: ChartData[] }) {
           fontSize={12}
           tickLine={false}
           axisLine={false}
+          angle={-45}
+          textAnchor="end"
+          height={80}
         />
         <YAxis
           stroke="#888888"
@@ -78,11 +86,11 @@ export default function DashboardChart({ data }: { data: ChartData[] }) {
             border: '1px solid hsl(var(--border))',
           }}
         />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
           {data.map((entry, index) => (
             <Cell
               key={`cell-${index}`}
-              fill={statusToColor(entry.name)}
+              fill={getSourceColor(index)}
             />
           ))}
         </Bar>

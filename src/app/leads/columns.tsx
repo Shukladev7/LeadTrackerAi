@@ -136,6 +136,44 @@ export const columns: ColumnDef<Lead>[] = [
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
+    accessorKey: 'source',
+    header: 'Source',
+    cell: ({ row }) => (
+      <div className="text-sm text-muted-foreground">
+        {row.original.source || '-'}
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'products',
+    header: 'Products',
+    cell: ({ row }) => {
+      const products = row.original.products || [];
+      if (products.length === 0) {
+        return <div className="text-sm text-muted-foreground">-</div>;
+      }
+      
+      return (
+        <div className="max-w-[200px]">
+          {products.length === 1 ? (
+            <div className="text-sm">
+              <div className="truncate font-medium">{products[0].productId}</div>
+              <div className="text-xs text-muted-foreground">Qty: {products[0].quantity}</div>
+            </div>
+          ) : (
+            <div className="text-sm">
+              <div className="font-medium">{products.length} products</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {products.slice(0, 2).map(p => p.productId).join(', ')}
+                {products.length > 2 && '...'}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: 'createdAt',
     header: ({ column }) => {
       return (
