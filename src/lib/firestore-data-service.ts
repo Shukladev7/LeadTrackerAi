@@ -4,6 +4,7 @@ import {
   employeeService, 
   leadService, 
   productService, 
+  productModelService,
   quotationService,
   departmentsService,
   employeeRolesService,
@@ -363,14 +364,41 @@ export const getProductModelById = async (id: string): Promise<ProductModel | un
   return model ? convertFirestoreDocToPlain(model) : undefined;
 };
 
+// Get models for a specific product
+export const getModelsByProduct = async (productId: string): Promise<ProductModel[]> => {
+  const models = await productModelService.getModelsByProduct(productId);
+  return models.map(model => convertFirestoreDocToPlain(model));
+};
+
+export const getActiveModelsByProduct = async (productId: string): Promise<ProductModel[]> => {
+  const models = await productModelService.getActiveModelsByProduct(productId);
+  return models.map(model => convertFirestoreDocToPlain(model));
+};
+
 export const addProductModel = async (name: string, description?: string): Promise<ProductModel> => {
   const id = await productModelsService.create({
+    productId: '', // Generic product model
     name,
     description,
     isActive: true
   });
   
   const newModel = await productModelsService.getById(id);
+  if (!newModel) {
+    throw new Error('Failed to create product model');
+  }
+  
+  return convertFirestoreDocToPlain(newModel);
+};
+
+// Create a model for a specific product
+export const addModelForProduct = async (productId: string, name: string, description?: string): Promise<ProductModel> => {
+  const id = await productModelService.createModelForProduct(productId, {
+    name,
+    description
+  });
+  
+  const newModel = await productModelService.getById(id);
   if (!newModel) {
     throw new Error('Failed to create product model');
   }

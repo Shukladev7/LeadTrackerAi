@@ -149,34 +149,36 @@ export class ProductService extends FirestoreService<Product> {
       orderBy: { field: 'name', direction: 'asc' }
     });
   }
+}
 
-  async getProductsByCategory(category: string): Promise<Product[]> {
+export class ProductModelService extends FirestoreService<ProductModel> {
+  constructor() {
+    super(COLLECTIONS.PRODUCT_MODELS);
+  }
+
+  async getModelsByProduct(productId: string): Promise<ProductModel[]> {
     return this.getWithQuery({
-      where: [{ field: 'category', operator: '==', value: category }],
+      where: [{ field: 'productId', operator: '==', value: productId }],
       orderBy: { field: 'name', direction: 'asc' }
     });
   }
 
-  async getLowStockProducts(): Promise<Product[]> {
-    const products = await this.getAll();
-    return products.filter(product => 
-      product.stockQuantity !== undefined && 
-      product.minStockLevel !== undefined && 
-      product.stockQuantity <= product.minStockLevel
-    );
+  async getActiveModelsByProduct(productId: string): Promise<ProductModel[]> {
+    return this.getWithQuery({
+      where: [
+        { field: 'productId', operator: '==', value: productId },
+        { field: 'isActive', operator: '==', value: true }
+      ],
+      orderBy: { field: 'name', direction: 'asc' }
+    });
   }
 
-  async updateStock(productId: string, quantity: number): Promise<void> {
-    await this.update(productId, { stockQuantity: quantity });
-  }
-
-  async searchProducts(searchTerm: string): Promise<Product[]> {
-    const products = await this.getActiveProducts();
-    return products.filter(product => 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
-    );
+  async createModelForProduct(productId: string, modelData: Omit<ProductModel, 'id' | 'productId'>): Promise<string> {
+    return this.create({
+      ...modelData,
+      productId,
+      isActive: true
+    });
   }
 }
 
@@ -378,6 +380,7 @@ export class TaskService extends FirestoreService<Task> {
 export const employeeService = new EmployeeService();
 export const leadService = new LeadService();
 export const productService = new ProductService();
+export const productModelService = new ProductModelService();
 export const quotationService = new QuotationService();
 export const customerService = new CustomerService();
 export const orderService = new OrderService();

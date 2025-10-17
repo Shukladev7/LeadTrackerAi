@@ -36,14 +36,16 @@ import {
   } from '@/components/ui/table';
 import { updateLead } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { ALL_STATUSES, Product, LeadSource, Lead } from '@/lib/types';
+import { ALL_STATUSES, Product, LeadSource, Lead, ProductModel } from '@/lib/types';
 import { getProducts, getLeadSources } from '@/lib/data';
+import { getActiveModelsByProductAction, getModelsByProductFieldAction } from '@/lib/actions';
 
 const leadProductSchema = z.object({
     productId: z.string().min(1, 'Product must be selected'),
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     rate: z.coerce.number().min(0, 'Rate must be a positive number'),
     selectedSku: z.string().optional(),
+    selectedModelId: z.string().optional(),
 });
 
 const leadSchema = z.object({
@@ -73,6 +75,7 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
   
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
+  const [productModels, setProductModels] = useState<{ [productId: string]: ProductModel[] }>({});
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<LeadFormData>({
@@ -153,11 +156,30 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
     }
   };
 
-  const handleProductChange = (productId: string, index: number) => {
+  const handleProductChange = async (productId: string, index: number) => {
     const product = availableProducts.find(p => p.id === productId);
     if (product) {
       setValue(`products.${index}.rate`, product.price, { shouldValidate: true });
       setValue(`products.${index}.selectedSku`, undefined);
+      setValue(`products.${index}.selectedModelId`, undefined); // Reset Model
+      
+      // Load models for the selected product using the new function
+      if (!productModels[productId]) {
+        try {
+          // First try the new method (using product's modelIds field)
+          const models = await getModelsByProductFieldAction(productId);
+          setProductModels(prev => ({ ...prev, [productId]: models }));
+        } catch (error) {
+          console.error('Error loading product models:', error);
+          // Fallback to the old method if needed
+          try {
+            const fallbackModels = await getActiveModelsByProductAction(productId);
+            setProductModels(prev => ({ ...prev, [productId]: fallbackModels }));
+          } catch (fallbackError) {
+            console.error('Error loading fallback product models:', fallbackError);
+          }
+        }
+      }
     }
   };
 
@@ -243,7 +265,8 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[25%]">Product</TableHead>
+                                    <TableHead className="w-[20%]">Product</TableHead>
+                                    <TableHead className="w-[15%]">Model</TableHead>
                                     <TableHead className="w-[15%]">SKU</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate (₹)</TableHead>
@@ -279,6 +302,28 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                                                     </Select>
                                                 )}
                                             />
+                                        </TableCell>
+                                        <TableCell>
+                                            {watchedProducts?.[index]?.productId && productModels[watchedProducts[index].productId] && productModels[watchedProducts[index].productId].length > 0 ? (
+                                                <Controller
+                                                    control={control}
+                                                    name={`products.${index}.selectedModelId`}
+                                                    render={({ field }) => (
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Model" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {productModels[watchedProducts[index].productId]?.map(model => (
+                                                                    <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                />
+                                            ) : (
+                                                <div className="text-xs text-muted-foreground">No models</div>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             {productDetails?.skus && productDetails.skus.length > 0 ? (
@@ -319,7 +364,7 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                                 )})}
                                 {fields.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
+                                        <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
                                             No products added.
                                         </TableCell>
                                     </TableRow>
@@ -327,14 +372,14 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                             </TableBody>
                             <UiTableFooter>
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-right font-bold">Grand Total (₹)</TableCell>
+                                    <TableCell colSpan={6} className="text-right font-bold">Grand Total (₹)</TableCell>
                                     <TableCell className="text-right font-bold">{grandTotal.toFixed(2)}</TableCell>
                                     <TableCell></TableCell>
                                 </TableRow>
                             </UiTableFooter>
                         </Table>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, selectedSku: '' })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, selectedSku: '', selectedModelId: '' })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                     </Button>
                 </div>

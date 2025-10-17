@@ -41,8 +41,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Product, QuotationTemplate, Quotation } from '@/lib/business-types';
 import { ALL_QUOTATION_STATUSES } from '@/lib/types';
+import type { ProductModel } from '@/lib/business-types';
 import { getLeads, getProducts, getQuotationTemplates } from '@/lib/data';
-import { updateQuotation } from '@/lib/actions';
+import { updateQuotation, getActiveModelsByProductAction, getModelsByProductFieldAction } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
@@ -52,6 +53,7 @@ const quotationProductSchema = z.object({
     rate: z.coerce.number().min(0, 'Rate must be a positive number'),
     gstRate: z.coerce.number().min(0),
     discount: z.coerce.number().min(0).max(100).optional(),
+    modelId: z.string().optional(),
 });
 
 const quotationSchema = z.object({
@@ -100,6 +102,7 @@ export function EditQuotationDialog({
   const [leads, setLeads] = useState<Lead[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<QuotationTemplate[]>([]);
+  const [productModels, setProductModels] = useState<{ [productId: string]: ProductModel[] }>({});
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<QuotationFormData>({
@@ -247,11 +250,30 @@ export function EditQuotationDialog({
     }
   };
 
-  const handleProductChange = (productId: string, index: number) => {
+  const handleProductChange = async (productId: string, index: number) => {
     const product = availableProducts.find(p => p.id === productId);
     if (product) {
       setValue(`products.${index}.rate`, product.price, { shouldValidate: true });
       setValue(`products.${index}.gstRate`, product.gstRate, { shouldValidate: true });
+      setValue(`products.${index}.modelId`, undefined); // Reset model selection
+      
+      // Load models for the selected product using the new function
+      if (!productModels[productId]) {
+        try {
+          // First try the new method (using product's modelIds field)
+          const models = await getModelsByProductFieldAction(productId);
+          setProductModels(prev => ({ ...prev, [productId]: models }));
+        } catch (error) {
+          console.error('Error loading product models:', error);
+          // Fallback to the old method if needed
+          try {
+            const fallbackModels = await getActiveModelsByProductAction(productId);
+            setProductModels(prev => ({ ...prev, [productId]: fallbackModels }));
+          } catch (fallbackError) {
+            console.error('Error loading fallback product models:', fallbackError);
+          }
+        }
+      }
     }
   };
 
@@ -411,7 +433,8 @@ export function EditQuotationDialog({
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[25%]">Product Name</TableHead>
+                                    <TableHead className="w-[20%]">Product Name</TableHead>
+                                    <TableHead className="w-[15%]">Model</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
                                     <TableHead>Discount %</TableHead>
@@ -443,6 +466,26 @@ export function EditQuotationDialog({
                                                 )}
                                             />
                                         </TableCell>
+                                        <TableCell>
+                                            {watchedProducts?.[index]?.productId && productModels[watchedProducts[index].productId] && productModels[watchedProducts[index].productId].length > 0 ? (
+                                                <Controller
+                                                    control={control}
+                                                    name={`products.${index}.modelId`}
+                                                    render={({ field }) => (
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {productModels[watchedProducts[index].productId]?.map(model => (
+                                                                    <SelectItem key={model.id} value={model.id!}>{model.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                />
+                                            ) : (
+                                                <div className="text-xs text-muted-foreground">No models</div>
+                                            )}
+                                        </TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" /></TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.rate`)} min="0" className="w-24" /></TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.discount`)} min="0" max="100" step="0.01" className="w-20" placeholder="0" /></TableCell>
@@ -456,22 +499,22 @@ export function EditQuotationDialog({
                                     </TableRow>
                                 )})}
                                 {fields.length === 0 && (
-                                    <TableRow><TableCell colSpan={7} className="text-center h-24">No products added.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={8} className="text-center h-24">No products added.</TableCell></TableRow>
                                 )}
                             </TableBody>
                             <UiTableFooter>
-                                <TableRow><TableCell colSpan={5} className="text-right">Base Amount</TableCell><TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} className="text-right">Base Amount</TableCell><TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell><TableCell></TableCell></TableRow>
                                 {totalDiscountAmount > 0 && (
-                                    <TableRow><TableCell colSpan={5} className="text-right text-green-600">Total Discount</TableCell><TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell><TableCell></TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={6} className="text-right text-green-600">Total Discount</TableCell><TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell><TableCell></TableCell></TableRow>
                                 )}
-                                <TableRow><TableCell colSpan={5} className="text-right">Sub-total</TableCell><TableCell className="text-right">{formatCurrency(subTotal)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={5} className="text-right">Total GST</TableCell><TableCell className="text-right">{formatCurrency(totalGst)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={5} className="text-right font-bold text-lg">Grand Total</TableCell><TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} className="text-right">Sub-total</TableCell><TableCell className="text-right">{formatCurrency(subTotal)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} className="text-right">Total GST</TableCell><TableCell className="text-right">{formatCurrency(totalGst)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} className="text-right font-bold text-lg">Grand Total</TableCell><TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell><TableCell></TableCell></TableRow>
                             </UiTableFooter>
                         </Table>
                     </div>
                      {errors.products && <p className="text-xs text-destructive mt-1">{errors.products.message || errors.products.root?.message}</p>}
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0 })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0, modelId: '' })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                     </Button>
                 </div>

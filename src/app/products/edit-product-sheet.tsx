@@ -25,22 +25,16 @@ import { Product } from '@/lib/business-types';
 import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { ProductModel } from '@/lib/business-types';
+import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { getProductModelsAction } from '@/lib/actions';
+import { ProductModel } from '@/lib/types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
   gstRate: z.coerce.number().min(0, { message: 'GST rate must be a positive number.' }).max(100, { message: 'GST rate cannot exceed 100.' }),
-  modelId: z.string().optional(),
+  modelIds: z.array(z.string()).optional(),
   skus: z.array(z.object({ value: z.string().min(1, "SKU cannot be empty.") })).optional(),
 });
 
@@ -54,6 +48,8 @@ type EditProductSheetProps = {
 
 export function EditProductSheet({ product, open, onOpenChange }: EditProductSheetProps) {
   const [currentSku, setCurrentSku] = useState('');
+  const [availableModels, setAvailableModels] = useState<ProductModel[]>([]);
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   // Track if user explicitly removed the existing PDF (when editing an item that already had a catalogue)
   const [removedExistingPdf, setRemovedExistingPdf] = useState(false);
@@ -61,34 +57,25 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
   const [removedExistingImage, setRemovedExistingImage] = useState(false);
   const [imageError, setImageError] = useState<string>('');
-  const [productModels, setProductModels] = useState<ProductModel[]>([]);
   const { toast } = useToast();
-  const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
+  const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
   });
   
-  const { fields, append, remove } = useFieldArray({
+  const { fields: skuFields, append: appendSku, remove: removeSku } = useFieldArray({
     control,
     name: "skus"
   });
 
   useEffect(() => {
-    async function fetchModels() {
-      if (open) {
-        const models = await getProductModelsAction();
-        setProductModels(models);
-      }
-    }
-    fetchModels();
-  }, [open]);
-
-  useEffect(() => {
     if (open) {
       reset({
         ...product,
-        modelId: product.modelId || '',
         skus: product.skus?.map(sku => ({ value: sku })) || [],
+        modelIds: [],
       });
+      // Set selected model IDs from product
+      setSelectedModelIds(product.modelIds || []);
       // Reset local PDF and image state flags whenever the sheet is (re)opened
       setCatalogPdf(null);
       setRemovedExistingPdf(false);
@@ -96,12 +83,23 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       setProductImage(null);
       setRemovedExistingImage(false);
       setImageError('');
+      
+      // Fetch available models
+      const fetchModels = async () => {
+        try {
+          const models = await getProductModelsAction();
+          setAvailableModels(models);
+        } catch (error) {
+          console.error('Error fetching models:', error);
+        }
+      };
+      fetchModels();
     }
   }, [product, open, reset]);
 
   const handleAddSku = () => {
     if (currentSku.trim() !== '') {
-      append({ value: currentSku.trim() });
+      appendSku({ value: currentSku.trim() });
       setCurrentSku('');
     }
   };
@@ -111,6 +109,8 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
     Object.entries(data).forEach(([key, value]) => {
       if (key === 'skus') {
         formData.append(key, JSON.stringify((value as {value: string}[]).map(s => s.value)));
+      } else if (key === 'modelIds') {
+        formData.append(key, JSON.stringify(selectedModelIds));
       } else if (value !== undefined && value !== null) {
         formData.append(key, String(value));
       }
@@ -192,27 +192,19 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
             <Textarea id="description" {...register('description')} className={errors.description ? 'border-destructive' : ''} />
             {errors.description && <p className="text-xs text-destructive mt-1">{errors.description.message}</p>}
           </div>
-          <div>
-            <Label htmlFor="modelId">Product Model</Label>
-            <Controller
-              control={control}
-              name="modelId"
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a model (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productModels.filter(m => m.id).map((model) => (
-                      <SelectItem key={model.id} value={model.id!}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+          <div className="space-y-2">
+            <Label>Product Models</Label>
+            <MultiSelect
+              options={availableModels.map(model => ({
+                value: model.id,
+                label: model.name
+              }))}
+              selected={selectedModelIds}
+              onChange={setSelectedModelIds}
+              placeholder="Select product models..."
+              emptyText="No models available. Please add models in the setup section first."
             />
-            {errors.modelId && <p className="text-xs text-destructive mt-1">{errors.modelId.message}</p>}
+            {errors.modelIds && <p className="text-xs text-destructive mt-1">{errors.modelIds.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -307,13 +299,13 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
               </Button>
             </div>
             <div className="flex flex-wrap gap-2 pt-2">
-              {fields.map((field, index) => (
+              {skuFields.map((field, index) => (
                 <Badge key={field.id} variant="secondary">
                   {field.value}
                   <button
                     type="button"
                     className="ml-2 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    onClick={() => remove(index)}
+                    onClick={() => removeSku(index)}
                   >
                     <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                   </button>

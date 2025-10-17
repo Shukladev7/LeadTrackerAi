@@ -53,6 +53,7 @@ export interface LeadSource extends BusinessDocument {
 
 // Product Model interface
 export interface ProductModel extends BusinessDocument {
+  productId: string; // Reference to the product this model belongs to
   name: string;
   description?: string;
   isActive?: boolean;
@@ -65,6 +66,7 @@ export interface Product extends BusinessDocument {
   price: number;
   gstRate: number;
   modelId?: string;
+  modelIds?: string[]; // New field for selected model IDs
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
@@ -108,6 +110,7 @@ export interface LeadProduct {
   rate: number;
   discount?: number;
   notes?: string;
+  selectedModelId?: string; // Selected model for this product
 }
 
 // Lead interface

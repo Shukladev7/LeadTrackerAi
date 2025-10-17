@@ -43,7 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Lead, Product, QuotationTemplate, ALL_QUOTATION_STATUSES } from '@/lib/types';
 import type { ProductModel } from '@/lib/business-types';
 import { getLeads, getProducts, getQuotationTemplates, getLeadById } from '@/lib/data';
-import { addQuotation, getProductModelsAction } from '@/lib/actions';
+import { addQuotation, getActiveModelsByProductAction, getModelsByProductFieldAction } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
@@ -61,7 +61,7 @@ const quotationSchema = z.object({
   templateId: z.string().min(1, 'A template must be selected'),
   date: z.date(),
   validUntil: z.date(),
-  status: z.enum(ALL_QUOTATION_STATUSES),
+  status: z.enum(['Draft', 'Sent', 'Accepted', 'Rejected'] as const),
   products: z.array(quotationProductSchema).min(1, 'At least one product is required'),
   // Overridable template fields
   companyName: z.string().min(1, 'Company name is required.'),
@@ -86,7 +86,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   const [leads, setLeads] = useState<Lead[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<QuotationTemplate[]>([]);
-  const [productModels, setProductModels] = useState<ProductModel[]>([]);
+  const [productModels, setProductModels] = useState<{ [productId: string]: ProductModel[] }>({});
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<QuotationFormData>({
@@ -137,16 +137,14 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   useEffect(() => {
     async function fetchData() {
         if (open) {
-            const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedModels] = await Promise.all([
+            const [fetchedLeads, fetchedProducts, fetchedTemplates] = await Promise.all([
                 getLeads(),
                 getProducts(),
                 getQuotationTemplates(),
-                getProductModelsAction(),
             ]);
             setLeads(fetchedLeads);
             setAvailableProducts(fetchedProducts);
             setTemplates(fetchedTemplates);
-            setProductModels(fetchedModels);
         }
     }
     fetchData();
@@ -185,7 +183,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                         rate: lp.rate,
                         gstRate: productDetails?.gstRate || 0,
                         discount: 0,
-                        modelId: productDetails?.modelId || '',
+                        modelId: lp.selectedModelId || '',
                     };
                 });
                 setValue('products', quotationProducts, { shouldValidate: true });
@@ -240,11 +238,30 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
     }
   };
 
-  const handleProductChange = (productId: string, index: number) => {
+  const handleProductChange = async (productId: string, index: number) => {
     const product = availableProducts.find(p => p.id === productId);
     if (product) {
       setValue(`products.${index}.rate`, product.price, { shouldValidate: true });
       setValue(`products.${index}.gstRate`, product.gstRate, { shouldValidate: true });
+      setValue(`products.${index}.modelId`, undefined); // Reset model selection
+      
+      // Load models for the selected product using the new function
+      if (!productModels[productId]) {
+        try {
+          // First try the new method (using product's modelIds field)
+          const models = await getModelsByProductFieldAction(productId);
+          setProductModels(prev => ({ ...prev, [productId]: models }));
+        } catch (error) {
+          console.error('Error loading product models:', error);
+          // Fallback to the old method if needed
+          try {
+            const fallbackModels = await getActiveModelsByProductAction(productId);
+            setProductModels(prev => ({ ...prev, [productId]: fallbackModels }));
+          } catch (fallbackError) {
+            console.error('Error loading fallback product models:', fallbackError);
+          }
+        }
+      }
     }
   };
 
@@ -438,18 +455,24 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
         </TableCell>
 
         <TableCell>
-          <Controller
-            control={control}
-            name={`products.${index}.modelId`}
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger><SelectValue placeholder="Select model (optional)" /></SelectTrigger>
-                <SelectContent>
-                  {productModels.filter(m => m.id).map(m => <SelectItem key={m.id} value={m.id!}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
-          />
+          {watchedProducts?.[index]?.productId && productModels[watchedProducts[index].productId] && productModels[watchedProducts[index].productId].length > 0 ? (
+            <Controller
+              control={control}
+              name={`products.${index}.modelId`}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
+                  <SelectContent>
+                    {productModels[watchedProducts[index].productId]?.map(model => (
+                      <SelectItem key={model.id} value={model.id!}>{model.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          ) : (
+            <div className="text-xs text-muted-foreground">No models</div>
+          )}
         </TableCell>
 
         {/* Quantity */}
