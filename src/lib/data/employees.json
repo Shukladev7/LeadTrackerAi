@@ -1,0 +1,32 @@
+[
+  {
+    "name": "atul jaiswal",
+    "email": "seal74521@gmail.com",
+    "phone": "7024474517",
+    "role": "Admin",
+    "department": "Marketing",
+    "address": "Maulana Azad National Institute of Technology",
+    "id": "emp-1758387687391",
+    "createdAt": "2025-09-20T17:01:27.391Z"
+  },
+  {
+    "name": "Gaurav Shukla44",
+    "email": "gouravshukla337@gmail.com",
+    "phone": "07024474517",
+    "role": "Admin",
+    "department": "Marketing",
+    "address": "3 Hostel Road Maulana Azad National Institute of Technology",
+    "id": "emp-1758387353941",
+    "createdAt": "2025-09-20T16:55:53.941Z"
+  },
+  {
+    "name": "Gaurav Shukla",
+    "email": "gouravshukla337@gmail.com",
+    "phone": "7024474517",
+    "role": "Admin",
+    "department": "Engineering",
+    "address": "3 Hostel Road Maulana Azad National Institute of Technology",
+    "id": "emp-1758386000663",
+    "createdAt": "2025-09-20T16:33:20.664Z"
+  }
+]
