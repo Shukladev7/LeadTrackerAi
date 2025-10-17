@@ -1,156 +1,142 @@
-
-export type LeadStatus = 'New' | 'In Discussion' | 'Negotiation' | 'Closed - Won' | 'Closed - Lost';
-
-export const ALL_STATUSES: LeadStatus[] = ['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost'];
-
-export type ActivityType = 'Meeting' | 'Call' | 'Email' | 'WhatsApp' | 'Revision Request' | 'Proposal Sent' | 'Status Change';
-
-export type LeadSource = {
+export interface RawMaterial {
   id: string;
   name: string;
-};
+  sku: string;
+  quantity: number;
+  unit: string;
+  threshold: number;
+  isMoulded?: boolean;
+  isFinished?: boolean;
+  sourceBatchId?: string;
+  createdAt?: string;
+}
 
-export type ProductModel = {
-  id: string;
-  name: string;
-  description?: string;
-};
-
-export type Activity = {
-  id: string;
-  date: string; // ISO 8601 format
-  type: ActivityType;
+export interface BOMRow {
+  raw_material_id: string;
+  stage: ProcessingStageName;
+  qty_per_piece: number;
+  unit: string;
   notes?: string;
-  summary?: string;
-};
+}
 
-export type Product = {
+export interface BatchEntry {
+  batchId: string;
+  sourceBatchId: string;
+  quantity: number;
+  sku: string;
+  createdAt: string;
+}
+
+export interface FinalStock {
   id: string;
-  name:string;
-  description: string;
+  name: string;
+  sku: string;
   price: number;
   gstRate: number;
-  modelId?: string;
-  skus?: string[];
-  catalogueUrl?: string; // Legacy field - will be deprecated
-  cataloguePdf?: {
-    url: string; // Firebase Storage download URL
-    fileName: string;
-    filePath: string;
-    uploadedAt: string;
-  };
-  productImage?: {
-    url: string; // Firebase Storage download URL
-    fileName: string;
-    filePath: string;
-    uploadedAt: string;
-  };
-};
+  imageUrl: string;
+  imageHint: string;
+  bom_per_piece?: BOMRow[];
+  batches?: BatchEntry[]; // Array of batch entries for this product
+  quantity?: number; // Accepted quantity from the last completed stage
+  createdAt?: string; // Date when batch was accepted into Final Stock
+}
 
-export type NewProduct = Omit<Product, 'id'>;
+export type BatchStatus = "Completed" | "In Progress" | "On Hold" | "Planned";
 
-export type LeadProduct = {
-  productId: string;
-  quantity: number;
-  rate: number;
-  selectedSku?: string;
-};
+export interface ProcessDefinition {
+  name: ProcessingStageName;
+  label: string;
+  order: number;
+}
 
-export type PopulatedLeadProduct = LeadProduct & {
-  product: Product;
-  amount: number;
-};
+export type ProcessingStageName =
+  | "Molding"
+  | "Machining"
+  | "Assembling"
+  | "Testing";
 
-export type Lead = {
+export interface ProcessingStage {
+  accepted: number;
+  rejected: number;
+  actualConsumption: number;
+  completed: boolean;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
+export interface BatchMaterial {
   id: string;
   name: string;
-  company: string;
-  email: string;
-  phone: string;
-  whatsappNumber?: string;
-  status: LeadStatus;
-  source: string;
-  createdAt: string; // ISO 8601 format
-  activities: Activity[];
-  products: LeadProduct[];
-  createdBy?: string; // Name or email of the user who created the lead
-};
-
-export type UpdatableLeadData = Omit<Lead, 'id' | 'createdAt' | 'activities'>;
-
-export type QuotationStatus = 'Draft' | 'Sent' | 'Accepted' | 'Rejected';
-export const ALL_QUOTATION_STATUSES: QuotationStatus[] = ['Draft', 'Sent', 'Accepted', 'Rejected'];
-
-export type QuotationProduct = {
-  productId: string;
   quantity: number;
-  rate: number;
-  gstRate: number;
-  discount?: number;
-  modelId?: string;
-};
+  unit: string;
+  stage: ProcessingStageName;
+}
 
-export type PopulatedQuotationProduct = QuotationProduct & {
-    product: Product;
-    amount: number;
-    gstAmount: number;
-};
-
-export type Quotation = {
+export interface Batch {
   id: string;
-  quotationNumber: string;
-  leadId: string;
-  date: string;
-  validUntil: string;
-  products: QuotationProduct[];
-  subTotal: number;
-  totalGst: number;
-  grandTotal: number;
-  status: QuotationStatus;
-  templateId: string;
+  productId: string;
+  productName: string;
+  totalMaterialQuantity: number;
+  materials: BatchMaterial[];
   createdAt: string;
-  // Template fields that can be overridden
-  logoUrl?: string;
-  companyName: string;
-  companyAddress: string;
-  companyGst: string;
-  termsAndConditions: string;
+  status: BatchStatus;
+  processingStages: Record<ProcessingStageName, ProcessingStage>;
+  selectedProcesses: ProcessingStageName[];
+}
+
+export interface UnitOfMeasure {
+  id: string;
+  name: string;
+}
+
+export type Permission = {
+  view: boolean;
+  edit: boolean;
+  delete: boolean;
 };
 
-export type QuotationTemplate = {
-    id: string;
-    name: string;
-    prefix: string; // e.g., QUO, SALES
-    logoUrl?: string;
-    companyName: string;
-    companyAddress: string;
-    companyGst: string;
-    termsAndConditions: string;
-};
+export type AppModule =
+  | "Dashboard"
+  | "Raw Materials"
+  | "Store"
+  | "Batches"
+  | "Final Stock"
+  | "Reports"
+  | "Setup"
+  | "Moulding"
+  | "Machining"
+  | "Assembling"
+  | "Testing";
 
-export type NewQuotationTemplate = Omit<QuotationTemplate, 'id'>;
+export type Role =
+  | "admin"
+  | "storeManager"
+  | "mouldingManager"
+  | "machiningManager"
+  | "assemblingManager"
+  | "testingManager";
 
-export type EmployeeRoleData = {
-    id: string;
-    name: string;
-};
+export interface Employee {
+  uid: string;
+  name: string;
+  email: string;
+  role: Role;
+  createdAt: string; // Will be stored as ISO string in Firestore, but represents a Timestamp
+}
 
-export type EmployeeRole = EmployeeRoleData['name'];
+export type LogAction =
+  | "Created"
+  | "Updated"
+  | "Deleted"
+  | "Stock Adjustment (Batch)"
+  | "Stock Adjustment (Manual)";
 
-export type Department = {
-    id: string;
-    name: string;
-};
-
-export type Employee = {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    role: EmployeeRole;
-    department: string;
-    address: string;
-    createdAt: string;
-};
-
-export type NewEmployee = Omit<Employee, 'id' | 'createdAt'>;
+export interface ActivityLog {
+  id: string;
+  recordId: string;
+  recordType: "RawMaterial" | "Batch" | "FinalStock";
+  timestamp: string;
+  action: LogAction;
+  details: string;
+  user: string; // For now, we can hardcode a user like "System"
+}
