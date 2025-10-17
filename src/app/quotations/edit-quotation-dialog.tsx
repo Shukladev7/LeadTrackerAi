@@ -66,6 +66,8 @@ const quotationSchema = z.object({
   companyName: z.string().min(1, 'Company name is required.'),
   companyAddress: z.string().min(1, 'Company address is required.'),
   companyGst: z.string().min(1, 'Company GSTIN is required.'),
+  client_address: z.string().optional(),
+  client_gst_no: z.string().optional(),
   termsAndConditions: z.string(),
   logoUrl: z.string().optional(),
 });
@@ -117,6 +119,8 @@ export function EditQuotationDialog({
       companyName: quotation.companyName || '',
       companyAddress: quotation.companyAddress || '',
       companyGst: quotation.companyGst || '',
+      client_address: quotation.client_address || '',
+      client_gst_no: quotation.client_gst_no || '',
       termsAndConditions: quotation.termsAndConditions || '',
       logoUrl: quotation.logoUrl || '',
     },
@@ -424,6 +428,30 @@ export function EditQuotationDialog({
                  <div className="space-y-2">
                     <Label htmlFor="termsAndConditions">Terms & Conditions</Label>
                     <Textarea id="termsAndConditions" {...register('termsAndConditions')} rows={5} />
+                </div>
+                
+                <Separator />
+                <h3 className="text-lg font-medium">Client Billing Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="client_address">Client Address</Label>
+                        <Textarea 
+                            id="client_address" 
+                            {...register('client_address')} 
+                            placeholder="Client's billing address"
+                            rows={3}
+                        />
+                        <p className="text-xs text-muted-foreground">This can be manually edited</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="client_gst_no">Client GST No</Label>
+                        <Input 
+                            id="client_gst_no" 
+                            {...register('client_gst_no')} 
+                            placeholder="Client's GST number"
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty if client doesn't have GST registration</p>
+                    </div>
                 </div>
                 <Separator />
                 

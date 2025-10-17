@@ -73,6 +73,8 @@ export type Lead = {
   email: string;
   phone: string;
   whatsappNumber?: string;
+  client_address?: string;
+  client_gst_no?: string;
   status: LeadStatus;
   source: string;
   createdAt: string; // ISO 8601 format
@@ -120,6 +122,9 @@ export type Quotation = {
   companyName: string;
   companyAddress: string;
   companyGst: string;
+  // Client billing fields
+  client_address?: string;
+  client_gst_no?: string;
   termsAndConditions: string;
 };
 

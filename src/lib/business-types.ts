@@ -120,6 +120,8 @@ export interface Lead extends BusinessDocument {
   email: string;
   phone: string;
   whatsappNumber?: string;
+  client_address?: string;
+  client_gst_no?: string;
   status: 'New' | 'In Discussion' | 'Negotiation' | 'Closed - Won' | 'Closed - Lost' | 'On Hold';
   source: string;
   products: LeadProduct[];
@@ -178,9 +180,13 @@ export interface Quotation extends BusinessDocument {
   totalGst: number;
   grandTotal: number;
   discount?: number;
+  // Company fields (seller)
   companyName?: string;
   companyAddress?: string;
   companyGst?: string;
+  // Client fields (buyer)
+  client_address?: string;
+  client_gst_no?: string;
   termsAndConditions?: string;
   logoUrl?: string;
   notes?: string;

@@ -67,6 +67,9 @@ const quotationSchema = z.object({
   companyName: z.string().min(1, 'Company name is required.'),
   companyAddress: z.string().min(1, 'Company address is required.'),
   companyGst: z.string().min(1, 'Company GSTIN is required.'),
+  // Client billing fields
+  client_address: z.string().optional(),
+  client_gst_no: z.string().optional(),
   termsAndConditions: z.string(),
   logoUrl: z.string().optional(),
   quotationPrefix: z.string().optional(),
@@ -100,6 +103,8 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
       companyName: '',
       companyAddress: '',
       companyGst: '',
+      client_address: '',
+      client_gst_no: '',
       termsAndConditions: '',
       logoUrl: '',
     },
@@ -171,29 +176,36 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   }, [watchedTemplateId, open, templates, setValue]);
 
   useEffect(() => {
-    async function populateProductsFromLead() {
+    async function populateFromLead() {
         if (watchedLeadId && availableProducts.length > 0) {
             const lead = await getLeadById(watchedLeadId);
-            if (lead && lead.products && lead.products.length > 0) {
-                const quotationProducts = lead.products.map(lp => {
-                    const productDetails = availableProducts.find(ap => ap.id === lp.productId);
-                    return {
-                        productId: lp.productId,
-                        quantity: lp.quantity,
-                        rate: lp.rate,
-                        gstRate: productDetails?.gstRate || 0,
-                        discount: 0,
-                        modelId: lp.selectedModelId || '',
-                    };
-                });
-                setValue('products', quotationProducts, { shouldValidate: true });
-            } else {
-                setValue('products', [], { shouldValidate: true });
+            if (lead) {
+                // Populate client billing fields from lead
+                setValue('client_address', lead.client_address || '', { shouldValidate: true });
+                setValue('client_gst_no', lead.client_gst_no || '', { shouldValidate: true });
+                
+                // Populate products if available
+                if (lead.products && lead.products.length > 0) {
+                    const quotationProducts = lead.products.map(lp => {
+                        const productDetails = availableProducts.find(ap => ap.id === lp.productId);
+                        return {
+                            productId: lp.productId,
+                            quantity: lp.quantity,
+                            rate: lp.rate,
+                            gstRate: productDetails?.gstRate || 0,
+                            discount: 0,
+                            modelId: lp.selectedModelId || '',
+                        };
+                    });
+                    setValue('products', quotationProducts, { shouldValidate: true });
+                } else {
+                    setValue('products', [], { shouldValidate: true });
+                }
             }
         }
     }
     if (open) {
-        populateProductsFromLead();
+        populateFromLead();
     }
   }, [watchedLeadId, open, availableProducts, setValue]);
 
@@ -415,6 +427,30 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                  <div className="space-y-2">
                     <Label htmlFor="termsAndConditions">Terms & Conditions</Label>
                     <Textarea id="termsAndConditions" {...register('termsAndConditions')} rows={5} />
+                </div>
+                
+                <Separator />
+                <h3 className="text-lg font-medium">Client Billing Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="client_address">Client Address <span className="text-muted-foreground">(Auto-filled from Lead)</span></Label>
+                        <Textarea 
+                            id="client_address" 
+                            {...register('client_address')} 
+                            placeholder="Client's billing address will be auto-populated from selected lead"
+                            rows={3}
+                        />
+                        <p className="text-xs text-muted-foreground">This can be manually edited if needed</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="client_gst_no">Client GST No <span className="text-muted-foreground">(Auto-filled from Lead)</span></Label>
+                        <Input 
+                            id="client_gst_no" 
+                            {...register('client_gst_no')} 
+                            placeholder="Client's GST number from lead"
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty if client doesn't have GST registration</p>
+                    </div>
                 </div>
                 <Separator />
                 

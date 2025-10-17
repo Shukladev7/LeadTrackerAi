@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
     Select,
     SelectContent,
@@ -54,6 +55,8 @@ const leadSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   phone: z.string().min(10, { message: 'Please enter a valid phone number.' }),
   whatsappNumber: z.string().optional(),
+  client_address: z.string().optional(),
+  client_gst_no: z.string().optional(),
   status: z.enum(ALL_STATUSES),
   source: z.string().min(1, { message: 'Please select a lead source.' }),
   products: z.array(leadProductSchema).optional(),
@@ -235,6 +238,27 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                             <p className="text-xs text-muted-foreground">This field cannot be modified</p>
                         </div>
                     )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="client_address">Client Address <span className="text-muted-foreground">(Optional)</span></Label>
+                        <Textarea 
+                            id="client_address" 
+                            {...register('client_address')} 
+                            placeholder="Enter client's full address..."
+                            rows={3}
+                        />
+                        <p className="text-xs text-muted-foreground">This will be used for billing in quotations</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="client_gst_no">Client GST No <span className="text-muted-foreground">(Optional)</span></Label>
+                        <Input 
+                            id="client_gst_no" 
+                            {...register('client_gst_no')} 
+                            placeholder="e.g., 07AAACB2745C1Z5"
+                        />
+                        <p className="text-xs text-muted-foreground">15-digit GST identification number (format: XXAAAAXXXX1X1XX)</p>
+                    </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

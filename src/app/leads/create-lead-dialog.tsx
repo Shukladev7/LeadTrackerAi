@@ -56,6 +56,8 @@ const leadSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   phone: z.string().min(10, { message: 'Please enter a valid phone number.' }),
   whatsappNumber: z.string().optional(),
+  client_address: z.string().optional(),
+  client_gst_no: z.string().optional(),
   status: z.enum(['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost'] as const),
   source: z.string().min(1, { message: 'Please select a lead source.' }),
   notes: z.string().optional(),
@@ -233,6 +235,27 @@ export function CreateLeadDialog() {
                             className="bg-muted text-muted-foreground cursor-not-allowed"
                         />
                         <p className="text-xs text-muted-foreground">This field is automatically set to the current user</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="client_address">Client Address <span className="text-muted-foreground">(Optional)</span></Label>
+                        <Textarea 
+                            id="client_address" 
+                            {...register('client_address')} 
+                            placeholder="Enter client's full address..."
+                            rows={3}
+                        />
+                        <p className="text-xs text-muted-foreground">This will be used for billing in quotations</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="client_gst_no">Client GST No <span className="text-muted-foreground">(Optional)</span></Label>
+                        <Input 
+                            id="client_gst_no" 
+                            {...register('client_gst_no')} 
+                            placeholder="e.g., 07AAACB2745C1Z5"
+                        />
+                        <p className="text-xs text-muted-foreground">15-digit GST identification number (format: XXAAAAXXXX1X1XX)</p>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

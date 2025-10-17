@@ -63,6 +63,8 @@ const CreateLeadSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number seems too short'),
   whatsappNumber: z.string().optional(),
+  client_address: z.string().optional(),
+  client_gst_no: z.string().optional(),
   status: z.enum(['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost']),
   source: z.string().min(1, 'Please select a lead source'),
   notes: z.string().optional(),
@@ -80,6 +82,8 @@ export async function createLead(formData: FormData) {
     email: formData.get('email'),
     phone: formData.get('phone'),
     whatsappNumber: formData.get('whatsappNumber'),
+    client_address: formData.get('client_address'),
+    client_gst_no: formData.get('client_gst_no'),
     status: formData.get('status'),
     source: formData.get('source'),
     notes: formData.get('notes'),
@@ -120,6 +124,8 @@ const UpdateLeadSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number seems too short'),
   whatsappNumber: z.string().optional(),
+  client_address: z.string().optional(),
+  client_gst_no: z.string().optional(),
   status: z.enum(['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost']),
   source: z.string().min(1, 'Please select a lead source'),
   products: z.array(LeadProductSchema).optional(),
@@ -142,6 +148,12 @@ function generateChangeNotes(oldLead: Lead, newLeadData: UpdatableLeadData, allP
     }
     if (oldLead.whatsappNumber !== newLeadData.whatsappNumber) {
         changes.push(`WhatsApp Number changed from "${oldLead.whatsappNumber || 'N/A'}" to "${newLeadData.whatsappNumber || 'N/A'}".`);
+    }
+    if (oldLead.client_address !== newLeadData.client_address) {
+        changes.push(`Client Address changed from "${oldLead.client_address || 'N/A'}" to "${newLeadData.client_address || 'N/A'}".`);
+    }
+    if (oldLead.client_gst_no !== newLeadData.client_gst_no) {
+        changes.push(`Client GST Number changed from "${oldLead.client_gst_no || 'N/A'}" to "${newLeadData.client_gst_no || 'N/A'}".`);
     }
     if (oldLead.status !== newLeadData.status) {
         changes.push(`Status changed from "${oldLead.status}" to "${newLeadData.status}".`);
@@ -189,6 +201,8 @@ export async function updateLead(leadId: string, formData: FormData) {
       email: formData.get('email'),
       phone: formData.get('phone'),
       whatsappNumber: formData.get('whatsappNumber'),
+      client_address: formData.get('client_address'),
+      client_gst_no: formData.get('client_gst_no'),
       status: formData.get('status'),
       source: formData.get('source'),
       products: products,
@@ -702,6 +716,9 @@ const CreateQuotationSchema = z.object({
   companyName: z.string().min(1),
   companyAddress: z.string().min(1),
   companyGst: z.string().min(1),
+  // Client billing fields
+  client_address: z.string().optional(),
+  client_gst_no: z.string().optional(),
   termsAndConditions: z.string(),
   logoUrl: z.string().optional(),
 });
@@ -723,6 +740,8 @@ export async function addQuotation(formData: FormData) {
         companyName: formData.get('companyName'),
         companyAddress: formData.get('companyAddress'),
         companyGst: formData.get('companyGst'),
+        client_address: formData.get('client_address'),
+        client_gst_no: formData.get('client_gst_no'),
         termsAndConditions: formData.get('termsAndConditions'),
         logoUrl: formData.get('logoUrl'),
       });
@@ -776,9 +795,12 @@ export async function updateQuotation(id: string, formData: FormData) {
         subTotal: formData.get('subTotal'),
         totalGst: formData.get('totalGst'),
         grandTotal: formData.get('grandTotal'),
+        quotationPrefix: formData.get('quotationPrefix') || '',
         companyName: formData.get('companyName'),
         companyAddress: formData.get('companyAddress'),
         companyGst: formData.get('companyGst'),
+        client_address: formData.get('client_address'),
+        client_gst_no: formData.get('client_gst_no'),
         termsAndConditions: formData.get('termsAndConditions'),
         logoUrl: formData.get('logoUrl'),
       });

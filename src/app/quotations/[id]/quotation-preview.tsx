@@ -6,6 +6,11 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { PDFDocument } from 'pdf-lib';
 import { format } from 'date-fns';
+import { 
+  addWatermarkToJsPDF, 
+  addWatermarkToAllPages, 
+  downloadPdfBlob 
+} from '@/lib/pdf-watermark';
 import {
   Quotation,
   Lead,
@@ -48,18 +53,30 @@ export function QuotationPreview({
     const quotationElement = previewRef.current;
     if (!quotationElement) return;
 
-    const canvas = await html2canvas(quotationElement, {
-      scale: 2, // Higher scale for better quality
-      useCORS: true,
-    });
-    const data = canvas.toDataURL('image/png');
+    try {
+      const canvas = await html2canvas(quotationElement, {
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+      });
+      const data = canvas.toDataURL('image/png');
 
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-    pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Quotation-${quotation.quotationNumber}.pdf`);
+      pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      // Add watermark and download
+      const watermarkedBlob = await addWatermarkToJsPDF(pdf);
+      downloadPdfBlob(watermarkedBlob, `Quotation-${quotation.quotationNumber}.pdf`);
+    } catch (error) {
+      console.error('Error generating quotation PDF with watermark:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to generate quotation PDF with watermark',
+      });
+    }
   };
 
   const handleDownloadCompletePreview = async () => {
@@ -99,7 +116,9 @@ export function QuotationPreview({
         heightLeft -= pdfHeight;
       }
 
-      pdf.save(`Quotation-${quotation.quotationNumber}-complete.pdf`);
+      // Add watermark and download
+      const watermarkedBlob = await addWatermarkToJsPDF(pdf);
+      downloadPdfBlob(watermarkedBlob, `Quotation-${quotation.quotationNumber}-complete.pdf`);
       
       toast({
         title: 'Success',
@@ -212,19 +231,13 @@ export function QuotationPreview({
         }
       }
 
-      // Save the merged PDF
+      // Add watermark to all pages before saving
+      await addWatermarkToAllPages(mergedPdf);
+      
+      // Save the merged PDF with watermark
       const mergedPdfBytes = await mergedPdf.save();
       const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Quotation-${quotation.quotationNumber}-with-catalogs.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      URL.revokeObjectURL(url);
+      downloadPdfBlob(blob, `Quotation-${quotation.quotationNumber}-with-catalogs.pdf`);
 
       toast({
         title: 'Success',
@@ -277,8 +290,22 @@ export function QuotationPreview({
       </div>
       <div
         ref={previewRef}
-        className="bg-white p-4 sm:p-8 rounded-lg shadow-lg max-w-4xl mx-auto border text-gray-900"
+        className="relative bg-white p-4 sm:p-8 rounded-lg shadow-lg max-w-4xl mx-auto border text-gray-900"
       >
+        {/* CSS Watermark overlay for on-screen preview */}
+        <div 
+          className="absolute inset-0 pointer-events-none z-0 rounded-lg"
+          style={{
+            backgroundImage: `url('/images/nirmala-logo.jpg')`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center center',
+            backgroundSize: '60% auto',
+            opacity: 0.12,
+          }}
+        />
+        
+        {/* Content with higher z-index to appear above watermark */}
+        <div className="relative z-10">
         <header className="flex flex-col sm:flex-row justify-between items-start pb-6 border-b-2 border-gray-800 gap-4">
           <div className="flex items-center gap-4">
             {quotation.logoUrl && (
@@ -317,6 +344,19 @@ export function QuotationPreview({
             <p className="text-gray-600">{lead.company}</p>
             <p className="text-gray-600 break-all">{lead.email}</p>
             <p className="text-gray-600">{lead.phone}</p>
+            {quotation.client_address && (
+              <div className="mt-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Address:</p>
+                <p className="text-gray-600 text-sm whitespace-pre-line">
+                  {quotation.client_address}
+                </p>
+              </div>
+            )}
+            {quotation.client_gst_no && (
+              <div className="mt-1">
+                <p className="text-xs font-semibold text-gray-500">GSTIN: <span className="font-normal text-gray-600">{quotation.client_gst_no}</span></p>
+              </div>
+            )}
           </div>
           <div className="sm:text-right">
             <div className="grid grid-cols-2 sm:grid-cols-2">
@@ -466,6 +506,7 @@ export function QuotationPreview({
             {quotation.termsAndConditions}
           </p>
         </footer>
+        </div> {/* Close content div */}
       </div>
 
       {/* Product Catalogs Section */}
