@@ -1366,23 +1366,16 @@ const getActiveModelsByProduct = async (productId)=>{
     return models.map((model)=>convertFirestoreDocToPlain(model));
 };
 const addProductModel = async (name, description)=>{
-    console.log('[addProductModel] Creating model with:', {
-        name,
-        description
-    });
     const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].create({
         // productId is undefined for generic product models
         name,
         description,
         isActive: true
     });
-    console.log('[addProductModel] Created with ID:', id);
     const newModel = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getById(id);
     if (!newModel) {
-        console.error('[addProductModel] Failed to retrieve created model');
         throw new Error('Failed to create product model');
     }
-    console.log('[addProductModel] Successfully created:', newModel);
     return convertFirestoreDocToPlain(newModel);
 };
 const addModelForProduct = async (productId, name, description)=>{

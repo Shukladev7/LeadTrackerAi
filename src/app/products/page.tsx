@@ -23,9 +23,13 @@ import { Link2, FileText } from 'lucide-react';
 import { ProductActions } from "./product-actions";
 import { PDFViewer } from "@/components/pdf-viewer";
 import Image from 'next/image';
+import { getProductModelsAction } from "@/lib/actions";
 
 export default async function ProductsPage() {
-  const products = await getProducts();
+  const [products, allModels] = await Promise.all([
+    getProducts(),
+    getProductModelsAction()
+  ]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -57,6 +61,7 @@ export default async function ProductsPage() {
                 <TableHead>Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Models</TableHead>
                 <TableHead>SKUs</TableHead>
                 <TableHead>Catalogue</TableHead>
                 <TableHead className="text-right">Price</TableHead>
@@ -86,6 +91,20 @@ export default async function ProductsPage() {
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.description}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {product.modelIds && product.modelIds.length > 0 ? (
+                        product.modelIds.map(modelId => {
+                          const model = allModels.find(m => m.id === modelId);
+                          return model ? (
+                            <Badge key={modelId} variant="secondary">{model.name}</Badge>
+                          ) : null;
+                        })
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {product.skus?.map(sku => <Badge key={sku} variant="outline">{sku}</Badge>)}
