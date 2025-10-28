@@ -174,8 +174,15 @@ class FirestoreService {
    * Create a new document
    */ async create(data) {
         try {
+            // Remove undefined values as Firestore doesn't accept them
+            const cleanData = {};
+            for (const [key, value] of Object.entries(data)){
+                if (value !== undefined) {
+                    cleanData[key] = value;
+                }
+            }
             const docData = {
-                ...data,
+                ...cleanData,
                 createdAt: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["serverTimestamp"])(),
                 updatedAt: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["serverTimestamp"])()
             };
@@ -190,8 +197,15 @@ class FirestoreService {
    * Create a document with a specific ID
    */ async createWithId(id, data) {
         try {
+            // Remove undefined values as Firestore doesn't accept them
+            const cleanData = {};
+            for (const [key, value] of Object.entries(data)){
+                if (value !== undefined) {
+                    cleanData[key] = value;
+                }
+            }
             const docData = {
-                ...data,
+                ...cleanData,
                 createdAt: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["serverTimestamp"])(),
                 updatedAt: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["serverTimestamp"])()
             };
@@ -293,8 +307,15 @@ class FirestoreService {
    */ async update(id, data) {
         try {
             const docRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["doc"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firebase$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["db"], this.collectionName, id);
+            // Remove undefined values as Firestore doesn't accept them
+            const cleanData = {};
+            for (const [key, value] of Object.entries(data)){
+                if (value !== undefined) {
+                    cleanData[key] = value;
+                }
+            }
             const updateData = {
-                ...data,
+                ...cleanData,
                 updatedAt: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["serverTimestamp"])()
             };
             await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["updateDoc"])(docRef, updateData);
@@ -469,6 +490,7 @@ const COLLECTIONS = {
     DEPARTMENTS: 'departments',
     EMPLOYEE_ROLES: 'employeeRoles',
     LEAD_SOURCES: 'leadSources',
+    PRODUCT_MODELS: 'productModels',
     PRODUCTS: 'products',
     LEADS: 'leads',
     QUOTATIONS: 'quotations',
@@ -493,6 +515,7 @@ __turbopack_context__.s({
     "EmployeeService": (()=>EmployeeService),
     "LeadService": (()=>LeadService),
     "OrderService": (()=>OrderService),
+    "ProductModelService": (()=>ProductModelService),
     "ProductService": (()=>ProductService),
     "QuotationService": (()=>QuotationService),
     "TaskService": (()=>TaskService),
@@ -512,6 +535,8 @@ __turbopack_context__.s({
     "orderService": (()=>orderService),
     "ordersService": (()=>ordersService),
     "paymentsService": (()=>paymentsService),
+    "productModelService": (()=>productModelService),
+    "productModelsService": (()=>productModelsService),
     "productService": (()=>productService),
     "productsService": (()=>productsService),
     "quotationService": (()=>quotationService),
@@ -528,6 +553,7 @@ const employeesService = new __TURBOPACK__imported__module__$5b$project$5d2f$src
 const departmentsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].DEPARTMENTS);
 const employeeRolesService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].EMPLOYEE_ROLES);
 const leadSourcesService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].LEAD_SOURCES);
+const productModelsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCT_MODELS);
 const productsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCTS);
 const leadsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].LEADS);
 const quotationsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].QUOTATIONS);
@@ -664,8 +690,10 @@ class LeadService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f
     async addActivity(leadId, activity) {
         const lead = await this.getById(leadId);
         if (lead) {
+            // Remove undefined values before persisting
+            const sanitized = Object.fromEntries(Object.entries(activity).filter(([, v])=>v !== undefined));
             const newActivity = {
-                ...activity,
+                ...sanitized,
                 id: `act-${leadId}-${Date.now()}`
             };
             const updatedActivities = [
@@ -709,13 +737,18 @@ class ProductService extends __TURBOPACK__imported__module__$5b$project$5d2f$src
             }
         });
     }
-    async getProductsByCategory(category) {
+}
+class ProductModelService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"] {
+    constructor(){
+        super(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCT_MODELS);
+    }
+    async getModelsByProduct(productId) {
         return this.getWithQuery({
             where: [
                 {
-                    field: 'category',
+                    field: 'productId',
                     operator: '==',
-                    value: category
+                    value: productId
                 }
             ],
             orderBy: {
@@ -724,18 +757,32 @@ class ProductService extends __TURBOPACK__imported__module__$5b$project$5d2f$src
             }
         });
     }
-    async getLowStockProducts() {
-        const products = await this.getAll();
-        return products.filter((product)=>product.stockQuantity !== undefined && product.minStockLevel !== undefined && product.stockQuantity <= product.minStockLevel);
-    }
-    async updateStock(productId, quantity) {
-        await this.update(productId, {
-            stockQuantity: quantity
+    async getActiveModelsByProduct(productId) {
+        return this.getWithQuery({
+            where: [
+                {
+                    field: 'productId',
+                    operator: '==',
+                    value: productId
+                },
+                {
+                    field: 'isActive',
+                    operator: '==',
+                    value: true
+                }
+            ],
+            orderBy: {
+                field: 'name',
+                direction: 'asc'
+            }
         });
     }
-    async searchProducts(searchTerm) {
-        const products = await this.getActiveProducts();
-        return products.filter((product)=>product.name.toLowerCase().includes(searchTerm.toLowerCase()) || product.description.toLowerCase().includes(searchTerm.toLowerCase()) || product.tags && product.tags.some((tag)=>tag.toLowerCase().includes(searchTerm.toLowerCase())));
+    async createModelForProduct(productId, modelData) {
+        return this.create({
+            ...modelData,
+            productId,
+            isActive: true
+        });
     }
 }
 class QuotationService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"] {
@@ -781,17 +828,21 @@ class QuotationService extends __TURBOPACK__imported__module__$5b$project$5d2f$s
             limit
         });
     }
-    async generateQuotationNumber() {
+    async generateQuotationNumber(prefix) {
         const quotations = await this.getAll();
+        const regex = new RegExp(`^${prefix}-\\d{4}$`);
+        const numberRegex = new RegExp(`^${prefix}-(\\d+)$`);
         const maxNumber = quotations.reduce((max, quotation)=>{
-            const match = quotation.quotationNumber.match(/QUO-(\d+)/);
+            if (!quotation.quotationNumber) return max;
+            if (!regex.test(quotation.quotationNumber)) return max;
+            const match = quotation.quotationNumber.match(numberRegex);
             if (match) {
-                const num = parseInt(match[1]);
+                const num = parseInt(match[1], 10);
                 return num > max ? num : max;
             }
             return max;
         }, 0);
-        return `QUO-${String(maxNumber + 1).padStart(4, '0')}`;
+        return `${prefix}-${String(maxNumber + 1).padStart(4, '0')}`;
     }
     async markAsSent(quotationId) {
         await this.update(quotationId, {
@@ -995,6 +1046,7 @@ class TaskService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f
 const employeeService = new EmployeeService();
 const leadService = new LeadService();
 const productService = new ProductService();
+const productModelService = new ProductModelService();
 const quotationService = new QuotationService();
 const customerService = new CustomerService();
 const orderService = new OrderService();
@@ -1005,14 +1057,16 @@ const taskService = new TaskService();
 
 var { g: global, __dirname } = __turbopack_context__;
 {
-/* __next_internal_action_entry_do_not_use__ [{"7f04f10f0ddeddd104b418724bb1785849c193f66a":"getQuotations","7f0b5bbbb79dabf61c8dbf70af3ffff389460f419b":"getEmployeeRoles","7f1116478ca304fed1b532ca4ce59d5d5b448efd86":"getQuotationById","7f1db3ac95e46d0fb06b447ac0f1095c4e9d7864b8":"updateProduct","7f269196162d7162085bfe24c2b6f3c9eeb8de910c":"addActivityToLead","7f298b9fe988cb1ffa83632945d936c189bd792dc0":"updateEmployee","7f2d6f92a2c75e8e3e60e49e1b34f04f7ce34b8ea1":"getQuotationsCount","7f2de586b93cabe05d91ddb2006970640cf7e23220":"getDepartments","7f2e33d68eae7df61b4f4e6c14476e66342d7dda08":"deleteLeadSource","7f306e023d33eb2f4cd6e278d2ba58f9ce4e42988b":"getActiveEmployeesCount","7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75":"getRecentActivities","7f3777aecc7cb81616bea527a08a89d4fe73e9c5db":"updateQuotation","7f3c1be380f9a0a44bfd49095f6ae6bd965a6b526a":"addQuotationTemplate","7f3e5a6e7ad6fbd5540a28118cca7087133b837324":"getLeadsCount","7f3fd23bab2d334881ddfed4ef17bd4c53e0f69adb":"getQuotationTemplateById","7f41f0cf7169835566a4dfd277c9336ebbe880987d":"addEmployee","7f4b36d049affbaa6bdaa068bf84fb1acd862b79d4":"addDepartment","7f51002bc8cb90bca5ac167052035a3341833f8f08":"getProductsCount","7f570d4070a3316a960cb012b57a19ddb32ac8bbfd":"deleteQuotationTemplate","7f5ce6beaba83630ecc0b70a473c4b2d6911512a02":"deleteEmployee","7f5f40b0c1407ddbbe339c0d4cd166f510508443ae":"getActiveProductsCount","7f695fe749c0d9aab2ac486d89622d5b4e078477f2":"deleteEmployeeRole","7f705ed144dc34aa9cf8fdfa9b395d9d5a37f9cf02":"updateLeadStatus","7f7b957907463cba62338137af33f88b010ffab0dd":"updateQuotationTemplate","7f7c2d013a463dd6ad5bb725e2388417c71247f941":"addEmployeeRole","7f7d645fddf2346cccd897ff95af0ed14f70779d3a":"getQuotationTemplates","7f81ed99bf4c4b2ad51de24a64b2ecaa4ce3145926":"deleteQuotation","7f82d5948233efc223306c44e2a01deb4873021a20":"getLeads","7f8a39cb89579cab4c851aee68a93e5fd53b7b6fe8":"deleteLead","7f8badf9865ad7abe7dda8ba51ccbdc3405643eb84":"getEmployeesCount","7f92d94703b1b49a7a12dff73eeb3935472d3cbe90":"deleteDepartment","7f9b2288f5e837ee146778e3df872c309647d27f2b":"getEmployees","7fa1ce4be69d6d70d013be75de5496caa20eb1c9a7":"getQuotationsCountByStatus","7fab33ecffebcb8db1f945c866849358614a8f4597":"getLeadsCountByStatus","7fb1cf1d568ae18c62c90b9b2d6669b292ee581f0b":"getEmployeeById","7fcc7709996a7ef75f1fd5c5b7162ef7d8527ca75d":"addLead","7fd1caa7166fa9ab076034a9a5e7a9ceb556c0fe68":"getLeadById","7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e":"addQuotation","7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7":"addLeadSource","7fec28ffd46fa758634b470c272b079775b2466584":"addProduct","7ff2088dba0bc1dec8498350114093211bd576d9dc":"getProducts","7ff228315843844dc8e238479c86860a4f482472b4":"deleteProduct","7ff68e1eba6cc22b6b0761897ef85f028eb4032583":"updateLead","7ffa98412ae44a0f974abe620c42247c1c203f8246":"getLeadSources"},"",""] */ __turbopack_context__.s({
+/* __next_internal_action_entry_do_not_use__ [{"7f04f10f0ddeddd104b418724bb1785849c193f66a":"getQuotations","7f0b5bbbb79dabf61c8dbf70af3ffff389460f419b":"getEmployeeRoles","7f1116478ca304fed1b532ca4ce59d5d5b448efd86":"getQuotationById","7f1db3ac95e46d0fb06b447ac0f1095c4e9d7864b8":"updateProduct","7f269196162d7162085bfe24c2b6f3c9eeb8de910c":"addActivityToLead","7f28536172b5ae01e7059bb3aa20a259aa523732db":"getActiveModelsByProduct","7f298b9fe988cb1ffa83632945d936c189bd792dc0":"updateEmployee","7f2d6f92a2c75e8e3e60e49e1b34f04f7ce34b8ea1":"getQuotationsCount","7f2de586b93cabe05d91ddb2006970640cf7e23220":"getDepartments","7f2e33d68eae7df61b4f4e6c14476e66342d7dda08":"deleteLeadSource","7f306e023d33eb2f4cd6e278d2ba58f9ce4e42988b":"getActiveEmployeesCount","7f3647314ef55abc215cb0038de08a9b35bdb3fb8a":"getProductModelById","7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75":"getRecentActivities","7f3777aecc7cb81616bea527a08a89d4fe73e9c5db":"updateQuotation","7f3c1be380f9a0a44bfd49095f6ae6bd965a6b526a":"addQuotationTemplate","7f3e5a6e7ad6fbd5540a28118cca7087133b837324":"getLeadsCount","7f3fd23bab2d334881ddfed4ef17bd4c53e0f69adb":"getQuotationTemplateById","7f41f0cf7169835566a4dfd277c9336ebbe880987d":"addEmployee","7f4b36d049affbaa6bdaa068bf84fb1acd862b79d4":"addDepartment","7f51002bc8cb90bca5ac167052035a3341833f8f08":"getProductsCount","7f570d4070a3316a960cb012b57a19ddb32ac8bbfd":"deleteQuotationTemplate","7f5ce6beaba83630ecc0b70a473c4b2d6911512a02":"deleteEmployee","7f5e4db413fc94175edbca5b287628f60dcd4e7e94":"addProductModel","7f5e565717de94ab791c79ac47354de4dc778f530a":"getModelsByProduct","7f5f40b0c1407ddbbe339c0d4cd166f510508443ae":"getActiveProductsCount","7f695fe749c0d9aab2ac486d89622d5b4e078477f2":"deleteEmployeeRole","7f705ed144dc34aa9cf8fdfa9b395d9d5a37f9cf02":"updateLeadStatus","7f7b957907463cba62338137af33f88b010ffab0dd":"updateQuotationTemplate","7f7c2d013a463dd6ad5bb725e2388417c71247f941":"addEmployeeRole","7f7d645fddf2346cccd897ff95af0ed14f70779d3a":"getQuotationTemplates","7f81ed99bf4c4b2ad51de24a64b2ecaa4ce3145926":"deleteQuotation","7f82d5948233efc223306c44e2a01deb4873021a20":"getLeads","7f88c63efa869fa124d3696440aaad635a0aa8333e":"getProductModels","7f8a39cb89579cab4c851aee68a93e5fd53b7b6fe8":"deleteLead","7f8badf9865ad7abe7dda8ba51ccbdc3405643eb84":"getEmployeesCount","7f92d94703b1b49a7a12dff73eeb3935472d3cbe90":"deleteDepartment","7f9b2288f5e837ee146778e3df872c309647d27f2b":"getEmployees","7fa1ce4be69d6d70d013be75de5496caa20eb1c9a7":"getQuotationsCountByStatus","7fab33ecffebcb8db1f945c866849358614a8f4597":"getLeadsCountByStatus","7fb1cf1d568ae18c62c90b9b2d6669b292ee581f0b":"getEmployeeById","7fbb11b0650d3d20961fc949546dfb03d445926956":"deleteProductModel","7fbe11dcb5d9c05b11c838a171548db124357ba953":"updateProductModel","7fc4c88d57430e7d33350dee03cd4a5ca2d8989512":"getEmployeeByEmail","7fcc7709996a7ef75f1fd5c5b7162ef7d8527ca75d":"addLead","7fd1caa7166fa9ab076034a9a5e7a9ceb556c0fe68":"getLeadById","7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e":"addQuotation","7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7":"addLeadSource","7fdc8569b061bd5144ea8a713aee54a0dc0c29574b":"addModelForProduct","7fec28ffd46fa758634b470c272b079775b2466584":"addProduct","7ff2088dba0bc1dec8498350114093211bd576d9dc":"getProducts","7ff228315843844dc8e238479c86860a4f482472b4":"deleteProduct","7ff68e1eba6cc22b6b0761897ef85f028eb4032583":"updateLead","7ffa98412ae44a0f974abe620c42247c1c203f8246":"getLeadSources"},"",""] */ __turbopack_context__.s({
     "addActivityToLead": (()=>addActivityToLead),
     "addDepartment": (()=>addDepartment),
     "addEmployee": (()=>addEmployee),
     "addEmployeeRole": (()=>addEmployeeRole),
     "addLead": (()=>addLead),
     "addLeadSource": (()=>addLeadSource),
+    "addModelForProduct": (()=>addModelForProduct),
     "addProduct": (()=>addProduct),
+    "addProductModel": (()=>addProductModel),
     "addQuotation": (()=>addQuotation),
     "addQuotationTemplate": (()=>addQuotationTemplate),
     "deleteDepartment": (()=>deleteDepartment),
@@ -1021,11 +1075,14 @@ var { g: global, __dirname } = __turbopack_context__;
     "deleteLead": (()=>deleteLead),
     "deleteLeadSource": (()=>deleteLeadSource),
     "deleteProduct": (()=>deleteProduct),
+    "deleteProductModel": (()=>deleteProductModel),
     "deleteQuotation": (()=>deleteQuotation),
     "deleteQuotationTemplate": (()=>deleteQuotationTemplate),
     "getActiveEmployeesCount": (()=>getActiveEmployeesCount),
+    "getActiveModelsByProduct": (()=>getActiveModelsByProduct),
     "getActiveProductsCount": (()=>getActiveProductsCount),
     "getDepartments": (()=>getDepartments),
+    "getEmployeeByEmail": (()=>getEmployeeByEmail),
     "getEmployeeById": (()=>getEmployeeById),
     "getEmployeeRoles": (()=>getEmployeeRoles),
     "getEmployees": (()=>getEmployees),
@@ -1035,6 +1092,9 @@ var { g: global, __dirname } = __turbopack_context__;
     "getLeads": (()=>getLeads),
     "getLeadsCount": (()=>getLeadsCount),
     "getLeadsCountByStatus": (()=>getLeadsCountByStatus),
+    "getModelsByProduct": (()=>getModelsByProduct),
+    "getProductModelById": (()=>getProductModelById),
+    "getProductModels": (()=>getProductModels),
     "getProducts": (()=>getProducts),
     "getProductsCount": (()=>getProductsCount),
     "getQuotationById": (()=>getQuotationById),
@@ -1048,6 +1108,7 @@ var { g: global, __dirname } = __turbopack_context__;
     "updateLead": (()=>updateLead),
     "updateLeadStatus": (()=>updateLeadStatus),
     "updateProduct": (()=>updateProduct),
+    "updateProductModel": (()=>updateProductModel),
     "updateQuotation": (()=>updateQuotation),
     "updateQuotationTemplate": (()=>updateQuotationTemplate)
 });
@@ -1093,6 +1154,10 @@ const getEmployeeById = async (id)=>{
     const employee = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["employeeService"].getById(id);
     return employee ? convertFirestoreDocToPlain(employee) : undefined;
 };
+const getEmployeeByEmail = async (email)=>{
+    const employee = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["employeeService"].getEmployeeByEmail(email);
+    return employee ? convertFirestoreDocToPlain(employee) : null;
+};
 const addEmployee = async (employeeData)=>{
     const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["employeeService"].create({
         ...employeeData,
@@ -1118,7 +1183,7 @@ const deleteEmployee = async (id)=>{
         success: true
     };
 };
-const getLeads = async (query, status)=>{
+const getLeads = async (query, status, source, product)=>{
     let leads = [];
     if (status) {
         leads = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["leadService"].getLeadsByStatus(status);
@@ -1127,9 +1192,18 @@ const getLeads = async (query, status)=>{
     }
     // Convert to plain objects
     leads = leads.map((lead)=>convertFirestoreDocToPlain(lead));
+    // Apply text search filter
     if (query) {
         const lowercasedQuery = query.toLowerCase();
         leads = leads.filter((lead)=>lead.name.toLowerCase().includes(lowercasedQuery) || lead.company.toLowerCase().includes(lowercasedQuery));
+    }
+    // Apply source filter
+    if (source) {
+        leads = leads.filter((lead)=>lead.source === source);
+    }
+    // Apply product filter
+    if (product) {
+        leads = leads.filter((lead)=>lead.products && lead.products.some((p)=>p.productId === product));
     }
     return leads.sort((a, b)=>{
         const aDate = a.createdAt ? new Date(a.createdAt.toString()).getTime() : 0;
@@ -1191,8 +1265,10 @@ const addActivityToLead = async (leadId, activityData)=>{
     if (!lead) {
         throw new Error('Lead not found');
     }
+    // Remove any undefined values since Firestore does not allow them
+    const sanitizedActivityData = Object.fromEntries(Object.entries(activityData).filter(([, value])=>value !== undefined));
     const newActivity = {
-        ...activityData,
+        ...sanitizedActivityData,
         id: `act-${leadId}-${Date.now()}`,
         date: new Date().toISOString()
     };
@@ -1273,21 +1349,89 @@ const deleteLeadSource = async (id)=>{
         success: true
     };
 };
-const getQuotations = async ()=>{
-    const quotations = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].getAll();
-    const plainQuotations = quotations.map((q)=>convertFirestoreDocToPlain(q));
-    return plainQuotations.sort((a, b)=>{
-        const aDate = a.createdAt ? new Date(a.createdAt.toString()).getTime() : 0;
-        const bDate = b.createdAt ? new Date(b.createdAt.toString()).getTime() : 0;
-        return bDate - aDate;
+const getProductModels = async ()=>{
+    const models = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getAll();
+    return models.map((model)=>convertFirestoreDocToPlain(model));
+};
+const getProductModelById = async (id)=>{
+    const model = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getById(id);
+    return model ? convertFirestoreDocToPlain(model) : undefined;
+};
+const getModelsByProduct = async (productId)=>{
+    const models = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].getModelsByProduct(productId);
+    return models.map((model)=>convertFirestoreDocToPlain(model));
+};
+const getActiveModelsByProduct = async (productId)=>{
+    const models = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].getActiveModelsByProduct(productId);
+    return models.map((model)=>convertFirestoreDocToPlain(model));
+};
+const addProductModel = async (name, description)=>{
+    console.log('[addProductModel] Creating model with:', {
+        name,
+        description
     });
+    const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].create({
+        // productId is undefined for generic product models
+        name,
+        description,
+        isActive: true
+    });
+    console.log('[addProductModel] Created with ID:', id);
+    const newModel = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getById(id);
+    if (!newModel) {
+        console.error('[addProductModel] Failed to retrieve created model');
+        throw new Error('Failed to create product model');
+    }
+    console.log('[addProductModel] Successfully created:', newModel);
+    return convertFirestoreDocToPlain(newModel);
+};
+const addModelForProduct = async (productId, name, description)=>{
+    const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].createModelForProduct(productId, {
+        name,
+        description
+    });
+    const newModel = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].getById(id);
+    if (!newModel) {
+        throw new Error('Failed to create product model');
+    }
+    return convertFirestoreDocToPlain(newModel);
+};
+const updateProductModel = async (id, name, description)=>{
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].update(id, {
+        name,
+        description
+    });
+    const updatedModel = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getById(id);
+    if (!updatedModel) {
+        throw new Error('Product model not found after update');
+    }
+    return convertFirestoreDocToPlain(updatedModel);
+};
+const deleteProductModel = async (id)=>{
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].delete(id);
+    return {
+        success: true
+    };
+};
+const getQuotations = async ()=>{
+    const quotations = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].getWithQuery({
+        orderBy: {
+            field: 'createdAt',
+            direction: 'desc'
+        }
+    });
+    return quotations.map((q)=>convertFirestoreDocToPlain(q));
 };
 const getQuotationById = async (id)=>{
     const quotation = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].getById(id);
     return quotation ? convertFirestoreDocToPlain(quotation) : undefined;
 };
-const addQuotation = async (quotationData)=>{
-    const quotationNumber = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].generateQuotationNumber();
+const addQuotation = async (quotationData, quotationPrefix)=>{
+    console.log('Data service received prefix:', quotationPrefix);
+    const prefix = quotationPrefix?.trim() || 'QUO';
+    console.log('Final prefix being used:', prefix);
+    const quotationNumber = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].generateQuotationNumber(prefix);
+    console.log('Generated quotation number:', quotationNumber);
     const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["quotationService"].create({
         ...quotationData,
         quotationNumber
@@ -1445,6 +1589,7 @@ const getActiveEmployeesCount = async ()=>{
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$validate$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["ensureServerEntryExports"])([
     getEmployees,
     getEmployeeById,
+    getEmployeeByEmail,
     addEmployee,
     updateEmployee,
     deleteEmployee,
@@ -1463,6 +1608,14 @@ const getActiveEmployeesCount = async ()=>{
     getLeadSources,
     addLeadSource,
     deleteLeadSource,
+    getProductModels,
+    getProductModelById,
+    getModelsByProduct,
+    getActiveModelsByProduct,
+    addProductModel,
+    addModelForProduct,
+    updateProductModel,
+    deleteProductModel,
     getQuotations,
     getQuotationById,
     addQuotation,
@@ -1490,6 +1643,7 @@ const getActiveEmployeesCount = async ()=>{
 ]);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployees, "7f9b2288f5e837ee146778e3df872c309647d27f2b", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployeeById, "7fb1cf1d568ae18c62c90b9b2d6669b292ee581f0b", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getEmployeeByEmail, "7fc4c88d57430e7d33350dee03cd4a5ca2d8989512", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addEmployee, "7f41f0cf7169835566a4dfd277c9336ebbe880987d", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateEmployee, "7f298b9fe988cb1ffa83632945d936c189bd792dc0", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteEmployee, "7f5ce6beaba83630ecc0b70a473c4b2d6911512a02", null);
@@ -1508,6 +1662,14 @@ const getActiveEmployeesCount = async ()=>{
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadSources, "7ffa98412ae44a0f974abe620c42247c1c203f8246", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addLeadSource, "7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteLeadSource, "7f2e33d68eae7df61b4f4e6c14476e66342d7dda08", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProductModels, "7f88c63efa869fa124d3696440aaad635a0aa8333e", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProductModelById, "7f3647314ef55abc215cb0038de08a9b35bdb3fb8a", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getModelsByProduct, "7f5e565717de94ab791c79ac47354de4dc778f530a", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getActiveModelsByProduct, "7f28536172b5ae01e7059bb3aa20a259aa523732db", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addProductModel, "7f5e4db413fc94175edbca5b287628f60dcd4e7e94", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addModelForProduct, "7fdc8569b061bd5144ea8a713aee54a0dc0c29574b", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateProductModel, "7fbe11dcb5d9c05b11c838a171548db124357ba953", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteProductModel, "7fbb11b0650d3d20961fc949546dfb03d445926956", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotations, "7f04f10f0ddeddd104b418724bb1785849c193f66a", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationById, "7f1116478ca304fed1b532ca4ce59d5d5b448efd86", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addQuotation, "7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e", null);
@@ -1543,7 +1705,6 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$d
 ;
 ;
 ;
-;
 }}),
 "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/lib/firestore-data-service.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript) <module evaluation>": ((__turbopack_context__) => {
 "use strict";
@@ -1561,7 +1722,6 @@ var { g: global, __dirname } = __turbopack_context__;
 {
 __turbopack_context__.s({
     "7f04f10f0ddeddd104b418724bb1785849c193f66a": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getQuotations"]),
-    "7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getRecentActivities"]),
     "7f82d5948233efc223306c44e2a01deb4873021a20": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getLeads"]),
     "7ff2088dba0bc1dec8498350114093211bd576d9dc": (()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getProducts"])
 });
@@ -1575,7 +1735,6 @@ var { g: global, __dirname } = __turbopack_context__;
 {
 __turbopack_context__.s({
     "7f04f10f0ddeddd104b418724bb1785849c193f66a": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f04f10f0ddeddd104b418724bb1785849c193f66a"]),
-    "7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75"]),
     "7f82d5948233efc223306c44e2a01deb4873021a20": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7f82d5948233efc223306c44e2a01deb4873021a20"]),
     "7ff2088dba0bc1dec8498350114093211bd576d9dc": (()=>__TURBOPACK__imported__module__$5b$project$5d2f2e$next$2d$internal$2f$server$2f$app$2f$page$2f$actions$2e$js__$7b$__ACTIONS_MODULE0__$3d3e$__$225b$project$5d2f$src$2f$lib$2f$firestore$2d$data$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$2922$__$7d$__$5b$app$2d$rsc$5d$__$28$server__actions__loader$2c$__ecmascript$29$__$3c$exports$3e$__["7ff2088dba0bc1dec8498350114093211bd576d9dc"])
 });

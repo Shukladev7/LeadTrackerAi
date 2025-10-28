@@ -601,7 +601,7 @@ export async function deleteLeadSourceAction(id: string) {
 const AddProductModelSchema = z.object({
     name: z.string().min(2, 'Model name must be at least 2 characters'),
     description: z.string().optional().nullable(),
-    productId: z.string().optional(), // Optional for backward compatibility
+    productId: z.string().optional().nullable(), // Optional for backward compatibility
 });
 
 export async function addProductModelAction(formData: FormData) {

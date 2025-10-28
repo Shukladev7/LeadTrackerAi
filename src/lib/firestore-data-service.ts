@@ -377,7 +377,7 @@ export const getActiveModelsByProduct = async (productId: string): Promise<Produ
 
 export const addProductModel = async (name: string, description?: string): Promise<ProductModel> => {
   const id = await productModelsService.create({
-    productId: '', // Generic product model
+    // productId is undefined for generic product models
     name,
     description,
     isActive: true
