@@ -6,9 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { summarizeMeetingNotes } from '@/ai/flows/summarize-meeting-notes';
-import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductModel as dbAddProductModel, deleteProductModel as dbDeleteProductModel, getProductModels, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount } from './data';
+import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductModel as dbAddProductModel, deleteProductModel as dbDeleteProductModel, getProductModels, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount, updateProductModel as dbUpdateProductModel } from './data';
 import { addModelForProduct as dbAddModelForProduct, getModelsByProduct as dbGetModelsByProduct, getActiveModelsByProduct as dbGetActiveModelsByProduct } from './firestore-data-service';
-import { deletePDFFromStorage, deleteImageFromStorage } from './storage-utils';
+import { deletePDFFromStorage, deleteImageFromStorage, uploadImageToStorage } from './storage-utils';
 import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, QuotationTemplate } from './types';
 import type { Employee } from './business-types';
 import { getProducts } from './data';
@@ -239,7 +239,6 @@ export async function updateLead(leadId: string, formData: FormData) {
 
 const ProductSchema = z.object({
     name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
-    description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
     price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
     gstRate: z.coerce.number().min(0).max(100),
     modelIds: z.array(z.string()).optional(),
@@ -274,7 +273,6 @@ export async function addProduct(formData: FormData) {
   
   const validatedFields = ProductSchema.safeParse({
     name: formData.get('name'),
-    description: formData.get('description'),
     price: formData.get('price'),
     gstRate: formData.get('gstRate'),
     modelIds: modelIds,
@@ -327,13 +325,36 @@ export async function updateProduct(id: string, formData: FormData) {
     const catalogPdf = catalogPdfJSON ? JSON.parse(catalogPdfJSON as string) : undefined;
     const removeCatalogPdf = String(formData.get('removeCatalogPdf') || '').toLowerCase() === 'true';
 
-    const productImageJSON = formData.get('productImage');
-    const productImage = productImageJSON ? JSON.parse(productImageJSON as string) : undefined;
+    // Handle product image - can be File object (new upload) or JSON string (existing metadata)
+    const productImageData = formData.get('productImage');
+    const existingProductImageJSON = formData.get('existingProductImage');
     const removeProductImage = String(formData.get('removeProductImage') || '').toLowerCase() === 'true';
+    
+    let productImage: any = undefined;
+    
+    // If there's a new file upload, handle it
+    if (productImageData instanceof File) {
+      try {
+        const uploadResult = await uploadImageToStorage(productImageData, 'products');
+        productImage = {
+          url: uploadResult.url,
+          fileName: uploadResult.fileName,
+          filePath: uploadResult.path,
+          uploadedAt: new Date().toISOString(),
+        };
+      } catch (error) {
+        console.error('Failed to upload product image:', error);
+        return { message: 'Failed to upload product image.' };
+      }
+    } else if (existingProductImageJSON && !removeProductImage) {
+      // Keep existing image metadata
+      productImage = JSON.parse(existingProductImageJSON as string);
+    }
+
+    // Debug logs removed
     
     const validatedFields = ProductSchema.safeParse({
       name: formData.get('name'),
-      description: formData.get('description'),
       price: formData.get('price'),
       gstRate: formData.get('gstRate'),
       modelIds: modelIds,
@@ -391,27 +412,36 @@ export async function updateProduct(id: string, formData: FormData) {
         }
       }
       
-      // Handle product image removal and updates
-      if (removeProductImage && !productImage) {
-        // Delete the old image from Firebase Storage if it exists
+      // Handle product image storage cleanup if new image was uploaded
+      if (productImageData instanceof File && currentProduct?.productImage?.filePath) {
+        // Delete the old image from storage since we have a new one
+        try {
+          await deleteImageFromStorage(currentProduct.productImage.filePath);
+        } catch (error) {
+          console.error('Failed to delete old product image from storage:', error);
+          // Continue with the update even if old image deletion fails
+        }
+      }
+      
+      // Handle product image removal
+      if (removeProductImage && !productImageData) {
+        // Delete the existing image from storage
         if (currentProduct?.productImage?.filePath) {
           try {
             await deleteImageFromStorage(currentProduct.productImage.filePath);
           } catch (error) {
-            console.error('Failed to delete image from storage:', error);
-            // Continue with the update even if image deletion fails
+            console.error('Failed to delete product image from storage:', error);
           }
         }
         updateData.productImage = null; // This will clear the field in Firestore
-      } else if (productImage && currentProduct?.productImage?.filePath && 
-                 currentProduct.productImage.filePath !== productImage.filePath) {
-        // If a new image was uploaded, delete the old one from storage
-        try {
-          await deleteImageFromStorage(currentProduct.productImage.filePath);
-        } catch (error) {
-          console.error('Failed to delete old image from storage:', error);
-          // Continue with the update even if old image deletion fails
-        }
+      }
+      
+      // Ensure new uploads are persisted
+      if (catalogPdf) {
+        updateData.cataloguePdf = catalogPdf;
+      }
+      if (productImage) {
+        updateData.productImage = productImage;
       }
       
       // Remove undefined values from updateData as Firestore doesn't accept them
@@ -421,6 +451,9 @@ export async function updateProduct(id: string, formData: FormData) {
           cleanedUpdateData[key] = value;
         }
       }
+      
+      console.log('[updateProduct] cleanedUpdateData keys:', Object.keys(cleanedUpdateData));
+      console.log('[updateProduct] cleanedUpdateData.productImage:', cleanedUpdateData.productImage);
       
       await dbUpdateProduct(id, cleanedUpdateData);
     } catch (error) {
@@ -649,6 +682,20 @@ export async function deleteProductModelAction(id: string) {
     revalidatePath('/setup');
     revalidatePath('/products');
     return { message: 'Successfully deleted product model.' };
+}
+
+// Update an existing product model's name/description
+export async function updateProductModelAction(id: string, name: string, description?: string) {
+    try {
+        await dbUpdateProductModel(id, name, description || '');
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return { message: `Database Error: Failed to update product model. ${message}` };
+    }
+    revalidatePath('/setup');
+    revalidatePath('/products');
+    revalidatePath('/leads');
+    return { message: 'Successfully updated product model.' };
 }
 
 export async function getProductModelsAction() {
@@ -1221,7 +1268,6 @@ export async function deleteDepartmentAction(id: string) {
 // CSV Import Actions
 const ImportProductSchema = z.object({
     name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
-    description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
     price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
     gstRate: z.coerce.number().min(0).max(100),
     skus: z.array(z.string()).optional(),
@@ -1245,7 +1291,6 @@ export async function importProductsFromCSV(csvData: any[]) {
             // Prepare data for validation, including optional fields
             const dataForValidation = {
                 name: row.name,
-                description: row.description,
                 price: row.price,
                 gstRate: row.gstRate,
                 ...(skus.length > 0 && { skus }),
@@ -1257,7 +1302,6 @@ export async function importProductsFromCSV(csvData: any[]) {
             // Prepare data for database - only include defined fields
             const productData = {
                 name: validatedData.name,
-                description: validatedData.description,
                 price: validatedData.price,
                 gstRate: validatedData.gstRate,
                 ...(validatedData.skus && { skus: validatedData.skus }),

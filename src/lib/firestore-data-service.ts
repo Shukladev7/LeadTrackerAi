@@ -70,7 +70,6 @@ export interface NewEmployee {
 
 export interface NewProduct {
   name: string;
-  description: string;
   price: number;
   gstRate: number;
   modelId?: string;
@@ -375,7 +374,7 @@ export const getActiveModelsByProduct = async (productId: string): Promise<Produ
   return models.map(model => convertFirestoreDocToPlain(model));
 };
 
-export const addProductModel = async (name: string, description?: string): Promise<ProductModel> => {
+export const addProductModel = async (name: string, description: string): Promise<ProductModel> => {
   const id = await productModelsService.create({
     // productId is undefined for generic product models
     name,
@@ -392,7 +391,7 @@ export const addProductModel = async (name: string, description?: string): Promi
 };
 
 // Create a model for a specific product
-export const addModelForProduct = async (productId: string, name: string, description?: string): Promise<ProductModel> => {
+export const addModelForProduct = async (productId: string, name: string, description: string): Promise<ProductModel> => {
   const id = await productModelService.createModelForProduct(productId, {
     name,
     description
@@ -406,7 +405,7 @@ export const addModelForProduct = async (productId: string, name: string, descri
   return convertFirestoreDocToPlain(newModel);
 };
 
-export const updateProductModel = async (id: string, name: string, description?: string): Promise<ProductModel> => {
+export const updateProductModel = async (id: string, name: string, description: string): Promise<ProductModel> => {
   await productModelsService.update(id, { name, description });
   const updatedModel = await productModelsService.getById(id);
   if (!updatedModel) {

@@ -55,14 +55,13 @@ export interface LeadSource extends BusinessDocument {
 export interface ProductModel extends BusinessDocument {
   productId?: string; // Reference to the product this model belongs to (optional for generic models)
   name: string;
-  description?: string;
+  description: string;
   isActive?: boolean;
 }
 
 // Product interface
 export interface Product extends BusinessDocument {
   name: string;
-  description: string;
   price: number;
   gstRate: number;
   modelId?: string;

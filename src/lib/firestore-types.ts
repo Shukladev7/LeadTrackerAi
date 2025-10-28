@@ -25,7 +25,6 @@ export interface User extends FirestoreDocument {
 // Example Product interface
 export interface Product extends FirestoreDocument {
   name: string;
-  description: string;
   price: number;
   category: string;
   imageUrls: string[];

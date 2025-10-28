@@ -26,12 +26,11 @@ import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
 import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
-import { getProductModelsAction } from '@/lib/actions';
+import { getProductModelsAction, updateProductModelAction } from '@/lib/actions';
 import { ProductModel } from '@/lib/types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
-  description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
   gstRate: z.coerce.number().min(0, { message: 'GST rate must be a positive number.' }).max(100, { message: 'GST rate cannot exceed 100.' }),
   modelIds: z.array(z.string()).optional(),
@@ -45,6 +44,7 @@ export function AddProductSheet() {
   const [currentSku, setCurrentSku] = useState('');
   const [availableModels, setAvailableModels] = useState<ProductModel[]>([]);
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
+  const [modelDescriptions, setModelDescriptions] = useState<Record<string, string>>({});
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   const [pdfError, setPdfError] = useState<string>('');
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
@@ -77,6 +77,26 @@ export function AddProductSheet() {
       fetchModels();
     }
   }, [open]);
+
+  // Seed description map when models/selection load
+  useEffect(() => {
+    if (!open) return;
+    setModelDescriptions((prev) => {
+      const next = { ...prev };
+      selectedModelIds.forEach((id) => {
+        if (next[id] === undefined) {
+          const m = availableModels.find((mm) => mm.id === id);
+        
+          next[id] = m?.description || '';
+        }
+      });
+      // Remove any descriptions for unselected models
+      Object.keys(next).forEach((id) => {
+        if (!selectedModelIds.includes(id)) delete next[id];
+      });
+      return next;
+    });
+  }, [open, availableModels, selectedModelIds]);
 
   const handleAddSku = () => {
     if (currentSku.trim() !== '') {
@@ -121,6 +141,21 @@ export function AddProductSheet() {
     const result = await addProduct(formData);
 
     if (result.message === 'Successfully added product.') {
+      // Persist any edited model descriptions
+      try {
+        await Promise.all(
+          selectedModelIds.map(async (id) => {
+            const model = availableModels.find((m) => m.id === id);
+            if (!model) return;
+            const newDesc = modelDescriptions[id] ?? '';
+            if ((model.description || '') !== newDesc) {
+              await updateProductModelAction(id, model.name, newDesc);
+            }
+          })
+        );
+      } catch (e) {
+        console.error('Failed to update some model descriptions', e);
+      }
       toast({
         title: 'Product Added',
         description: `"${data.name}" has been successfully added.`,
@@ -178,11 +213,6 @@ export function AddProductSheet() {
             <Input id="name" {...register('name')} className={errors.name ? 'border-destructive' : ''} />
             {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
           </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" {...register('description')} className={errors.description ? 'border-destructive' : ''} />
-            {errors.description && <p className="text-xs text-destructive mt-1">{errors.description.message}</p>}
-          </div>
           <div className="space-y-2">
             <Label>Product Models</Label>
             <MultiSelect
@@ -197,6 +227,29 @@ export function AddProductSheet() {
             />
             {errors.modelIds && <p className="text-xs text-destructive mt-1">{errors.modelIds.message}</p>}
           </div>
+
+          {selectedModelIds.length > 0 && (
+            <div className="space-y-3 rounded-md border p-3">
+              <Label>Model Descriptions</Label>
+              <div className="space-y-3">
+                {selectedModelIds.map((id) => {
+                  const model = availableModels.find((m) => m.id === id);
+                  if (!model) return null;
+                  return (
+                    <div key={id} className="space-y-1">
+                      <div className="text-sm font-medium">{model.name}</div>
+                      <Textarea
+                        value={modelDescriptions[id] ?? ''}
+                        onChange={(e) => setModelDescriptions((prev) => ({ ...prev, [id]: e.target.value }))}
+                        placeholder="Enter or edit this model's description"
+                        rows={3}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
                 <Label htmlFor="price">Price (₹)</Label>

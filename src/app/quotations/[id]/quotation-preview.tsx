@@ -66,8 +66,8 @@ export function QuotationPreview({
 
       pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
       
-      // Add watermark and download
-      const watermarkedBlob = await addWatermarkToJsPDF(pdf);
+      // Add watermark (use template/company logo if available) and download
+      const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl);
       downloadPdfBlob(watermarkedBlob, `Quotation-${quotation.quotationNumber}.pdf`);
     } catch (error) {
       console.error('Error generating quotation PDF with watermark:', error);
@@ -116,8 +116,8 @@ export function QuotationPreview({
         heightLeft -= pdfHeight;
       }
 
-      // Add watermark and download
-      const watermarkedBlob = await addWatermarkToJsPDF(pdf);
+      // Add watermark (use template/company logo if available) and download
+      const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl);
       downloadPdfBlob(watermarkedBlob, `Quotation-${quotation.quotationNumber}-complete.pdf`);
       
       toast({
@@ -197,23 +197,6 @@ export function QuotationPreview({
 
             // Load the catalog PDF
             const catalogPdfDoc = await PDFDocument.load(arrayBuffer);
-            
-            // Add a separator page with product name
-            const separatorPage = mergedPdf.addPage();
-            const productTitle = productItem.model 
-              ? `Product Catalog: ${productItem.product.name} (${productItem.model.name})`
-              : `Product Catalog: ${productItem.product.name}`;
-            separatorPage.drawText(productTitle, {
-              x: 50,
-              y: separatorPage.getHeight() - 100,
-              size: 20,
-            });
-            separatorPage.drawText(`Description: ${productItem.product.description}`, {
-              x: 50,
-              y: separatorPage.getHeight() - 140,
-              size: 12,
-            });
-            
             // Copy and add catalog pages
             const catalogPages = await mergedPdf.copyPages(catalogPdfDoc, catalogPdfDoc.getPageIndices());
             catalogPages.forEach((page) => {
@@ -231,8 +214,8 @@ export function QuotationPreview({
         }
       }
 
-      // Add watermark to all pages before saving
-      await addWatermarkToAllPages(mergedPdf);
+      // Add watermark to all pages before saving (use template/company logo if available)
+      await addWatermarkToAllPages(mergedPdf, quotation.logoUrl);
       
       // Save the merged PDF with watermark
       const mergedPdfBytes = await mergedPdf.save();
@@ -296,7 +279,7 @@ export function QuotationPreview({
         <div 
           className="absolute inset-0 pointer-events-none z-0 rounded-lg"
           style={{
-            backgroundImage: `url('/images/nirmala-logo.jpg')`,
+            backgroundImage: `url('${quotation.logoUrl || '/images/nirmala-logo.jpg'}')`,
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center center',
             backgroundSize: '60% auto',
@@ -312,7 +295,8 @@ export function QuotationPreview({
               <img
                 src={quotation.logoUrl}
                 alt={`${quotation.companyName} Logo`}
-                className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
+                className="h-16 sm:h-20 w-auto object-contain"
+                crossOrigin="anonymous"
               />
             )}
             <div>
@@ -338,7 +322,7 @@ export function QuotationPreview({
         <section className="grid sm:grid-cols-2 gap-8 my-6 text-sm">
           <div>
             <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">
-              Billed To
+            To
             </h3>
             <p className="font-bold text-base text-gray-800">{lead.name}</p>
             <p className="text-gray-600">{lead.company}</p>
@@ -424,9 +408,11 @@ export function QuotationPreview({
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-gray-600 max-w-[25ch] break-words">
-                          {p.product.description}
-                        </p>
+                        {p.model?.description && (
+                          <p className="text-xs text-gray-600 max-w-[25ch] break-words">
+                            {p.model.description}
+                          </p>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           {p.product.cataloguePdf?.url && (
                             <span className="text-xs text-green-600 flex items-center gap-1">
@@ -533,12 +519,11 @@ export function QuotationPreview({
                     )}
                     {' '}- Catalog
                   </h3>
-
-
-
-                  <p className="text-gray-600 mt-1 break-words w-[30ch]">
-  {productItem.product.description}
-</p>
+                  {productItem.model?.description && (
+                    <p className="text-gray-600 mt-1 break-words w-[30ch]">
+                      {productItem.model.description}
+                    </p>
+                  )}
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                     <span>Quantity: {productItem.quantity}</span>
                     <span>Rate: {formatCurrency(productItem.rate)}</span>

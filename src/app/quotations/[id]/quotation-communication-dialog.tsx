@@ -19,7 +19,7 @@ import { logCommunicationActivityAction } from '@/lib/actions';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { PDFDocument } from 'pdf-lib';
-import { Quotation, Lead, PopulatedQuotationProduct } from '@/lib/business-types';
+import { Quotation, Lead, PopulatedQuotationProduct, ProductModel } from '@/lib/business-types';
 
 interface QuotationCommunicationDialogProps {
   open: boolean;
@@ -27,7 +27,7 @@ interface QuotationCommunicationDialogProps {
   type: 'whatsapp' | 'email';
   quotation: Quotation;
   lead: Lead;
-  products: PopulatedQuotationProduct[];
+  products: (PopulatedQuotationProduct & { model?: ProductModel })[];
   quotationRef: React.RefObject<HTMLDivElement>;
   defaultMessage?: string;
 }
@@ -101,16 +101,21 @@ export function QuotationCommunicationDialog({
             
             // Add a separator page with product name
             const separatorPage = mergedPdf.addPage();
-            separatorPage.drawText(`Product Catalog: ${productItem.product.name}`, {
+            const productTitle = productItem.model 
+              ? `Product Catalog: ${productItem.product.name} (${productItem.model.name})`
+              : `Product Catalog: ${productItem.product.name}`;
+            separatorPage.drawText(productTitle, {
               x: 50,
               y: separatorPage.getHeight() - 100,
               size: 20,
             });
-            separatorPage.drawText(`Description: ${productItem.product.description}`, {
-              x: 50,
-              y: separatorPage.getHeight() - 140,
-              size: 12,
-            });
+            if (productItem.model?.description) {
+              separatorPage.drawText(`Description: ${productItem.model.description}`, {
+                x: 50,
+                y: separatorPage.getHeight() - 140,
+                size: 12,
+              });
+            }
             
             // Copy and add catalog pages
             const catalogPages = await mergedPdf.copyPages(catalogPdfDoc, catalogPdfDoc.getPageIndices());
@@ -225,20 +230,19 @@ export function QuotationCommunicationDialog({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    // Create email subject and body
+    // Create email subject and body for Gmail
     const subject = encodeURIComponent(`Quotation ${quotation.quotationNumber} - ${lead.company}`);
-    const emailBody = `${message}\n\n📎 Please find the quotation PDF downloaded to your device. You can attach it to this email.`;
-    const encodedMessage = encodeURIComponent(emailBody);
+    const emailBody = encodeURIComponent(`${message}\n\n📎 Please find the quotation PDF downloaded to your device. You can attach it to this email.`);
     
-    // Create mailto URL
-    const emailUrl = `mailto:${lead.email}?subject=${subject}&body=${encodedMessage}`;
+    // Create Gmail compose URL
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(lead.email)}&su=${subject}&body=${emailBody}`;
     
-    // Open email client
-    window.location.href = emailUrl;
+    // Open Gmail in new tab
+    window.open(gmailUrl, '_blank');
     
     toast({
-      title: "Email Client Opened",
-      description: `PDF downloaded and email client opened to send to ${lead.name}`,
+      title: "Gmail Opened",
+      description: `PDF downloaded and Gmail opened in browser to send to ${lead.name}`,
       variant: "default",
     });
   };

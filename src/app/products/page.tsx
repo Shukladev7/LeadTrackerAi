@@ -24,6 +24,7 @@ import { ProductActions } from "./product-actions";
 import { PDFViewer } from "@/components/pdf-viewer";
 import Image from 'next/image';
 import { getProductModelsAction } from "@/lib/actions";
+import { ModelDescriptionDialog } from "./model-description-dialog";
 
 export default async function ProductsPage() {
   const [products, allModels] = await Promise.all([
@@ -60,7 +61,6 @@ export default async function ProductsPage() {
               <TableRow>
                 <TableHead>Image</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
                 <TableHead>Models</TableHead>
                 <TableHead>SKUs</TableHead>
                 <TableHead>Catalogue</TableHead>
@@ -90,14 +90,15 @@ export default async function ProductsPage() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.description}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {product.modelIds && product.modelIds.length > 0 ? (
                         product.modelIds.map(modelId => {
                           const model = allModels.find(m => m.id === modelId);
                           return model ? (
-                            <Badge key={modelId} variant="secondary">{model.name}</Badge>
+                            <ModelDescriptionDialog key={modelId} model={model}>
+                              <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{model.name}</Badge>
+                            </ModelDescriptionDialog>
                           ) : null;
                         })
                       ) : (

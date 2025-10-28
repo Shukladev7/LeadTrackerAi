@@ -11,6 +11,7 @@ import Image from 'next/image';
 interface ImageUploadProps {
   onUploadComplete: (result: UploadResult) => void;
   onUploadError: (error: string) => void;
+  onFileSelect?: (file: File) => void;
   currentImage?: {
     url: string;
     fileName: string;
@@ -26,6 +27,7 @@ interface ImageUploadProps {
 export function ImageUpload({
   onUploadComplete,
   onUploadError,
+  onFileSelect,
   currentImage,
   onRemove,
   disabled = false,
@@ -44,6 +46,11 @@ export function ImageUpload({
     if (!validation.isValid) {
       onUploadError(validation.error || 'Invalid file');
       return;
+    }
+
+    // Call onFileSelect callback to store original file
+    if (onFileSelect) {
+      onFileSelect(file);
     }
 
     // Create local preview

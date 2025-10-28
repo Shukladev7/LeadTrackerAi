@@ -14,7 +14,7 @@ export type ProductModel = {
   id: string;
   productId: string; // Reference to the product this model belongs to
   name: string;
-  description?: string;
+  description: string;
   isActive?: boolean;
 };
 
@@ -29,7 +29,6 @@ export type Activity = {
 export type Product = {
   id: string;
   name:string;
-  description: string;
   price: number;
   gstRate: number;
   modelId?: string;

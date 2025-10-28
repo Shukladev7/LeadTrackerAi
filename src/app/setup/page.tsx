@@ -180,9 +180,10 @@ import { Badge } from "@/components/ui/badge";
                     <CardTitle>Product Models</CardTitle>
                     <CardDescription>Manage product models for your inventory.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-3">
                      {productModels.map((model) => (
-                        <div key={model.id} className="flex items-center justify-between p-2 rounded-md bg-secondary">
+                        <div key={model.id} className="p-3 rounded-md bg-secondary">
+                          <div className="flex items-start justify-between gap-2">
                             <span className="text-sm font-medium flex items-center gap-2">
                                 <Box className="h-4 w-4 text-muted-foreground" />
                                 {model.name}
@@ -196,16 +197,23 @@ import { Badge } from "@/components/ui/badge";
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </form>
+                          </div>
+                          {model.description && (
+                            <p className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap">{model.description}</p>
+                          )}
                         </div>
                     ))}
                 </CardContent>
                  <CardFooter className="border-t pt-6">
-                    <form action={addProductModelAction} className="flex w-full flex-col sm:flex-row items-center gap-2">
-                        <Input name="name" placeholder="Add new model" />
-                        <Button type="submit" className="w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Model
-                        </Button>
+                    <form action={addProductModelAction} className="flex w-full flex-col gap-2">
+                        <div className="flex w-full flex-col sm:flex-row items-center gap-2">
+                          <Input name="name" placeholder="Add new model name" />
+                          <Button type="submit" className="w-full sm:w-auto">
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Add Model
+                          </Button>
+                        </div>
+                        <Input name="description" placeholder="Optional: model description" />
                     </form>
                 </CardFooter>
             </Card>

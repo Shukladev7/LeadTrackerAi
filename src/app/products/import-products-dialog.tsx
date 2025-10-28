@@ -5,13 +5,12 @@ import { CSVImportDialog } from '@/components/csv-import-dialog';
 import { importProductsFromCSV } from '@/lib/actions';
 import { Upload } from 'lucide-react';
 
-const EXPECTED_COLUMNS = ['name', 'description', 'price', 'gstRate', 'skus'];
-const REQUIRED_COLUMNS = ['name', 'description', 'price', 'gstRate'];
+const EXPECTED_COLUMNS = ['name', 'price', 'gstRate', 'skus'];
+const REQUIRED_COLUMNS = ['name', 'price', 'gstRate'];
 const OPTIONAL_COLUMNS = ['skus'];
 
 const SAMPLE_DATA = {
   name: 'Premium Widget',
-  description: 'High-quality widget for professional use with advanced features',
   price: '1500.00',
   gstRate: '18',
   skus: 'WID-001,WID-002,WID-003'

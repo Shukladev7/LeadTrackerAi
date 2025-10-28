@@ -31,7 +31,6 @@ import { ProductModel } from '@/lib/types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
-  description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
   gstRate: z.coerce.number().min(0, { message: 'GST rate must be a positive number.' }).max(100, { message: 'GST rate cannot exceed 100.' }),
   modelIds: z.array(z.string()).optional(),
@@ -55,6 +54,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
   const [removedExistingPdf, setRemovedExistingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string>('');
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
   const [removedExistingImage, setRemovedExistingImage] = useState(false);
   const [imageError, setImageError] = useState<string>('');
   const { toast } = useToast();
@@ -81,6 +81,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       setRemovedExistingPdf(false);
       setPdfError('');
       setProductImage(null);
+      setProductImageFile(null);
       setRemovedExistingImage(false);
       setImageError('');
       
@@ -131,18 +132,21 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       formData.append('removeCatalogPdf', 'true');
     }
 
-    // Add product image data if available
-    if (productImage) {
-      formData.append('productImage', JSON.stringify({
-        url: productImage.url,
-        fileName: productImage.fileName,
-        filePath: productImage.path,
-        uploadedAt: new Date().toISOString()
+    // Add new image file if user uploaded one
+    if (productImageFile) {
+      formData.append('productImage', productImageFile);
+    } else if (!removedExistingImage && product.productImage) {
+      // Keep existing image metadata (send as JSON for backend to preserve)
+      formData.append('existingProductImage', JSON.stringify({
+        url: product.productImage.url,
+        fileName: product.productImage.fileName,
+        filePath: product.productImage.filePath,
+        uploadedAt: product.productImage.uploadedAt || new Date().toISOString(),
       }));
     }
 
     // If user removed the existing image and did not upload a new one, inform backend to clear it
-    if (!productImage && removedExistingImage) {
+    if (!productImageFile && removedExistingImage) {
       formData.append('removeProductImage', 'true');
     }
 
@@ -186,11 +190,6 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
             <Label htmlFor="name">Product Name</Label>
             <Input id="name" {...register('name')} className={errors.name ? 'border-destructive' : ''} />
             {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" {...register('description')} className={errors.description ? 'border-destructive' : ''} />
-            {errors.description && <p className="text-xs text-destructive mt-1">{errors.description.message}</p>}
           </div>
           <div className="space-y-2">
             <Label>Product Models</Label>
@@ -264,6 +263,10 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
               onUploadError={(error) => {
                 setImageError(error);
                 setProductImage(null);
+                setProductImageFile(null);
+              }}
+              onFileSelect={(file) => {
+                setProductImageFile(file);
               }}
               currentImage={
                 removedExistingImage
@@ -276,6 +279,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
               }
               onRemove={() => {
                 setProductImage(null);
+                setProductImageFile(null);
                 setImageError('');
                 if (product.productImage) {
                   setRemovedExistingImage(true);

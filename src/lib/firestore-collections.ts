@@ -68,10 +68,10 @@ export class ProductService extends FirestoreService<Product> {
     // Note: Firestore doesn't support full-text search natively
     // This is a simple implementation - consider using Algolia or similar for better search
     const products = await this.getAll();
+    const term = searchTerm.toLowerCase();
     return products.filter(product => 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      product.name.toLowerCase().includes(term) ||
+      (product.tags || []).some(tag => tag.toLowerCase().includes(term))
     );
   }
 
