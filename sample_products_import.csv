@@ -1,16 +1,16 @@
-name,description,price,gstRate,skus,catalogueUrl
-Premium Laptop Stand,Adjustable aluminum laptop stand with ergonomic design for better posture and cooling,2500.00,18,"STAND-001,STAND-002,STAND-003",https://example.com/laptop-stand
-Wireless Bluetooth Headphones,High-quality noise-cancelling wireless headphones with 30-hour battery life,4999.99,18,"HEAD-BT-001,HEAD-BT-002",https://example.com/headphones
-Professional Consultation Service,Expert business consultation and strategy development services,15000.00,18,,https://example.com/consultation
-Office Chair Ergonomic,Comfortable ergonomic office chair with lumbar support and adjustable height,8500.50,12,"CHAIR-ERG-001,CHAIR-ERG-002,CHAIR-ERG-003,CHAIR-ERG-004",https://example.com/office-chair
-Smartphone Screen Protector,Tempered glass screen protector with anti-fingerprint coating,299.00,18,"SCREEN-PROT-001,SCREEN-PROT-002,SCREEN-PROT-003",
-USB-C Charging Cable,Durable braided USB-C charging cable with fast charging support,799.00,18,CABLE-USBC-001,https://example.com/usb-cable
-Digital Marketing Package,Complete digital marketing solution including SEO and social media management,25000.00,18,,
-Mechanical Keyboard RGB,Gaming mechanical keyboard with RGB backlighting and customizable keys,6500.00,18,"KB-MECH-001,KB-MECH-002",https://example.com/keyboard
-Portable Power Bank,20000mAh portable power bank with dual USB ports and LED display,1899.00,12,"PWR-BANK-001,PWR-BANK-002,PWR-BANK-003",https://example.com/power-bank
-Web Development Service,Custom website development with responsive design and CMS integration,50000.00,18,,https://example.com/web-dev
-Wireless Mouse Optical,Ergonomic wireless optical mouse with precision tracking,1299.00,18,MOUSE-WIRELESS-001,
-Monitor 27 inch 4K,Ultra HD 4K monitor with IPS panel and USB-C connectivity,28999.00,18,"MON-27-4K-001,MON-27-4K-002",https://example.com/monitor
-Software License Annual,Annual software license for project management and collaboration tools,12000.00,18,,
-Desk Organizer Bamboo,Eco-friendly bamboo desk organizer with multiple compartments,1250.00,5,"DESK-ORG-001,DESK-ORG-002,DESK-ORG-003",https://example.com/desk-organizer
-Training Workshop Package,Professional skills training workshop for teams and individuals,8000.00,18,,https://example.com/training
+name,description,price,gstRate,skus,catalogueUrl,models
+Premium Laptop Stand,Adjustable aluminum laptop stand with ergonomic design for better posture and cooling,2500.00,18,"STAND-001,STAND-002,STAND-003",https://example.com/laptop-stand,"Standard Model,Premium Model,Pro Model"
+Wireless Bluetooth Headphones,High-quality noise-cancelling wireless headphones with 30-hour battery life,4999.99,18,"HEAD-BT-001,HEAD-BT-002",https://example.com/headphones,"Over-ear Model,In-ear Model"
+Professional Consultation Service,Expert business consultation and strategy development services,15000.00,18,,https://example.com/consultation,
+Office Chair Ergonomic,Comfortable ergonomic office chair with lumbar support and adjustable height,8500.50,12,"CHAIR-ERG-001,CHAIR-ERG-002,CHAIR-ERG-003,CHAIR-ERG-004",https://example.com/office-chair,"Executive Model,Task Model,Gaming Model"
+Smartphone Screen Protector,Tempered glass screen protector with anti-fingerprint coating,299.00,18,"SCREEN-PROT-001,SCREEN-PROT-002,SCREEN-PROT-003",,
+USB-C Charging Cable,Durable braided USB-C charging cable with fast charging support,799.00,18,CABLE-USBC-001,https://example.com/usb-cable,
+Digital Marketing Package,Complete digital marketing solution including SEO and social media management,25000.00,18,,,
+Mechanical Keyboard RGB,Gaming mechanical keyboard with RGB backlighting and customizable keys,6500.00,18,"KB-MECH-001,KB-MECH-002",https://example.com/keyboard,"TKL Model,Full Size Model,60% Model"
+Portable Power Bank,20000mAh portable power bank with dual USB ports and LED display,1899.00,12,"PWR-BANK-001,PWR-BANK-002,PWR-BANK-003",https://example.com/power-bank,"Standard Model,Fast Charge Model,Solar Model"
+Web Development Service,Custom website development with responsive design and CMS integration,50000.00,18,,https://example.com/web-dev,
+Wireless Mouse Optical,Ergonomic wireless optical mouse with precision tracking,1299.00,18,MOUSE-WIRELESS-001,,
+Monitor 27 inch 4K,Ultra HD 4K monitor with IPS panel and USB-C connectivity,28999.00,18,"MON-27-4K-001,MON-27-4K-002",https://example.com/monitor,"Standard Model,Pro Model,Gaming Model"
+Software License Annual,Annual software license for project management and collaboration tools,12000.00,18,,,
+Desk Organizer Bamboo,Eco-friendly bamboo desk organizer with multiple compartments,1250.00,5,"DESK-ORG-001,DESK-ORG-002,DESK-ORG-003",https://example.com/desk-organizer,
+Training Workshop Package,Professional skills training workshop for teams and individuals,8000.00,18,,https://example.com/training,

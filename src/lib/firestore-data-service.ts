@@ -73,6 +73,7 @@ export interface NewProduct {
   price: number;
   gstRate: number;
   modelId?: string;
+  modelIds?: string[]; // New field for selected model IDs
   skus?: string[];
   catalogueUrl?: string;
   cataloguePdf?: {
@@ -391,10 +392,10 @@ export const addProductModel = async (name: string, description: string): Promis
 };
 
 // Create a model for a specific product
-export const addModelForProduct = async (productId: string, name: string, description: string): Promise<ProductModel> => {
+export const addModelForProduct = async (productId: string, name: string, description?: string): Promise<ProductModel> => {
   const id = await productModelService.createModelForProduct(productId, {
     name,
-    description
+    description: description || ''
   });
   
   const newModel = await productModelService.getById(id);

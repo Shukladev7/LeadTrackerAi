@@ -1281,12 +1281,40 @@ export async function importProductsFromCSV(csvData: any[]) {
         errors: [] as string[]
     };
 
+    // Get all existing product models to match against
+    const allProductModels = await getProductModels();
+
     for (let i = 0; i < csvData.length; i++) {
         const row = csvData[i];
         
         try {
             // Parse SKUs from comma-separated string
             const skus = row.skus ? row.skus.split(',').map((sku: string) => sku.trim()).filter(Boolean) : [];
+            
+            // Parse models from comma-separated string and find existing model IDs
+            // Format: "Model A,Model B,Model C"
+            const modelIds: string[] = [];
+            const modelNotFoundErrors: string[] = [];
+            
+            if (row.models && row.models.trim()) {
+                const modelNames = row.models.split(',');
+                for (const modelName of modelNames) {
+                    const trimmedName = modelName.trim();
+                    if (trimmedName) {
+                        const existingModel = allProductModels.find(m => m.name === trimmedName);
+                        if (existingModel) {
+                            modelIds.push(existingModel.id);
+                        } else {
+                            modelNotFoundErrors.push(trimmedName);
+                        }
+                    }
+                }
+            }
+            
+            // Add errors for models not found
+            if (modelNotFoundErrors.length > 0) {
+                results.errors.push(`Row ${i + 1}: Models not found: ${modelNotFoundErrors.join(', ')}. Please create these models first.`);
+            }
             
             // Prepare data for validation, including optional fields
             const dataForValidation = {
@@ -1306,6 +1334,7 @@ export async function importProductsFromCSV(csvData: any[]) {
                 gstRate: validatedData.gstRate,
                 ...(validatedData.skus && { skus: validatedData.skus }),
                 ...(validatedData.catalogueUrl && { catalogueUrl: validatedData.catalogueUrl }),
+                ...(modelIds.length > 0 && { modelIds }),
             };
 
             await dbAddProduct(productData);
