@@ -51,9 +51,8 @@ export interface LeadSource extends BusinessDocument {
   conversionRate?: number;
 }
 
-// Product Model interface
-export interface ProductModel extends BusinessDocument {
-  productId?: string; // Reference to the product this model belongs to (optional for generic models)
+// Product Category interface
+export interface ProductCategory extends BusinessDocument {
   name: string;
   description: string;
   isActive?: boolean;
@@ -64,8 +63,8 @@ export interface Product extends BusinessDocument {
   name: string;
   price: number;
   gstRate: number;
-  modelId?: string;
-  modelIds?: string[]; // New field for selected model IDs
+  categoryId?: string;
+  description?: string;
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
@@ -109,7 +108,6 @@ export interface LeadProduct {
   rate: number;
   discount?: number;
   notes?: string;
-  selectedModelId?: string; // Selected model for this product
 }
 
 // Lead interface
@@ -142,7 +140,6 @@ export interface QuotationProduct {
   gstRate: number;
   discount?: number;
   total?: number;
-  modelId?: string;
 }
 
 // Populated Quotation Product interface (with product details)
@@ -365,7 +362,7 @@ export const COLLECTIONS = {
   DEPARTMENTS: 'departments',
   EMPLOYEE_ROLES: 'employeeRoles',
   LEAD_SOURCES: 'leadSources',
-  PRODUCT_MODELS: 'productModels',
+PRODUCT_CATEGORIES: 'productModels',
   PRODUCTS: 'products',
   LEADS: 'leads',
   QUOTATIONS: 'quotations',

@@ -940,6 +940,10 @@ body {
   width: 15%;
 }
 
+.w-\[18\%\] {
+  width: 18%;
+}
+
 .w-\[180px\] {
   width: 180px;
 }
@@ -950,10 +954,6 @@ body {
 
 .w-\[20\%\] {
   width: 20%;
-}
-
-.w-\[30ch\] {
-  width: 30ch;
 }
 
 .w-\[50px\] {
@@ -1006,10 +1006,6 @@ body {
 
 .max-w-\[200px\] {
   max-width: 200px;
-}
-
-.max-w-\[25ch\] {
-  max-width: 25ch;
 }
 
 .max-w-\[80vw\] {
@@ -1337,10 +1333,6 @@ body {
 
 .whitespace-pre-wrap {
   white-space: pre-wrap;
-}
-
-.break-words {
-  overflow-wrap: break-word;
 }
 
 .break-all {
@@ -1972,12 +1964,20 @@ body {
   font-variant-numeric: var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction);
 }
 
+.leading-5 {
+  line-height: 1.25rem;
+}
+
 .leading-none {
   line-height: 1;
 }
 
 .tracking-tight {
   letter-spacing: -.025em;
+}
+
+.tracking-wide {
+  letter-spacing: .025em;
 }
 
 .tracking-wider {

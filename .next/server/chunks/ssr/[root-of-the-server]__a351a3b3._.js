@@ -490,7 +490,7 @@ const COLLECTIONS = {
     DEPARTMENTS: 'departments',
     EMPLOYEE_ROLES: 'employeeRoles',
     LEAD_SOURCES: 'leadSources',
-    PRODUCT_MODELS: 'productModels',
+    PRODUCT_CATEGORIES: 'productModels',
     PRODUCTS: 'products',
     LEADS: 'leads',
     QUOTATIONS: 'quotations',
@@ -515,7 +515,7 @@ __turbopack_context__.s({
     "EmployeeService": (()=>EmployeeService),
     "LeadService": (()=>LeadService),
     "OrderService": (()=>OrderService),
-    "ProductModelService": (()=>ProductModelService),
+    "ProductCategoryService": (()=>ProductCategoryService),
     "ProductService": (()=>ProductService),
     "QuotationService": (()=>QuotationService),
     "TaskService": (()=>TaskService),
@@ -535,8 +535,8 @@ __turbopack_context__.s({
     "orderService": (()=>orderService),
     "ordersService": (()=>ordersService),
     "paymentsService": (()=>paymentsService),
-    "productModelService": (()=>productModelService),
-    "productModelsService": (()=>productModelsService),
+    "productCategoriesService": (()=>productCategoriesService),
+    "productCategoryService": (()=>productCategoryService),
     "productService": (()=>productService),
     "productsService": (()=>productsService),
     "quotationService": (()=>quotationService),
@@ -553,7 +553,7 @@ const employeesService = new __TURBOPACK__imported__module__$5b$project$5d2f$src
 const departmentsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].DEPARTMENTS);
 const employeeRolesService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].EMPLOYEE_ROLES);
 const leadSourcesService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].LEAD_SOURCES);
-const productModelsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCT_MODELS);
+const productCategoriesService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCT_CATEGORIES);
 const productsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCTS);
 const leadsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].LEADS);
 const quotationsService = new __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"](__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].QUOTATIONS);
@@ -738,51 +738,9 @@ class ProductService extends __TURBOPACK__imported__module__$5b$project$5d2f$src
         });
     }
 }
-class ProductModelService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"] {
+class ProductCategoryService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"] {
     constructor(){
-        super(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCT_MODELS);
-    }
-    async getModelsByProduct(productId) {
-        return this.getWithQuery({
-            where: [
-                {
-                    field: 'productId',
-                    operator: '==',
-                    value: productId
-                }
-            ],
-            orderBy: {
-                field: 'name',
-                direction: 'asc'
-            }
-        });
-    }
-    async getActiveModelsByProduct(productId) {
-        return this.getWithQuery({
-            where: [
-                {
-                    field: 'productId',
-                    operator: '==',
-                    value: productId
-                },
-                {
-                    field: 'isActive',
-                    operator: '==',
-                    value: true
-                }
-            ],
-            orderBy: {
-                field: 'name',
-                direction: 'asc'
-            }
-        });
-    }
-    async createModelForProduct(productId, modelData) {
-        return this.create({
-            ...modelData,
-            productId,
-            isActive: true
-        });
+        super(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$types$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["COLLECTIONS"].PRODUCT_CATEGORIES);
     }
 }
 class QuotationService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firestore$2d$service$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["FirestoreService"] {
@@ -1046,7 +1004,7 @@ class TaskService extends __TURBOPACK__imported__module__$5b$project$5d2f$src$2f
 const employeeService = new EmployeeService();
 const leadService = new LeadService();
 const productService = new ProductService();
-const productModelService = new ProductModelService();
+const productCategoryService = new ProductCategoryService();
 const quotationService = new QuotationService();
 const customerService = new CustomerService();
 const orderService = new OrderService();
@@ -1057,16 +1015,15 @@ const taskService = new TaskService();
 
 var { g: global, __dirname } = __turbopack_context__;
 {
-/* __next_internal_action_entry_do_not_use__ [{"7f04f10f0ddeddd104b418724bb1785849c193f66a":"getQuotations","7f0b5bbbb79dabf61c8dbf70af3ffff389460f419b":"getEmployeeRoles","7f1116478ca304fed1b532ca4ce59d5d5b448efd86":"getQuotationById","7f1db3ac95e46d0fb06b447ac0f1095c4e9d7864b8":"updateProduct","7f269196162d7162085bfe24c2b6f3c9eeb8de910c":"addActivityToLead","7f28536172b5ae01e7059bb3aa20a259aa523732db":"getActiveModelsByProduct","7f298b9fe988cb1ffa83632945d936c189bd792dc0":"updateEmployee","7f2d6f92a2c75e8e3e60e49e1b34f04f7ce34b8ea1":"getQuotationsCount","7f2de586b93cabe05d91ddb2006970640cf7e23220":"getDepartments","7f2e33d68eae7df61b4f4e6c14476e66342d7dda08":"deleteLeadSource","7f306e023d33eb2f4cd6e278d2ba58f9ce4e42988b":"getActiveEmployeesCount","7f3647314ef55abc215cb0038de08a9b35bdb3fb8a":"getProductModelById","7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75":"getRecentActivities","7f3777aecc7cb81616bea527a08a89d4fe73e9c5db":"updateQuotation","7f3c1be380f9a0a44bfd49095f6ae6bd965a6b526a":"addQuotationTemplate","7f3e5a6e7ad6fbd5540a28118cca7087133b837324":"getLeadsCount","7f3fd23bab2d334881ddfed4ef17bd4c53e0f69adb":"getQuotationTemplateById","7f41f0cf7169835566a4dfd277c9336ebbe880987d":"addEmployee","7f4b36d049affbaa6bdaa068bf84fb1acd862b79d4":"addDepartment","7f51002bc8cb90bca5ac167052035a3341833f8f08":"getProductsCount","7f570d4070a3316a960cb012b57a19ddb32ac8bbfd":"deleteQuotationTemplate","7f5ce6beaba83630ecc0b70a473c4b2d6911512a02":"deleteEmployee","7f5e4db413fc94175edbca5b287628f60dcd4e7e94":"addProductModel","7f5e565717de94ab791c79ac47354de4dc778f530a":"getModelsByProduct","7f5f40b0c1407ddbbe339c0d4cd166f510508443ae":"getActiveProductsCount","7f695fe749c0d9aab2ac486d89622d5b4e078477f2":"deleteEmployeeRole","7f705ed144dc34aa9cf8fdfa9b395d9d5a37f9cf02":"updateLeadStatus","7f7b957907463cba62338137af33f88b010ffab0dd":"updateQuotationTemplate","7f7c2d013a463dd6ad5bb725e2388417c71247f941":"addEmployeeRole","7f7d645fddf2346cccd897ff95af0ed14f70779d3a":"getQuotationTemplates","7f81ed99bf4c4b2ad51de24a64b2ecaa4ce3145926":"deleteQuotation","7f82d5948233efc223306c44e2a01deb4873021a20":"getLeads","7f88c63efa869fa124d3696440aaad635a0aa8333e":"getProductModels","7f8a39cb89579cab4c851aee68a93e5fd53b7b6fe8":"deleteLead","7f8badf9865ad7abe7dda8ba51ccbdc3405643eb84":"getEmployeesCount","7f92d94703b1b49a7a12dff73eeb3935472d3cbe90":"deleteDepartment","7f9b2288f5e837ee146778e3df872c309647d27f2b":"getEmployees","7fa1ce4be69d6d70d013be75de5496caa20eb1c9a7":"getQuotationsCountByStatus","7fab33ecffebcb8db1f945c866849358614a8f4597":"getLeadsCountByStatus","7fb1cf1d568ae18c62c90b9b2d6669b292ee581f0b":"getEmployeeById","7fbb11b0650d3d20961fc949546dfb03d445926956":"deleteProductModel","7fbe11dcb5d9c05b11c838a171548db124357ba953":"updateProductModel","7fc4c88d57430e7d33350dee03cd4a5ca2d8989512":"getEmployeeByEmail","7fcc7709996a7ef75f1fd5c5b7162ef7d8527ca75d":"addLead","7fd1caa7166fa9ab076034a9a5e7a9ceb556c0fe68":"getLeadById","7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e":"addQuotation","7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7":"addLeadSource","7fdc8569b061bd5144ea8a713aee54a0dc0c29574b":"addModelForProduct","7fec28ffd46fa758634b470c272b079775b2466584":"addProduct","7ff2088dba0bc1dec8498350114093211bd576d9dc":"getProducts","7ff228315843844dc8e238479c86860a4f482472b4":"deleteProduct","7ff68e1eba6cc22b6b0761897ef85f028eb4032583":"updateLead","7ffa98412ae44a0f974abe620c42247c1c203f8246":"getLeadSources"},"",""] */ __turbopack_context__.s({
+/* __next_internal_action_entry_do_not_use__ [{"7f04f10f0ddeddd104b418724bb1785849c193f66a":"getQuotations","7f0b5bbbb79dabf61c8dbf70af3ffff389460f419b":"getEmployeeRoles","7f1116478ca304fed1b532ca4ce59d5d5b448efd86":"getQuotationById","7f1db3ac95e46d0fb06b447ac0f1095c4e9d7864b8":"updateProduct","7f1ec85b8bd4b8a25e53fce01871f00aef784118c9":"addProductCategory","7f269196162d7162085bfe24c2b6f3c9eeb8de910c":"addActivityToLead","7f298b9fe988cb1ffa83632945d936c189bd792dc0":"updateEmployee","7f2d6f92a2c75e8e3e60e49e1b34f04f7ce34b8ea1":"getQuotationsCount","7f2de586b93cabe05d91ddb2006970640cf7e23220":"getDepartments","7f2e33d68eae7df61b4f4e6c14476e66342d7dda08":"deleteLeadSource","7f306e023d33eb2f4cd6e278d2ba58f9ce4e42988b":"getActiveEmployeesCount","7f3153d570e205bc326fe41373d636c1aeebaf1fa9":"deleteProductCategory","7f36ec06c4ee9cd6eca054f7e4329c7fe597be6c75":"getRecentActivities","7f3777aecc7cb81616bea527a08a89d4fe73e9c5db":"updateQuotation","7f3c1be380f9a0a44bfd49095f6ae6bd965a6b526a":"addQuotationTemplate","7f3e5a6e7ad6fbd5540a28118cca7087133b837324":"getLeadsCount","7f3fd23bab2d334881ddfed4ef17bd4c53e0f69adb":"getQuotationTemplateById","7f41f0cf7169835566a4dfd277c9336ebbe880987d":"addEmployee","7f4b36d049affbaa6bdaa068bf84fb1acd862b79d4":"addDepartment","7f51002bc8cb90bca5ac167052035a3341833f8f08":"getProductsCount","7f570d4070a3316a960cb012b57a19ddb32ac8bbfd":"deleteQuotationTemplate","7f5ce6beaba83630ecc0b70a473c4b2d6911512a02":"deleteEmployee","7f5f40b0c1407ddbbe339c0d4cd166f510508443ae":"getActiveProductsCount","7f695fe749c0d9aab2ac486d89622d5b4e078477f2":"deleteEmployeeRole","7f705ed144dc34aa9cf8fdfa9b395d9d5a37f9cf02":"updateLeadStatus","7f7b957907463cba62338137af33f88b010ffab0dd":"updateQuotationTemplate","7f7c2d013a463dd6ad5bb725e2388417c71247f941":"addEmployeeRole","7f7d645fddf2346cccd897ff95af0ed14f70779d3a":"getQuotationTemplates","7f7ed7f40750e7a4c5c5a94b38bef46bc960e8647c":"getProductCategories","7f81ed99bf4c4b2ad51de24a64b2ecaa4ce3145926":"deleteQuotation","7f82d5948233efc223306c44e2a01deb4873021a20":"getLeads","7f8a39cb89579cab4c851aee68a93e5fd53b7b6fe8":"deleteLead","7f8badf9865ad7abe7dda8ba51ccbdc3405643eb84":"getEmployeesCount","7f92d94703b1b49a7a12dff73eeb3935472d3cbe90":"deleteDepartment","7f9b2288f5e837ee146778e3df872c309647d27f2b":"getEmployees","7fa1ce4be69d6d70d013be75de5496caa20eb1c9a7":"getQuotationsCountByStatus","7fab33ecffebcb8db1f945c866849358614a8f4597":"getLeadsCountByStatus","7fb1cf1d568ae18c62c90b9b2d6669b292ee581f0b":"getEmployeeById","7fc4c88d57430e7d33350dee03cd4a5ca2d8989512":"getEmployeeByEmail","7fcc7709996a7ef75f1fd5c5b7162ef7d8527ca75d":"addLead","7fcda8b9daf7fb361b3246487bdc63a633975fcf33":"getProductCategoryById","7fcfbf0e0745435f434f0a7fd0d898cb83096d6f3b":"updateProductCategory","7fd1caa7166fa9ab076034a9a5e7a9ceb556c0fe68":"getLeadById","7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e":"addQuotation","7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7":"addLeadSource","7fec28ffd46fa758634b470c272b079775b2466584":"addProduct","7ff2088dba0bc1dec8498350114093211bd576d9dc":"getProducts","7ff228315843844dc8e238479c86860a4f482472b4":"deleteProduct","7ff68e1eba6cc22b6b0761897ef85f028eb4032583":"updateLead","7ffa98412ae44a0f974abe620c42247c1c203f8246":"getLeadSources"},"",""] */ __turbopack_context__.s({
     "addActivityToLead": (()=>addActivityToLead),
     "addDepartment": (()=>addDepartment),
     "addEmployee": (()=>addEmployee),
     "addEmployeeRole": (()=>addEmployeeRole),
     "addLead": (()=>addLead),
     "addLeadSource": (()=>addLeadSource),
-    "addModelForProduct": (()=>addModelForProduct),
     "addProduct": (()=>addProduct),
-    "addProductModel": (()=>addProductModel),
+    "addProductCategory": (()=>addProductCategory),
     "addQuotation": (()=>addQuotation),
     "addQuotationTemplate": (()=>addQuotationTemplate),
     "deleteDepartment": (()=>deleteDepartment),
@@ -1075,11 +1032,10 @@ var { g: global, __dirname } = __turbopack_context__;
     "deleteLead": (()=>deleteLead),
     "deleteLeadSource": (()=>deleteLeadSource),
     "deleteProduct": (()=>deleteProduct),
-    "deleteProductModel": (()=>deleteProductModel),
+    "deleteProductCategory": (()=>deleteProductCategory),
     "deleteQuotation": (()=>deleteQuotation),
     "deleteQuotationTemplate": (()=>deleteQuotationTemplate),
     "getActiveEmployeesCount": (()=>getActiveEmployeesCount),
-    "getActiveModelsByProduct": (()=>getActiveModelsByProduct),
     "getActiveProductsCount": (()=>getActiveProductsCount),
     "getDepartments": (()=>getDepartments),
     "getEmployeeByEmail": (()=>getEmployeeByEmail),
@@ -1092,9 +1048,8 @@ var { g: global, __dirname } = __turbopack_context__;
     "getLeads": (()=>getLeads),
     "getLeadsCount": (()=>getLeadsCount),
     "getLeadsCountByStatus": (()=>getLeadsCountByStatus),
-    "getModelsByProduct": (()=>getModelsByProduct),
-    "getProductModelById": (()=>getProductModelById),
-    "getProductModels": (()=>getProductModels),
+    "getProductCategories": (()=>getProductCategories),
+    "getProductCategoryById": (()=>getProductCategoryById),
     "getProducts": (()=>getProducts),
     "getProductsCount": (()=>getProductsCount),
     "getQuotationById": (()=>getQuotationById),
@@ -1108,7 +1063,7 @@ var { g: global, __dirname } = __turbopack_context__;
     "updateLead": (()=>updateLead),
     "updateLeadStatus": (()=>updateLeadStatus),
     "updateProduct": (()=>updateProduct),
-    "updateProductModel": (()=>updateProductModel),
+    "updateProductCategory": (()=>updateProductCategory),
     "updateQuotation": (()=>updateQuotation),
     "updateQuotationTemplate": (()=>updateQuotationTemplate)
 });
@@ -1349,59 +1304,39 @@ const deleteLeadSource = async (id)=>{
         success: true
     };
 };
-const getProductModels = async ()=>{
-    const models = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getAll();
-    return models.map((model)=>convertFirestoreDocToPlain(model));
+const getProductCategories = async ()=>{
+    const categories = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productCategoriesService"].getAll();
+    return categories.map((cat)=>convertFirestoreDocToPlain(cat));
 };
-const getProductModelById = async (id)=>{
-    const model = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getById(id);
-    return model ? convertFirestoreDocToPlain(model) : undefined;
+const getProductCategoryById = async (id)=>{
+    const category = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productCategoriesService"].getById(id);
+    return category ? convertFirestoreDocToPlain(category) : undefined;
 };
-const getModelsByProduct = async (productId)=>{
-    const models = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].getModelsByProduct(productId);
-    return models.map((model)=>convertFirestoreDocToPlain(model));
-};
-const getActiveModelsByProduct = async (productId)=>{
-    const models = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].getActiveModelsByProduct(productId);
-    return models.map((model)=>convertFirestoreDocToPlain(model));
-};
-const addProductModel = async (name, description)=>{
-    const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].create({
-        // productId is undefined for generic product models
+const addProductCategory = async (name, description)=>{
+    const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productCategoriesService"].create({
         name,
         description,
         isActive: true
     });
-    const newModel = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getById(id);
-    if (!newModel) {
-        throw new Error('Failed to create product model');
+    const newCategory = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productCategoriesService"].getById(id);
+    if (!newCategory) {
+        throw new Error('Failed to create product category');
     }
-    return convertFirestoreDocToPlain(newModel);
+    return convertFirestoreDocToPlain(newCategory);
 };
-const addModelForProduct = async (productId, name, description)=>{
-    const id = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].createModelForProduct(productId, {
+const updateProductCategory = async (id, name, description)=>{
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productCategoriesService"].update(id, {
         name,
         description
     });
-    const newModel = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelService"].getById(id);
-    if (!newModel) {
-        throw new Error('Failed to create product model');
+    const updatedCategory = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productCategoriesService"].getById(id);
+    if (!updatedCategory) {
+        throw new Error('Product category not found after update');
     }
-    return convertFirestoreDocToPlain(newModel);
+    return convertFirestoreDocToPlain(updatedCategory);
 };
-const updateProductModel = async (id, name, description)=>{
-    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].update(id, {
-        name,
-        description
-    });
-    const updatedModel = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].getById(id);
-    if (!updatedModel) {
-        throw new Error('Product model not found after update');
-    }
-    return convertFirestoreDocToPlain(updatedModel);
-};
-const deleteProductModel = async (id)=>{
-    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productModelsService"].delete(id);
+const deleteProductCategory = async (id)=>{
+    await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$business$2d$services$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productCategoriesService"].delete(id);
     return {
         success: true
     };
@@ -1601,14 +1536,11 @@ const getActiveEmployeesCount = async ()=>{
     getLeadSources,
     addLeadSource,
     deleteLeadSource,
-    getProductModels,
-    getProductModelById,
-    getModelsByProduct,
-    getActiveModelsByProduct,
-    addProductModel,
-    addModelForProduct,
-    updateProductModel,
-    deleteProductModel,
+    getProductCategories,
+    getProductCategoryById,
+    addProductCategory,
+    updateProductCategory,
+    deleteProductCategory,
     getQuotations,
     getQuotationById,
     addQuotation,
@@ -1655,14 +1587,11 @@ const getActiveEmployeesCount = async ()=>{
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getLeadSources, "7ffa98412ae44a0f974abe620c42247c1c203f8246", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addLeadSource, "7fdb8fa0874a1af95778d81d67cbef8ca7b8a976d7", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteLeadSource, "7f2e33d68eae7df61b4f4e6c14476e66342d7dda08", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProductModels, "7f88c63efa869fa124d3696440aaad635a0aa8333e", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProductModelById, "7f3647314ef55abc215cb0038de08a9b35bdb3fb8a", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getModelsByProduct, "7f5e565717de94ab791c79ac47354de4dc778f530a", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getActiveModelsByProduct, "7f28536172b5ae01e7059bb3aa20a259aa523732db", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addProductModel, "7f5e4db413fc94175edbca5b287628f60dcd4e7e94", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addModelForProduct, "7fdc8569b061bd5144ea8a713aee54a0dc0c29574b", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateProductModel, "7fbe11dcb5d9c05b11c838a171548db124357ba953", null);
-(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteProductModel, "7fbb11b0650d3d20961fc949546dfb03d445926956", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProductCategories, "7f7ed7f40750e7a4c5c5a94b38bef46bc960e8647c", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getProductCategoryById, "7fcda8b9daf7fb361b3246487bdc63a633975fcf33", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addProductCategory, "7f1ec85b8bd4b8a25e53fce01871f00aef784118c9", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(updateProductCategory, "7fcfbf0e0745435f434f0a7fd0d898cb83096d6f3b", null);
+(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(deleteProductCategory, "7f3153d570e205bc326fe41373d636c1aeebaf1fa9", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotations, "7f04f10f0ddeddd104b418724bb1785849c193f66a", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(getQuotationById, "7f1116478ca304fed1b532ca4ce59d5d5b448efd86", null);
 (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$server$2d$reference$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["registerServerReference"])(addQuotation, "7fd4e7574ebf04a18569fcf9ca203b1ba6cc86ee5e", null);

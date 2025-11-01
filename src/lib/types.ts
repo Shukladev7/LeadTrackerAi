@@ -10,9 +10,8 @@ export type LeadSource = {
   name: string;
 };
 
-export type ProductModel = {
+export type ProductCategory = {
   id: string;
-  productId: string; // Reference to the product this model belongs to
   name: string;
   description: string;
   isActive?: boolean;
@@ -31,8 +30,8 @@ export type Product = {
   name:string;
   price: number;
   gstRate: number;
-  modelId?: string;
-  modelIds?: string[]; // New field for selected model IDs
+  categoryId?: string;
+  description?: string;
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
@@ -56,12 +55,10 @@ export type LeadProduct = {
   quantity: number;
   rate: number;
   selectedSku?: string;
-  selectedModelId?: string; // Selected model for this product
 };
 
 export type PopulatedLeadProduct = LeadProduct & {
   product: Product;
-  selectedModel?: ProductModel; // Populated model information
   amount: number;
 };
 
@@ -93,12 +90,10 @@ export type QuotationProduct = {
   rate: number;
   gstRate: number;
   discount?: number;
-  selectedModelId?: string; // Model selected from lead
 };
 
 export type PopulatedQuotationProduct = QuotationProduct & {
     product: Product;
-    selectedModel?: ProductModel; // Populated model information
     amount: number;
     gstAmount: number;
 };

@@ -6,8 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { summarizeMeetingNotes } from '@/ai/flows/summarize-meeting-notes';
-import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductModel as dbAddProductModel, deleteProductModel as dbDeleteProductModel, getProductModels, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount, updateProductModel as dbUpdateProductModel } from './data';
-import { addModelForProduct as dbAddModelForProduct, getModelsByProduct as dbGetModelsByProduct, getActiveModelsByProduct as dbGetActiveModelsByProduct } from './firestore-data-service';
+import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductCategory as dbAddProductCategory, deleteProductCategory as dbDeleteProductCategory, getProductCategories, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount, updateProductCategory as dbUpdateProductCategory } from './data';
 import { deletePDFFromStorage, deleteImageFromStorage, uploadImageToStorage } from './storage-utils';
 import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, QuotationTemplate } from './types';
 import type { Employee } from './business-types';
@@ -54,7 +53,6 @@ const LeadProductSchema = z.object({
     quantity: z.coerce.number().min(1),
     rate: z.coerce.number().min(0),
     selectedSku: z.string().optional(),
-    selectedModelId: z.string().optional(),
 });
 
 const CreateLeadSchema = z.object({
@@ -167,7 +165,7 @@ function generateChangeNotes(oldLead: Lead, newLeadData: UpdatableLeadData, allP
     if (JSON.stringify(oldProducts) !== JSON.stringify(newProducts)) {
         const getProductName = (productId: string) => allProducts.find(p => p.id === productId)?.name || productId;
         
-        const formatProduct = (p: LeadProduct) => `${getProductName(p.productId)} (Qty: ${p.quantity}, Rate: ${p.rate}, SKU: ${p.selectedSku || 'N/A'}, Model: ${p.selectedModelId || 'N/A'})`;
+        const formatProduct = (p: LeadProduct) => `${getProductName(p.productId)} (Qty: ${p.quantity}, Rate: ${p.rate}, SKU: ${p.selectedSku || 'N/A'})`;
 
         const oldProductStr = oldProducts.map(formatProduct).join(', ') || 'None';
         const newProductStr = newProducts.map(formatProduct).join(', ') || 'None';
@@ -241,7 +239,8 @@ const ProductSchema = z.object({
     name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
     price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
     gstRate: z.coerce.number().min(0).max(100),
-    modelIds: z.array(z.string()).optional(),
+    categoryId: z.string().optional(),
+    description: z.string().optional(),
     skus: z.array(z.string()).optional(),
     catalogueUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
     cataloguePdf: z.object({
@@ -262,9 +261,6 @@ export async function addProduct(formData: FormData) {
   const skusJSON = formData.get('skus');
   const skus = skusJSON ? JSON.parse(skusJSON as string) : [];
   
-  const modelIdsJSON = formData.get('modelIds');
-  const modelIds = modelIdsJSON ? JSON.parse(modelIdsJSON as string) : [];
-  
   const catalogPdfJSON = formData.get('catalogPdf');
   const catalogPdf = catalogPdfJSON ? JSON.parse(catalogPdfJSON as string) : undefined;
   
@@ -275,7 +271,8 @@ export async function addProduct(formData: FormData) {
     name: formData.get('name'),
     price: formData.get('price'),
     gstRate: formData.get('gstRate'),
-    modelIds: modelIds,
+    categoryId: formData.get('categoryId'),
+    description: formData.get('description') || undefined,
     skus: skus,
     catalogueUrl: formData.get('catalogueUrl') || '',
     cataloguePdf: catalogPdf,
@@ -292,15 +289,9 @@ export async function addProduct(formData: FormData) {
   try {
     const data = validatedFields.data;
     // Remove undefined values before sending to Firestore
-    const { modelIds: productModelIds, ...productData } = data;
     const cleanData = Object.fromEntries(
-      Object.entries(productData).filter(([_, v]) => v !== undefined)
+      Object.entries(data).filter(([_, v]) => v !== undefined)
     );
-    
-    // Add the selected model IDs to the product data
-    if (productModelIds && productModelIds.length > 0) {
-      cleanData.modelIds = productModelIds;
-    }
     
     // Create the product
     const newProduct = await dbAddProduct(cleanData as any);
@@ -317,9 +308,6 @@ export async function addProduct(formData: FormData) {
 export async function updateProduct(id: string, formData: FormData) {
     const skusJSON = formData.get('skus');
     const skus = skusJSON ? JSON.parse(skusJSON as string) : [];
-    
-    const modelIdsJSON = formData.get('modelIds');
-    const modelIds = modelIdsJSON ? JSON.parse(modelIdsJSON as string) : [];
 
     const catalogPdfJSON = formData.get('catalogPdf');
     const catalogPdf = catalogPdfJSON ? JSON.parse(catalogPdfJSON as string) : undefined;
@@ -357,7 +345,8 @@ export async function updateProduct(id: string, formData: FormData) {
       name: formData.get('name'),
       price: formData.get('price'),
       gstRate: formData.get('gstRate'),
-      modelIds: modelIds,
+      categoryId: formData.get('categoryId'),
+      description: formData.get('description') || undefined,
       skus: skus,
       catalogueUrl: formData.get('catalogueUrl') || '',
       cataloguePdf: catalogPdf,
@@ -378,16 +367,7 @@ export async function updateProduct(id: string, formData: FormData) {
       );
       
       const data = validatedFields.data as any;
-      const { modelIds: productModelIds, ...productData } = data;
-      const updateData: any = { ...productData };
-      
-      // Add the selected model IDs to the update data
-      if (productModelIds && productModelIds.length > 0) {
-        updateData.modelIds = productModelIds;
-      } else {
-        // If no models selected, remove the field
-        updateData.modelIds = [];
-      }
+      const updateData: any = { ...data };
       
       // If user explicitly removed the existing PDF and didn't upload a new one, clear the field
       if (removeCatalogPdf && !catalogPdf) {
@@ -631,17 +611,15 @@ export async function deleteLeadSourceAction(id: string) {
     return { message: 'Successfully deleted lead source.' };
 }
 
-const AddProductModelSchema = z.object({
-    name: z.string().min(2, 'Model name must be at least 2 characters'),
+const AddProductCategorySchema = z.object({
+    name: z.string().min(2, 'Category name must be at least 2 characters'),
     description: z.string().optional().nullable(),
-    productId: z.string().optional().nullable(), // Optional for backward compatibility
 });
 
-export async function addProductModelAction(formData: FormData) {
-    const validatedFields = AddProductModelSchema.safeParse({
+export async function addProductCategoryAction(formData: FormData) {
+    const validatedFields = AddProductCategorySchema.safeParse({
         name: formData.get('name'),
         description: formData.get('description'),
-        productId: formData.get('productId'),
     });
 
     if (!validatedFields.success) {
@@ -652,101 +630,52 @@ export async function addProductModelAction(formData: FormData) {
 
     try {
         // Convert null to undefined for optional description
-        const description = validatedFields.data.description || undefined;
-        const productId = validatedFields.data.productId;
-        
-        if (productId) {
-            // Create model for specific product
-            await dbAddModelForProduct(productId, validatedFields.data.name, description);
-        } else {
-            // Create general product model (legacy behavior)
-            await dbAddProductModel(validatedFields.data.name, description);
-        }
+        const description = validatedFields.data.description || '';
+        await dbAddProductCategory(validatedFields.data.name, description);
     } catch (error) {
-        return { message: 'Database Error: Failed to add product model.' };
+        return { message: 'Database Error: Failed to add product category.' };
     }
 
     revalidatePath('/setup');
     revalidatePath('/products');
-    revalidatePath('/leads');
     return { message: `Successfully added '${validatedFields.data.name}'.` };
 }
 
-export async function deleteProductModelAction(id: string) {
+export async function deleteProductCategoryAction(id: string) {
     try {
-        await dbDeleteProductModel(id);
+        await dbDeleteProductCategory(id);
     } catch (error) {
-        return { message: 'Database Error: Failed to delete product model.' };
+        return { message: 'Database Error: Failed to delete product category.' };
     }
 
     revalidatePath('/setup');
     revalidatePath('/products');
-    return { message: 'Successfully deleted product model.' };
+    return { message: 'Successfully deleted product category.' };
 }
 
-// Update an existing product model's name/description
-export async function updateProductModelAction(id: string, name: string, description?: string) {
+// Update an existing product category's name/description
+export async function updateProductCategoryAction(id: string, name: string, description?: string) {
     try {
-        await dbUpdateProductModel(id, name, description || '');
+        await dbUpdateProductCategory(id, name, description || '');
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        return { message: `Database Error: Failed to update product model. ${message}` };
+        return { message: `Database Error: Failed to update product category. ${message}` };
     }
     revalidatePath('/setup');
     revalidatePath('/products');
-    revalidatePath('/leads');
-    return { message: 'Successfully updated product model.' };
+    return { message: 'Successfully updated product category.' };
 }
 
-export async function getProductModelsAction() {
+export async function getProductCategoriesAction() {
     try {
-        const models = await getProductModels();
-        return models;
+        const categories = await getProductCategories();
+        return categories;
     } catch (error) {
-        console.error('Error fetching product models:', error);
+        console.error('Error fetching product categories:', error);
         return [];
     }
 }
 
-export async function getModelsByProductAction(productId: string) {
-    try {
-        const models = await dbGetModelsByProduct(productId);
-        return models;
-    } catch (error) {
-        console.error('Error fetching models for product:', error);
-        return [];
-    }
-}
-
-export async function getActiveModelsByProductAction(productId: string) {
-    try {
-        const models = await dbGetActiveModelsByProduct(productId);
-        return models;
-    } catch (error) {
-        console.error('Error fetching active models for product:', error);
-        return [];
-    }
-}
-
-// New function to get models based on product's modelIds field
-export async function getModelsByProductFieldAction(productId: string) {
-    try {
-        // First get the product to see which models it references
-        const products = await getProducts();
-        const product = products.find(p => p.id === productId);
-        
-        if (!product || !product.modelIds || product.modelIds.length === 0) {
-            return [];
-        }
-        
-        // Get all models and filter by the product's modelIds
-        const allModels = await getProductModelsAction();
-        return allModels.filter(model => product.modelIds!.includes(model.id));
-    } catch (error) {
-        console.error('Error fetching models for product by modelIds:', error);
-        return [];
-    }
-}
 
 const CreateQuotationSchema = z.object({
   leadId: z.string().min(1),
@@ -1281,8 +1210,8 @@ export async function importProductsFromCSV(csvData: any[]) {
         errors: [] as string[]
     };
 
-    // Get all existing product models to match against
-    const allProductModels = await getProductModels();
+// Get all existing product categories to match against
+const allCategories = await getProductCategories();
 
     for (let i = 0; i < csvData.length; i++) {
         const row = csvData[i];
@@ -1291,32 +1220,19 @@ export async function importProductsFromCSV(csvData: any[]) {
             // Parse SKUs from comma-separated string
             const skus = row.skus ? row.skus.split(',').map((sku: string) => sku.trim()).filter(Boolean) : [];
             
-            // Parse models from comma-separated string and find existing model IDs
-            // Format: "Model A,Model B,Model C"
-            const modelIds: string[] = [];
-            const modelNotFoundErrors: string[] = [];
+// Match category by exact name (single category)
+let categoryId: string | undefined = undefined;
+const categoryName = (row.category || row.categories || '').toString().trim();
+if (categoryName) {
+    const existingCategory = allCategories.find((c) => c.name === categoryName);
+    if (existingCategory) {
+        categoryId = existingCategory.id;
+    } else {
+        results.errors.push(`Row ${i + 1}: Category not found: ${categoryName}. Please create this category first.`);
+    }
+}
             
-            if (row.models && row.models.trim()) {
-                const modelNames = row.models.split(',');
-                for (const modelName of modelNames) {
-                    const trimmedName = modelName.trim();
-                    if (trimmedName) {
-                        const existingModel = allProductModels.find(m => m.name === trimmedName);
-                        if (existingModel) {
-                            modelIds.push(existingModel.id);
-                        } else {
-                            modelNotFoundErrors.push(trimmedName);
-                        }
-                    }
-                }
-            }
-            
-            // Add errors for models not found
-            if (modelNotFoundErrors.length > 0) {
-                results.errors.push(`Row ${i + 1}: Models not found: ${modelNotFoundErrors.join(', ')}. Please create these models first.`);
-            }
-            
-            // Prepare data for validation, including optional fields
+// Prepare data for validation, including optional fields
             const dataForValidation = {
                 name: row.name,
                 price: row.price,
@@ -1328,14 +1244,14 @@ export async function importProductsFromCSV(csvData: any[]) {
             const validatedData = ImportProductSchema.parse(dataForValidation);
 
             // Prepare data for database - only include defined fields
-            const productData = {
-                name: validatedData.name,
-                price: validatedData.price,
-                gstRate: validatedData.gstRate,
-                ...(validatedData.skus && { skus: validatedData.skus }),
-                ...(validatedData.catalogueUrl && { catalogueUrl: validatedData.catalogueUrl }),
-                ...(modelIds.length > 0 && { modelIds }),
-            };
+const productData = {
+    name: validatedData.name,
+    price: validatedData.price,
+    gstRate: validatedData.gstRate,
+    ...(validatedData.skus && { skus: validatedData.skus }),
+    ...(validatedData.catalogueUrl && { catalogueUrl: validatedData.catalogueUrl }),
+    ...(categoryId && { categoryId }),
+};
 
             await dbAddProduct(productData);
             

@@ -25,15 +25,16 @@ import { Product } from '@/lib/business-types';
 import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
-import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
-import { getProductModelsAction } from '@/lib/actions';
-import { ProductModel } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getProductCategoriesAction } from '@/lib/actions';
+import { ProductCategory } from '@/lib/types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
   gstRate: z.coerce.number().min(0, { message: 'GST rate must be a positive number.' }).max(100, { message: 'GST rate cannot exceed 100.' }),
-  modelIds: z.array(z.string()).optional(),
+  categoryId: z.string().optional(),
+  description: z.string().optional(),
   skus: z.array(z.object({ value: z.string().min(1, "SKU cannot be empty.") })).optional(),
 });
 
@@ -47,8 +48,8 @@ type EditProductSheetProps = {
 
 export function EditProductSheet({ product, open, onOpenChange }: EditProductSheetProps) {
   const [currentSku, setCurrentSku] = useState('');
-  const [availableModels, setAvailableModels] = useState<ProductModel[]>([]);
-  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<ProductCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   // Track if user explicitly removed the existing PDF (when editing an item that already had a catalogue)
   const [removedExistingPdf, setRemovedExistingPdf] = useState(false);
@@ -72,10 +73,10 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       reset({
         ...product,
         skus: product.skus?.map(sku => ({ value: sku })) || [],
-        modelIds: [],
+        categoryId: product.categoryId,
+        description: (product as any).description || '',
       });
-      // Set selected model IDs from product
-      setSelectedModelIds(product.modelIds || []);
+      setSelectedCategoryId(product.categoryId);
       // Reset local PDF and image state flags whenever the sheet is (re)opened
       setCatalogPdf(null);
       setRemovedExistingPdf(false);
@@ -85,16 +86,16 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       setRemovedExistingImage(false);
       setImageError('');
       
-      // Fetch available models
-      const fetchModels = async () => {
+      // Fetch available categories
+      const fetchCategories = async () => {
         try {
-          const models = await getProductModelsAction();
-          setAvailableModels(models);
+          const categories = await getProductCategoriesAction();
+          setAvailableCategories(categories);
         } catch (error) {
-          console.error('Error fetching models:', error);
+          console.error('Error fetching categories:', error);
         }
       };
-      fetchModels();
+      fetchCategories();
     }
   }, [product, open, reset]);
 
@@ -110,8 +111,8 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
     Object.entries(data).forEach(([key, value]) => {
       if (key === 'skus') {
         formData.append(key, JSON.stringify((value as {value: string}[]).map(s => s.value)));
-      } else if (key === 'modelIds') {
-        formData.append(key, JSON.stringify(selectedModelIds));
+      } else if (key === 'categoryId') {
+        if (selectedCategoryId) formData.append('categoryId', selectedCategoryId);
       } else if (value !== undefined && value !== null) {
         formData.append(key, String(value));
       }
@@ -192,19 +193,29 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
             {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label>Product Models</Label>
-            <MultiSelect
-              options={availableModels.map(model => ({
-                value: model.id,
-                label: model.name
-              }))}
-              selected={selectedModelIds}
-              onChange={setSelectedModelIds}
-              placeholder="Select product models..."
-              emptyText="No models available. Please add models in the setup section first."
+            <Label>Product Category</Label>
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <Select onValueChange={(val) => { field.onChange(val); setSelectedCategoryId(val); }} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
-            {errors.modelIds && <p className="text-xs text-destructive mt-1">{errors.modelIds.message}</p>}
+            {errors.categoryId && <p className="text-xs text-destructive mt-1">{errors.categoryId.message}</p>}
           </div>
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Textarea id="description" rows={3} placeholder="Optional product description" {...register('description')} />
+        </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
                 <Label htmlFor="price">Price (₹)</Label>

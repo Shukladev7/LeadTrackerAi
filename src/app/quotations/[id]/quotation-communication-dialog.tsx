@@ -19,7 +19,7 @@ import { logCommunicationActivityAction } from '@/lib/actions';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { PDFDocument } from 'pdf-lib';
-import { Quotation, Lead, PopulatedQuotationProduct, ProductModel } from '@/lib/business-types';
+import { Quotation, Lead, PopulatedQuotationProduct } from '@/lib/business-types';
 
 interface QuotationCommunicationDialogProps {
   open: boolean;
@@ -27,7 +27,7 @@ interface QuotationCommunicationDialogProps {
   type: 'whatsapp' | 'email';
   quotation: Quotation;
   lead: Lead;
-  products: (PopulatedQuotationProduct & { model?: ProductModel })[];
+  products: PopulatedQuotationProduct[];
   quotationRef: React.RefObject<HTMLDivElement>;
   defaultMessage?: string;
 }
@@ -101,21 +101,12 @@ export function QuotationCommunicationDialog({
             
             // Add a separator page with product name
             const separatorPage = mergedPdf.addPage();
-            const productTitle = productItem.model 
-              ? `Product Catalog: ${productItem.product.name} (${productItem.model.name})`
-              : `Product Catalog: ${productItem.product.name}`;
+const productTitle = `Product Catalog: ${productItem.product.name}`;
             separatorPage.drawText(productTitle, {
               x: 50,
               y: separatorPage.getHeight() - 100,
               size: 20,
             });
-            if (productItem.model?.description) {
-              separatorPage.drawText(`Description: ${productItem.model.description}`, {
-                x: 50,
-                y: separatorPage.getHeight() - 140,
-                size: 12,
-              });
-            }
             
             // Copy and add catalog pages
             const catalogPages = await mergedPdf.copyPages(catalogPdfDoc, catalogPdfDoc.getPageIndices());

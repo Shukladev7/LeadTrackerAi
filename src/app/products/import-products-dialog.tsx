@@ -5,16 +5,16 @@ import { CSVImportDialog } from '@/components/csv-import-dialog';
 import { importProductsFromCSV } from '@/lib/actions';
 import { Upload } from 'lucide-react';
 
-const EXPECTED_COLUMNS = ['name', 'price', 'gstRate', 'skus', 'models'];
+const EXPECTED_COLUMNS = ['name', 'price', 'gstRate', 'skus', 'category'];
 const REQUIRED_COLUMNS = ['name', 'price', 'gstRate'];
-const OPTIONAL_COLUMNS = ['skus', 'models'];
+const OPTIONAL_COLUMNS = ['skus', 'category'];
 
 const SAMPLE_DATA = {
   name: 'Premium Widget',
   price: '1500.00',
   gstRate: '18',
   skus: 'WID-001,WID-002,WID-003',
-  models: 'Model A,Model B,Model C'
+  category: 'Widgets'
 };
 
 export function ImportProductsDialog() {
@@ -34,7 +34,7 @@ export function ImportProductsDialog() {
   return (
     <CSVImportDialog
       title="Import Products from CSV"
-      description="Upload a CSV file to import multiple products at once. Make sure your CSV follows the expected format. Models should reference existing model names."
+description="Upload a CSV file to import multiple products at once. Make sure your CSV follows the expected format. Category should reference an existing category name."
       expectedColumns={EXPECTED_COLUMNS}
       requiredColumns={REQUIRED_COLUMNS}
       sampleData={SAMPLE_DATA}

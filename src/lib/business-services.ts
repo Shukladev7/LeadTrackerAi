@@ -4,7 +4,7 @@ import {
   Department,
   EmployeeRole,
   LeadSource,
-  ProductModel,
+  ProductCategory,
   Product,
   Lead,
   Quotation,
@@ -25,7 +25,7 @@ export const employeesService = new FirestoreService<Employee>(COLLECTIONS.EMPLO
 export const departmentsService = new FirestoreService<Department>(COLLECTIONS.DEPARTMENTS);
 export const employeeRolesService = new FirestoreService<EmployeeRole>(COLLECTIONS.EMPLOYEE_ROLES);
 export const leadSourcesService = new FirestoreService<LeadSource>(COLLECTIONS.LEAD_SOURCES);
-export const productModelsService = new FirestoreService<ProductModel>(COLLECTIONS.PRODUCT_MODELS);
+export const productCategoriesService = new FirestoreService<ProductCategory>(COLLECTIONS.PRODUCT_CATEGORIES);
 export const productsService = new FirestoreService<Product>(COLLECTIONS.PRODUCTS);
 export const leadsService = new FirestoreService<Lead>(COLLECTIONS.LEADS);
 export const quotationsService = new FirestoreService<Quotation>(COLLECTIONS.QUOTATIONS);
@@ -151,34 +151,9 @@ export class ProductService extends FirestoreService<Product> {
   }
 }
 
-export class ProductModelService extends FirestoreService<ProductModel> {
+export class ProductCategoryService extends FirestoreService<ProductCategory> {
   constructor() {
-    super(COLLECTIONS.PRODUCT_MODELS);
-  }
-
-  async getModelsByProduct(productId: string): Promise<ProductModel[]> {
-    return this.getWithQuery({
-      where: [{ field: 'productId', operator: '==', value: productId }],
-      orderBy: { field: 'name', direction: 'asc' }
-    });
-  }
-
-  async getActiveModelsByProduct(productId: string): Promise<ProductModel[]> {
-    return this.getWithQuery({
-      where: [
-        { field: 'productId', operator: '==', value: productId },
-        { field: 'isActive', operator: '==', value: true }
-      ],
-      orderBy: { field: 'name', direction: 'asc' }
-    });
-  }
-
-  async createModelForProduct(productId: string, modelData: Omit<ProductModel, 'id' | 'productId'>): Promise<string> {
-    return this.create({
-      ...modelData,
-      productId,
-      isActive: true
-    });
+    super(COLLECTIONS.PRODUCT_CATEGORIES);
   }
 }
 
@@ -380,7 +355,7 @@ export class TaskService extends FirestoreService<Task> {
 export const employeeService = new EmployeeService();
 export const leadService = new LeadService();
 export const productService = new ProductService();
-export const productModelService = new ProductModelService();
+export const productCategoryService = new ProductCategoryService();
 export const quotationService = new QuotationService();
 export const customerService = new CustomerService();
 export const orderService = new OrderService();

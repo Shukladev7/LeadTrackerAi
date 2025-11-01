@@ -25,15 +25,16 @@ import { Badge } from '@/components/ui/badge';
 import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
-import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
-import { getProductModelsAction, updateProductModelAction } from '@/lib/actions';
-import { ProductModel } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getProductCategoriesAction } from '@/lib/actions';
+import { ProductCategory } from '@/lib/types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
   gstRate: z.coerce.number().min(0, { message: 'GST rate must be a positive number.' }).max(100, { message: 'GST rate cannot exceed 100.' }),
-  modelIds: z.array(z.string()).optional(),
+  categoryId: z.string().optional(),
+  description: z.string().optional(),
   skus: z.array(z.object({ value: z.string().min(1, "SKU cannot be empty.") })).optional(),
 });
 
@@ -42,9 +43,8 @@ type ProductFormData = z.infer<typeof productSchema>;
 export function AddProductSheet() {
   const [open, setOpen] = useState(false);
   const [currentSku, setCurrentSku] = useState('');
-  const [availableModels, setAvailableModels] = useState<ProductModel[]>([]);
-  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
-  const [modelDescriptions, setModelDescriptions] = useState<Record<string, string>>({});
+  const [availableCategories, setAvailableCategories] = useState<ProductCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   const [pdfError, setPdfError] = useState<string>('');
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
@@ -54,7 +54,8 @@ export function AddProductSheet() {
     resolver: zodResolver(productSchema),
     defaultValues: {
       skus: [],
-      modelIds: [],
+      categoryId: undefined,
+      description: '',
     },
   });
   
@@ -63,40 +64,21 @@ export function AddProductSheet() {
     name: "skus"
   });
 
-  // Fetch available models when component opens
-  useEffect(() => {
-    if (open) {
-      const fetchModels = async () => {
-        try {
-          const models = await getProductModelsAction();
-          setAvailableModels(models);
-        } catch (error) {
-          console.error('Error fetching models:', error);
-        }
-      };
-      fetchModels();
-    }
-  }, [open]);
+// Fetch available categories when component opens
+useEffect(() => {
+  if (open) {
+    const fetchCategories = async () => {
+      try {
+        const categories = await getProductCategoriesAction();
+        setAvailableCategories(categories);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }
+}, [open]);
 
-  // Seed description map when models/selection load
-  useEffect(() => {
-    if (!open) return;
-    setModelDescriptions((prev) => {
-      const next = { ...prev };
-      selectedModelIds.forEach((id) => {
-        if (next[id] === undefined) {
-          const m = availableModels.find((mm) => mm.id === id);
-        
-          next[id] = m?.description || '';
-        }
-      });
-      // Remove any descriptions for unselected models
-      Object.keys(next).forEach((id) => {
-        if (!selectedModelIds.includes(id)) delete next[id];
-      });
-      return next;
-    });
-  }, [open, availableModels, selectedModelIds]);
 
   const handleAddSku = () => {
     if (currentSku.trim() !== '') {
@@ -111,8 +93,8 @@ export function AddProductSheet() {
     Object.entries(data).forEach(([key, value]) => {
       if (key === 'skus') {
         formData.append(key, JSON.stringify((value as {value: string}[]).map(s => s.value)));
-      } else if (key === 'modelIds') {
-        formData.append(key, JSON.stringify(selectedModelIds));
+      } else if (key === 'categoryId') {
+        if (selectedCategoryId) formData.append('categoryId', selectedCategoryId);
       } else if (value) {
         formData.append(key, String(value));
       }
@@ -141,28 +123,13 @@ export function AddProductSheet() {
     const result = await addProduct(formData);
 
     if (result.message === 'Successfully added product.') {
-      // Persist any edited model descriptions
-      try {
-        await Promise.all(
-          selectedModelIds.map(async (id) => {
-            const model = availableModels.find((m) => m.id === id);
-            if (!model) return;
-            const newDesc = modelDescriptions[id] ?? '';
-            if ((model.description || '') !== newDesc) {
-              await updateProductModelAction(id, model.name, newDesc);
-            }
-          })
-        );
-      } catch (e) {
-        console.error('Failed to update some model descriptions', e);
-      }
       toast({
         title: 'Product Added',
         description: `"${data.name}" has been successfully added.`,
       });
       reset();
       setCurrentSku('');
-      setSelectedModelIds([]);
+      setSelectedCategoryId(undefined);
       setCatalogPdf(null);
       setPdfError('');
       setProductImage(null);
@@ -213,43 +180,30 @@ export function AddProductSheet() {
             <Input id="name" {...register('name')} className={errors.name ? 'border-destructive' : ''} />
             {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
           </div>
-          <div className="space-y-2">
-            <Label>Product Models</Label>
-            <MultiSelect
-              options={availableModels.map(model => ({
-                value: model.id,
-                label: model.name
-              }))}
-              selected={selectedModelIds}
-              onChange={setSelectedModelIds}
-              placeholder="Select product models..."
-              emptyText="No models available. Please add models in the setup section first."
-            />
-            {errors.modelIds && <p className="text-xs text-destructive mt-1">{errors.modelIds.message}</p>}
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea id="description" rows={3} placeholder="Optional product description" {...register('description')} />
           </div>
-
-          {selectedModelIds.length > 0 && (
-            <div className="space-y-3 rounded-md border p-3">
-              <Label>Model Descriptions</Label>
-              <div className="space-y-3">
-                {selectedModelIds.map((id) => {
-                  const model = availableModels.find((m) => m.id === id);
-                  if (!model) return null;
-                  return (
-                    <div key={id} className="space-y-1">
-                      <div className="text-sm font-medium">{model.name}</div>
-                      <Textarea
-                        value={modelDescriptions[id] ?? ''}
-                        onChange={(e) => setModelDescriptions((prev) => ({ ...prev, [id]: e.target.value }))}
-                        placeholder="Enter or edit this model's description"
-                        rows={3}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Product Category</Label>
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <Select onValueChange={(val) => { field.onChange(val); setSelectedCategoryId(val); }} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.categoryId && <p className="text-xs text-destructive mt-1">{errors.categoryId.message}</p>}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
                 <Label htmlFor="price">Price (₹)</Label>

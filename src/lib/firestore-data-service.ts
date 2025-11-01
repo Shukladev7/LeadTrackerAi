@@ -4,12 +4,12 @@ import {
   employeeService, 
   leadService, 
   productService, 
-  productModelService,
+  productCategoryService,
   quotationService,
   departmentsService,
   employeeRolesService,
   leadSourcesService,
-  productModelsService,
+  productCategoriesService,
   quotationTemplatesService
 } from './business-services';
 import { 
@@ -21,7 +21,7 @@ import {
   Department,
   EmployeeRole,
   LeadSource,
-  ProductModel,
+  ProductCategory,
   LeadActivity
 } from './business-types';
 import { Timestamp } from 'firebase/firestore';
@@ -72,8 +72,8 @@ export interface NewProduct {
   name: string;
   price: number;
   gstRate: number;
-  modelId?: string;
-  modelIds?: string[]; // New field for selected model IDs
+  categoryId?: string;
+  description?: string;
   skus?: string[];
   catalogueUrl?: string;
   cataloguePdf?: {
@@ -353,70 +353,43 @@ export const deleteLeadSource = async (id: string): Promise<{ success: boolean }
   return { success: true };
 };
 
-// Product Model functions
-export const getProductModels = async (): Promise<ProductModel[]> => {
-  const models = await productModelsService.getAll();
-  return models.map(model => convertFirestoreDocToPlain(model));
+// Product Category functions
+export const getProductCategories = async (): Promise<ProductCategory[]> => {
+  const categories = await productCategoriesService.getAll();
+  return categories.map(cat => convertFirestoreDocToPlain(cat));
 };
 
-export const getProductModelById = async (id: string): Promise<ProductModel | undefined> => {
-  const model = await productModelsService.getById(id);
-  return model ? convertFirestoreDocToPlain(model) : undefined;
+export const getProductCategoryById = async (id: string): Promise<ProductCategory | undefined> => {
+  const category = await productCategoriesService.getById(id);
+  return category ? convertFirestoreDocToPlain(category) : undefined;
 };
 
-// Get models for a specific product
-export const getModelsByProduct = async (productId: string): Promise<ProductModel[]> => {
-  const models = await productModelService.getModelsByProduct(productId);
-  return models.map(model => convertFirestoreDocToPlain(model));
-};
-
-export const getActiveModelsByProduct = async (productId: string): Promise<ProductModel[]> => {
-  const models = await productModelService.getActiveModelsByProduct(productId);
-  return models.map(model => convertFirestoreDocToPlain(model));
-};
-
-export const addProductModel = async (name: string, description: string): Promise<ProductModel> => {
-  const id = await productModelsService.create({
-    // productId is undefined for generic product models
+export const addProductCategory = async (name: string, description: string): Promise<ProductCategory> => {
+  const id = await productCategoriesService.create({
     name,
     description,
     isActive: true
   });
   
-  const newModel = await productModelsService.getById(id);
-  if (!newModel) {
-    throw new Error('Failed to create product model');
+  const newCategory = await productCategoriesService.getById(id);
+  if (!newCategory) {
+    throw new Error('Failed to create product category');
   }
   
-  return convertFirestoreDocToPlain(newModel);
+  return convertFirestoreDocToPlain(newCategory);
 };
 
-// Create a model for a specific product
-export const addModelForProduct = async (productId: string, name: string, description?: string): Promise<ProductModel> => {
-  const id = await productModelService.createModelForProduct(productId, {
-    name,
-    description: description || ''
-  });
-  
-  const newModel = await productModelService.getById(id);
-  if (!newModel) {
-    throw new Error('Failed to create product model');
+export const updateProductCategory = async (id: string, name: string, description: string): Promise<ProductCategory> => {
+  await productCategoriesService.update(id, { name, description });
+  const updatedCategory = await productCategoriesService.getById(id);
+  if (!updatedCategory) {
+    throw new Error('Product category not found after update');
   }
-  
-  return convertFirestoreDocToPlain(newModel);
+  return convertFirestoreDocToPlain(updatedCategory);
 };
 
-export const updateProductModel = async (id: string, name: string, description: string): Promise<ProductModel> => {
-  await productModelsService.update(id, { name, description });
-  const updatedModel = await productModelsService.getById(id);
-  if (!updatedModel) {
-    throw new Error('Product model not found after update');
-  }
-  return convertFirestoreDocToPlain(updatedModel);
-};
-
-export const deleteProductModel = async (id: string): Promise<{ success: boolean }> => {
-  await productModelsService.delete(id);
+export const deleteProductCategory = async (id: string): Promise<{ success: boolean }> => {
+  await productCategoriesService.delete(id);
   return { success: true };
 };
 

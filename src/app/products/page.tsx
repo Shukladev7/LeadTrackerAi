@@ -23,13 +23,12 @@ import { Link2, FileText } from 'lucide-react';
 import { ProductActions } from "./product-actions";
 import { PDFViewer } from "@/components/pdf-viewer";
 import Image from 'next/image';
-import { getProductModelsAction } from "@/lib/actions";
-import { ModelDescriptionDialog } from "./model-description-dialog";
+import { getProductCategoriesAction } from "@/lib/actions";
 
 export default async function ProductsPage() {
-  const [products, allModels] = await Promise.all([
+const [products, allCategories] = await Promise.all([
     getProducts(),
-    getProductModelsAction()
+    getProductCategoriesAction()
   ]);
 
   const formatCurrency = (amount: number) => {
@@ -61,7 +60,7 @@ export default async function ProductsPage() {
               <TableRow>
                 <TableHead>Image</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Models</TableHead>
+<TableHead>Category</TableHead>
                 <TableHead>SKUs</TableHead>
                 <TableHead>Catalogue</TableHead>
                 <TableHead className="text-right">Price</TableHead>
@@ -92,15 +91,15 @@ export default async function ProductsPage() {
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {product.modelIds && product.modelIds.length > 0 ? (
-                        product.modelIds.map(modelId => {
-                          const model = allModels.find(m => m.id === modelId);
-                          return model ? (
-                            <ModelDescriptionDialog key={modelId} model={model}>
-                              <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{model.name}</Badge>
-                            </ModelDescriptionDialog>
-                          ) : null;
-                        })
+{product.categoryId ? (
+                        (() => {
+                          const category = allCategories.find(c => c.id === product.categoryId);
+                          return category ? (
+                            <Badge variant="secondary">{category.name}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          );
+                        })()
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
                       )}

@@ -6,7 +6,7 @@ import {
   getQuotationById,
   getLeadById,
   getProducts,
-  getProductModels,
+  getProductCategories,
 } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { QuotationPreview } from './quotation-preview';
@@ -23,10 +23,10 @@ export default async function QuotationDetailPage({
     notFound();
   }
 
-  const [lead, allProducts, allModels] = await Promise.all([
+const [lead, allProducts, allCategories] = await Promise.all([
     getLeadById(quotation.leadId),
     getProducts(),
-    getProductModels(),
+    getProductCategories(),
   ]);
 
   if (!lead || !lead.id) {
@@ -38,10 +38,9 @@ export default async function QuotationDetailPage({
     if (!product || !product.id) {
       throw new Error(`Product details not found for ID: ${p.productId}`);
     }
-    const model = p.modelId ? allModels.find((m) => m.id === p.modelId) : undefined;
     const amount = p.quantity * p.rate;
     const gstAmount = amount * (p.gstRate / 100);
-    return { ...p, product, amount, gstAmount, model };
+    return { ...p, product, amount, gstAmount };
   });
 
   return (
@@ -63,6 +62,7 @@ export default async function QuotationDetailPage({
         quotation={quotation}
         lead={lead}
         products={populatedProducts}
+        categories={allCategories}
       />
     </>
   );

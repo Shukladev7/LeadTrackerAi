@@ -9,14 +9,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ProductModel } from '@/lib/types';
+import { ProductCategory } from '@/lib/types';
 
-type ModelDescriptionDialogProps = {
-  model: ProductModel;
+type CategoryDescriptionDialogProps = {
+  category: ProductCategory;
   children: React.ReactNode;
 };
 
-export function ModelDescriptionDialog({ model, children }: ModelDescriptionDialogProps) {
+export function CategoryDescriptionDialog({ category, children }: CategoryDescriptionDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,12 +26,12 @@ export function ModelDescriptionDialog({ model, children }: ModelDescriptionDial
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{model.name}</DialogTitle>
-          <DialogDescription>Model Description</DialogDescription>
+          <DialogTitle>{category.name}</DialogTitle>
+          <DialogDescription>Category Description</DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {model.description || 'No description available.'}
+            {category.description || 'No description available.'}
           </p>
         </div>
       </DialogContent>

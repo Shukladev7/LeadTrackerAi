@@ -1,35 +1,38 @@
 
 'use client';
 
-import { useRef, useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { PDFDocument } from 'pdf-lib';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { 
   addWatermarkToJsPDF, 
   addWatermarkToAllPages, 
   downloadPdfBlob 
 } from '@/lib/pdf-watermark';
-import {
+import { 
   Quotation,
   Lead,
   PopulatedQuotationProduct,
-  ProductModel,
 } from '@/lib/business-types';
+import { ProductCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Download, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PDFViewer } from '@/components/pdf-viewer';
+import dynamic from 'next/dynamic';
 import { QuotationCommunicationButtons } from './quotation-communication-buttons';
 import Image from 'next/image';
 
 type QuotationPreviewProps = {
   quotation: Quotation;
   lead: Lead;
-  products: (PopulatedQuotationProduct & { model?: ProductModel })[];
+  products: PopulatedQuotationProduct[];
+  categories?: ProductCategory[];
 };
+
+// Defer loading of the PDF viewer until actually used
+const PDFViewer = dynamic(() => import('@/components/pdf-viewer').then(m => m.PDFViewer), {
+  ssr: false,
+});
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-IN', {
@@ -42,10 +45,12 @@ export function QuotationPreview({
   quotation,
   lead,
   products,
+  categories = [],
 }: QuotationPreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const completePreviewRef = useRef<HTMLDivElement>(null);
   const [isGeneratingMerged, setIsGeneratingMerged] = useState(false);
+  const [showCatalogs, setShowCatalogs] = useState(false);
   const { toast } = useToast();
 
   const handleDownload = async () => {
@@ -54,6 +59,8 @@ export function QuotationPreview({
     if (!quotationElement) return;
 
     try {
+      const { default: jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(quotationElement, {
         scale: 2, // Higher scale for better quality
         useCORS: true,
@@ -87,6 +94,8 @@ export function QuotationPreview({
     setIsGeneratingMerged(true);
     
     try {
+      const { default: jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(completeElement, {
         scale: 1.5, // Slightly lower scale for large content
         useCORS: true,
@@ -140,6 +149,9 @@ export function QuotationPreview({
     setIsGeneratingMerged(true);
     
     try {
+      const { default: jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
+      const { PDFDocument } = await import('pdf-lib');
       // Generate the quotation PDF first
       const element = previewRef.current;
       if (!element) {
@@ -219,7 +231,7 @@ export function QuotationPreview({
       
       // Save the merged PDF with watermark
       const mergedPdfBytes = await mergedPdf.save();
-      const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([mergedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       downloadPdfBlob(blob, `Quotation-${quotation.quotationNumber}-with-catalogs.pdf`);
 
       toast({
@@ -241,6 +253,15 @@ export function QuotationPreview({
 
   // Check products with catalog PDFs for button state
   const catalogPdfCount = products.filter(p => p.product.cataloguePdf?.url).length;
+
+  const categoryNameById = useMemo(() => Object.fromEntries((categories || []).map(c => [c.id, c.name])), [categories]);
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      const aName = categoryNameById[a.product.categoryId || ''] || '';
+      const bName = categoryNameById[b.product.categoryId || ''] || '';
+      return aName.localeCompare(bName);
+    });
+  }, [products, categoryNameById]);
 
   return (
     <div ref={completePreviewRef}>
@@ -384,8 +405,13 @@ export function QuotationPreview({
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
-                <tr key={p.productId} className="border-b">
+              {(() => {
+                const rows: React.ReactNode[] = [];
+                for (const p of sortedProducts) {
+                  const catId = p.product.categoryId || '';
+                  const catName = categoryNameById[catId];
+                  rows.push(
+                    <tr key={p.productId} className="border-b">
                   <td className="p-3">
                     <div className="flex items-start gap-3">
                       {p.product.productImage && (
@@ -400,19 +426,29 @@ export function QuotationPreview({
                         </div>
                       )}
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-800">
-                          {p.product.name}
-                          {p.model && (
-                            <span className="ml-2 text-sm font-normal text-gray-600">
-                              ({p.model.name})
-                            </span>
-                          )}
-                        </p>
-                        {p.model?.description && (
-                          <p className="text-xs text-gray-600 max-w-[25ch] break-words">
-                            {p.model.description}
-                          </p>
-                        )}
+                        {(() => {
+                          const lines: string[] = [];
+                          const nameLine = (p.product.name || '').toString().trim();
+                          if (catName) lines.push(catName);
+                          if (nameLine) lines.push(`MODEL : ${nameLine.toUpperCase()}`);
+                          const desc = (p.product as any).description as string | undefined;
+                          if (desc) {
+                            const extra = desc
+                              .split(/\r?\n/)
+                              .map(s => s.trim())
+                              .filter(Boolean);
+                            lines.push(...extra);
+                          }
+                          return (
+                            <div className="leading-5">
+                              {lines.map((text, idx) => (
+                                <p key={`${p.productId}-l-${idx}`} className={idx === 0 ? 'font-semibold tracking-wide' : ''}>
+                                  {text}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        })()}
                         <div className="flex items-center gap-2 mt-1">
                           {p.product.cataloguePdf?.url && (
                             <span className="text-xs text-green-600 flex items-center gap-1">
@@ -437,7 +473,10 @@ export function QuotationPreview({
                     {formatCurrency(p.amount)}
                   </td>
                 </tr>
-              ))}
+                  );
+                }
+                return rows;
+              })()}
             </tbody>
           </table>
         </section>
@@ -495,71 +534,66 @@ export function QuotationPreview({
         </div> {/* Close content div */}
       </div>
 
-      {/* Product Catalogs Section */}
+      {/* Product Catalogs Section - gated by toggle to reduce initial render cost */}
       {products.filter(p => p.product.cataloguePdf?.url).length > 0 && (
         <div className="mt-8 space-y-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Product Catalogs</h2>
-            <p className="text-gray-600">Detailed specifications for the products in this quotation</p>
+          <div className="flex items-center justify-center">
+            <Button variant="outline" size="sm" onClick={() => setShowCatalogs(v => !v)}>
+              <FileText className="mr-2 h-4 w-4" />
+              {showCatalogs ? 'Hide Catalogs' : 'Show Catalogs'}
+            </Button>
           </div>
-          
-          {products
-            .filter(p => p.product.cataloguePdf?.url)
-            .map((productItem, index) => (
-              <div key={productItem.productId} className="bg-white rounded-lg shadow-lg border max-w-4xl mx-auto">
-                {/* Product Header */}
-                <div className="bg-gray-50 px-6 py-4 border-b">
-                  <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
-                    {productItem.product.name}
-                    {productItem.model && (
-                      <span className="text-base font-normal text-gray-600">
-                        ({productItem.model.name})
-                      </span>
-                    )}
-                    {' '}- Catalog
-                  </h3>
-                  {productItem.model?.description && (
-                    <p className="text-gray-600 mt-1 break-words w-[30ch]">
-                      {productItem.model.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    <span>Quantity: {productItem.quantity}</span>
-                    <span>Rate: {formatCurrency(productItem.rate)}</span>
-                    <span>Total: {formatCurrency(productItem.amount)}</span>
-                  </div>
-                </div>
-                
-                {/* PDF Viewer */}
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium text-gray-700">Catalog Preview</p>
-                    <PDFViewer 
-                      pdfData={productItem.product.cataloguePdf!}
-                      trigger={
-                        <Button variant="outline" size="sm" className="flex items-center gap-1">
-                          <FileText className="h-4 w-4" />
-                          View Full PDF
-                        </Button>
-                      }
-                    />
-                  </div>
-                  <div className="w-full h-96 border rounded">
-                    <iframe
-                      src={productItem.product.cataloguePdf!.url}
-                      className="w-full h-full rounded"
-                      title={`${productItem.product.name} Catalog`}
-                    />
-                  </div>
-                  <div className="mt-2 text-center">
-                    <p className="text-xs text-gray-500">
-                      {productItem.product.cataloguePdf!.fileName}
-                    </p>
-                  </div>
-                </div>
+          {showCatalogs && (
+            <>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Product Catalogs</h2>
+                <p className="text-gray-600">Detailed specifications for the products in this quotation</p>
               </div>
-            ))}
+              {products
+                .filter(p => p.product.cataloguePdf?.url)
+                .map((productItem) => (
+                  <div key={productItem.productId} className="bg-white rounded-lg shadow-lg border max-w-4xl mx-auto">
+                    <div className="bg-gray-50 px-6 py-4 border-b">
+                      <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        {productItem.product.name} - Catalog
+                      </h3>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <span>Quantity: {productItem.quantity}</span>
+                        <span>Rate: {formatCurrency(productItem.rate)}</span>
+                        <span>Total: {formatCurrency(productItem.amount)}</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-gray-700">Catalog Preview</p>
+                        <PDFViewer 
+                          pdfData={productItem.product.cataloguePdf!}
+                          trigger={
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                              <FileText className="h-4 w-4" />
+                              View Full PDF
+                            </Button>
+                          }
+                        />
+                      </div>
+                      <div className="w-full h-96 border rounded">
+                        <iframe
+                          src={productItem.product.cataloguePdf!.url}
+                          className="w-full h-full rounded"
+                          title={`${productItem.product.name} Catalog`}
+                        />
+                      </div>
+                      <div className="mt-2 text-center">
+                        <p className="text-xs text-gray-500">
+                          {productItem.product.cataloguePdf!.fileName}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </>
+          )}
         </div>
       )}
     </div>
