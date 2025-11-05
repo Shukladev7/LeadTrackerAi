@@ -27,7 +27,7 @@ const templateSchema = z.object({
   prefix: z.string().min(1, 'Prefix is required.'),
   companyName: z.string().min(3, 'Company name is required.'),
   companyAddress: z.string().min(10, 'Full company address is required.'),
-  companyGst: z.string().length(15, 'GSTIN must be 15 characters.'),
+  companyGst: z.string().optional(),
   termsAndConditions: z.string().min(20, 'Terms and conditions are required.'),
   logoUrl: z.string().url('Please enter a valid URL for the logo.').optional().or(z.literal('')),
 });

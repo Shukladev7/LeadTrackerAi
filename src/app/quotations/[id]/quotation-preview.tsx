@@ -34,13 +34,6 @@ const PDFViewer = dynamic(() => import('@/components/pdf-viewer').then(m => m.PD
   ssr: false,
 });
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-  }).format(amount);
-};
-
 export function QuotationPreview({
   quotation,
   lead,
@@ -48,6 +41,27 @@ export function QuotationPreview({
   categories = [],
 }: QuotationPreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
+  
+  // Currency conversion helper
+  const convertAmount = (amountInINR: number): number => {
+    const conversionRate = quotation.conversionRate || 1.0;
+    return amountInINR / conversionRate;
+  };
+  
+  // Format currency with the selected currency symbol
+  const formatCurrency = (amountInINR: number): string => {
+    const convertedAmount = convertAmount(amountInINR);
+    const symbol = quotation.currencySymbol || '₹';
+    const code = quotation.currencyCode || 'INR';
+    
+    // Format with proper decimal places
+    const formatted = new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(convertedAmount);
+    
+    return `${symbol}${formatted}`;
+  };
   const completePreviewRef = useRef<HTMLDivElement>(null);
   const [isGeneratingMerged, setIsGeneratingMerged] = useState(false);
   const [showCatalogs, setShowCatalogs] = useState(false);
@@ -327,7 +341,9 @@ export function QuotationPreview({
               <p className="text-xs sm:text-sm text-gray-600 whitespace-pre-line">
                 {quotation.companyAddress}
               </p>
-              <p className="text-xs sm:text-sm text-gray-600">GSTIN: {quotation.companyGst}</p>
+              {quotation.companyGst && (
+                <p className="text-xs sm:text-sm text-gray-600">GSTIN: {quotation.companyGst}</p>
+              )}
             </div>
           </div>
           <div className="text-left sm:text-right w-full sm:w-auto">
@@ -337,6 +353,11 @@ export function QuotationPreview({
             <p className="text-md sm:text-lg text-gray-600 mt-2">
               # {quotation.quotationNumber}
             </p>
+            {quotation.currencyCode && quotation.currencyCode !== 'INR' && (
+              <p className="text-xs text-gray-500 mt-1">
+                Currency: {quotation.currencySymbol} {quotation.currencyCode}
+              </p>
+            )}
           </div>
         </header>
 
@@ -375,10 +396,6 @@ export function QuotationPreview({
               <p className="text-gray-800">
                 {format(new Date(quotation.validUntil), 'PPP')}
               </p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 mt-1">
-              <p className="font-semibold text-gray-600">Status:</p>
-              <p className="font-bold text-gray-800">{quotation.status}</p>
             </div>
           </div>
         </section>
@@ -511,6 +528,24 @@ export function QuotationPreview({
                   <div className="flex justify-between text-gray-700">
                     <span>Total GST</span>
                     <span>{formatCurrency(quotation.totalGst)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-700">
+                    <span>Freight Charges</span>
+                    <span>
+                      {quotation.freightCharges && !isNaN(Number(quotation.freightCharges)) 
+                        ? formatCurrency(Number(quotation.freightCharges))
+                        : <span className="text-blue-600 font-medium">EXTRA</span>
+                      }
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-700">
+                    <span>Courier Charges</span>
+                    <span>
+                      {quotation.courierCharges && !isNaN(Number(quotation.courierCharges))
+                        ? formatCurrency(Number(quotation.courierCharges))
+                        : <span className="text-blue-600 font-medium">EXTRA</span>
+                      }
+                    </span>
                   </div>
                   <Separator className="bg-gray-800" />
                   <div className="flex justify-between text-lg font-bold text-gray-900">

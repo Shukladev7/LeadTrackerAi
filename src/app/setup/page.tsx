@@ -8,7 +8,7 @@ import {
   } from "@/components/ui/card";
   import { Button } from "@/components/ui/button";
   import { Input } from "@/components/ui/input";
-  import { PlusCircle, Trash2, FileText, Building2, Box } from "lucide-react";
+  import { PlusCircle, Trash2, FileText, Building2, Box, DollarSign } from "lucide-react";
 import { ALL_STATUSES } from "@/lib/types";
 import { StatusBadge } from "@/components/status-badge";
 import { getLeadSources, getEmployeeRoles, getDepartments, getProductCategories } from "@/lib/data";
@@ -31,6 +31,28 @@ export default async function SetupPage() {
           <h2 className="text-3xl font-bold tracking-tight">Setup</h2>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Currency Management Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5" />
+                        Currencies
+                    </CardTitle>
+                    <CardDescription>Manage currencies for quotations. INR is the base currency.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Configure currency codes, symbols, and conversion rates for multi-currency quotations.
+                    </p>
+                    <Link href="/setup/currencies">
+                        <Button className="w-full">
+                            <DollarSign className="mr-2 h-4 w-4" />
+                            Manage Currencies
+                        </Button>
+                    </Link>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle>Lead Statuses</CardTitle>

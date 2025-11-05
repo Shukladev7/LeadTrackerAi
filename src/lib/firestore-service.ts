@@ -406,3 +406,51 @@ export const timestampToDate = (timestamp: Timestamp): Date => {
 export const formatTimestamp = (timestamp: Timestamp, locale = 'en-US'): string => {
   return timestamp.toDate().toLocaleDateString(locale);
 };
+
+// Currency-specific functions
+import { Currency, COLLECTIONS } from './business-types';
+
+export async function getAllCurrencies(): Promise<Currency[]> {
+  const snapshot = await getDocs(collection(db, COLLECTIONS.CURRENCIES));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Currency));
+}
+
+export async function getActiveCurrencies(): Promise<Currency[]> {
+  const q = query(
+    collection(db, COLLECTIONS.CURRENCIES),
+    orderBy('code', 'asc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Currency));
+}
+
+export async function getCurrencyById(id: string): Promise<Currency | null> {
+  const docRef = doc(db, COLLECTIONS.CURRENCIES, id);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as Currency;
+  }
+  return null;
+}
+
+export async function addCurrency(currencyData: Omit<Currency, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const docRef = await addDoc(collection(db, COLLECTIONS.CURRENCIES), {
+    ...currencyData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  return docRef.id;
+}
+
+export async function updateCurrency(id: string, currencyData: Partial<Currency>): Promise<void> {
+  const docRef = doc(db, COLLECTIONS.CURRENCIES, id);
+  await updateDoc(docRef, {
+    ...currencyData,
+    updatedAt: serverTimestamp()
+  });
+}
+
+export async function deleteCurrency(id: string): Promise<void> {
+  const docRef = doc(db, COLLECTIONS.CURRENCIES, id);
+  await deleteDoc(docRef);
+}

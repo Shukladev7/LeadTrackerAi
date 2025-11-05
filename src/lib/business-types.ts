@@ -155,7 +155,7 @@ export interface QuotationTemplate extends BusinessDocument {
   prefix: string;
   companyName: string;
   companyAddress: string;
-  companyGst: string;
+  companyGst?: string;
   termsAndConditions: string;
   logoUrl?: string;
   isDefault?: boolean;
@@ -189,6 +189,13 @@ export interface Quotation extends BusinessDocument {
   sentAt?: Timestamp | string;
   acceptedAt?: Timestamp | string;
   rejectedAt?: Timestamp | string;
+  // Additional charges (can be number or string for backward compatibility)
+  freightCharges?: string | number;
+  courierCharges?: string | number;
+  // Currency fields
+  currencyCode?: string; // Selected currency code (default: INR)
+  currencySymbol?: string; // Currency symbol for display
+  conversionRate?: number; // Conversion rate at time of quotation creation
 }
 
 // Customer interface (derived from successful leads)
@@ -356,6 +363,14 @@ export interface ActivityLog extends BusinessDocument {
   userAgent?: string;
 }
 
+// Currency interface
+export interface Currency extends BusinessDocument {
+  code: string; // e.g., USD, EUR, GBP, INR
+  name: string; // e.g., US Dollar, Euro, British Pound, Indian Rupee
+  symbol: string; // e.g., $, €, £, ₹
+  conversionRate: number; // How many INR = 1 unit of this currency (INR = 1.0)
+}
+
 // Collection names constants
 export const COLLECTIONS = {
   EMPLOYEES: 'employees',
@@ -375,6 +390,7 @@ PRODUCT_CATEGORIES: 'productModels',
   COMPANY_SETTINGS: 'companySettings',
   NOTIFICATIONS: 'notifications',
   ACTIVITY_LOGS: 'activityLogs',
+  CURRENCIES: 'currencies',
 } as const;
 
 // Type for collection names

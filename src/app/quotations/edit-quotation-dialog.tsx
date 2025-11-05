@@ -39,9 +39,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { Lead, Product, QuotationTemplate, Quotation, ProductCategory } from '@/lib/business-types';
+import { Lead, Product, QuotationTemplate, Quotation, ProductCategory, Currency } from '@/lib/business-types';
 import { ALL_QUOTATION_STATUSES } from '@/lib/types';
 import { getLeads, getProducts, getQuotationTemplates, getProductCategories } from '@/lib/data';
+import { getActiveCurrencies } from '@/lib/firestore-service';
 import { updateQuotation } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -63,11 +64,18 @@ const quotationSchema = z.object({
   products: z.array(quotationProductSchema).min(1, 'At least one product is required'),
   companyName: z.string().min(1, 'Company name is required.'),
   companyAddress: z.string().min(1, 'Company address is required.'),
-  companyGst: z.string().min(1, 'Company GSTIN is required.'),
-  client_address: z.string().optional(),
-  client_gst_no: z.string().optional(),
+  companyGst: z.string().optional().or(z.literal('')),
+  client_address: z.string().optional().or(z.literal('')),
+  client_gst_no: z.string().optional().or(z.literal('')),
   termsAndConditions: z.string(),
   logoUrl: z.string().optional(),
+  // Additional charges (numeric or empty)
+  freightCharges: z.coerce.number().min(0).optional().or(z.literal('')),
+  courierCharges: z.coerce.number().min(0).optional().or(z.literal('')),
+  // Currency fields
+  currencyCode: z.string().optional(),
+  currencySymbol: z.string().optional(),
+  conversionRate: z.coerce.number().optional(),
 });
 
 type QuotationFormData = z.infer<typeof quotationSchema>;
@@ -122,6 +130,8 @@ export function EditQuotationDialog({
       client_gst_no: quotation.client_gst_no || '',
       termsAndConditions: quotation.termsAndConditions || '',
       logoUrl: quotation.logoUrl || '',
+      freightCharges: quotation.freightCharges && !isNaN(Number(quotation.freightCharges)) ? Number(quotation.freightCharges) : '',
+      courierCharges: quotation.courierCharges && !isNaN(Number(quotation.courierCharges)) ? Number(quotation.courierCharges) : '',
     },
   });
 
@@ -132,6 +142,8 @@ export function EditQuotationDialog({
 
   const watchedTemplateId = watch('templateId');
   const watchedProducts = watch('products');
+  const watchedFreightCharges = watch('freightCharges');
+  const watchedCourierCharges = watch('courierCharges');
 
   const productTotals = watchedProducts?.map(p => {
     const baseAmount = p.quantity * p.rate;
@@ -151,7 +163,11 @@ export function EditQuotationDialog({
   const totalDiscountAmount = productTotals.reduce((acc, curr) => acc + curr.discountAmount, 0);
   const subTotal = productTotals.reduce((acc, curr) => acc + curr.amount, 0);
   const totalGst = productTotals.reduce((acc, curr) => acc + curr.gstAmount, 0);
-  const grandTotal = subTotal + totalGst;
+  
+  // Add freight and courier charges to grand total
+  const freightAmount = watchedFreightCharges && !isNaN(Number(watchedFreightCharges)) ? Number(watchedFreightCharges) : 0;
+  const courierAmount = watchedCourierCharges && !isNaN(Number(watchedCourierCharges)) ? Number(watchedCourierCharges) : 0;
+  const grandTotal = subTotal + totalGst + freightAmount + courierAmount;
 
   useEffect(() => {
     async function fetchData() {
@@ -449,6 +465,35 @@ export function EditQuotationDialog({
                             placeholder="Client's GST number"
                         />
                         <p className="text-xs text-muted-foreground">Leave empty if client doesn't have GST registration</p>
+                    </div>
+                </div>
+                
+                <Separator />
+                <h3 className="text-lg font-medium">Additional Charges</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="freightCharges">Freight Charges</Label>
+                        <Input 
+                            id="freightCharges" 
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...register('freightCharges')} 
+                            placeholder="EXTRA"
+                        />
+                        <p className="text-xs text-muted-foreground">Enter amount in INR or leave empty to show "EXTRA"</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="courierCharges">Courier Charges</Label>
+                        <Input 
+                            id="courierCharges" 
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...register('courierCharges')} 
+                            placeholder="EXTRA"
+                        />
+                        <p className="text-xs text-muted-foreground">Enter amount in INR or leave empty to show "EXTRA"</p>
                     </div>
                 </div>
                 <Separator />

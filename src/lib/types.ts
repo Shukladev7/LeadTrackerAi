@@ -115,11 +115,18 @@ export type Quotation = {
   logoUrl?: string;
   companyName: string;
   companyAddress: string;
-  companyGst: string;
+  companyGst?: string;
   // Client billing fields
   client_address?: string;
   client_gst_no?: string;
   termsAndConditions: string;
+  // Additional charges
+  freightCharges?: string;
+  courierCharges?: string;
+  // Currency fields
+  currencyCode?: string; // Selected currency code (default: INR)
+  currencySymbol?: string; // Currency symbol for display
+  conversionRate?: number; // Conversion rate at time of quotation creation
 };
 
 export type QuotationTemplate = {
@@ -129,11 +136,22 @@ export type QuotationTemplate = {
     logoUrl?: string;
     companyName: string;
     companyAddress: string;
-    companyGst: string;
+    companyGst?: string;
     termsAndConditions: string;
 };
 
 export type NewQuotationTemplate = Omit<QuotationTemplate, 'id'>;
+
+export type Currency = {
+    id: string;
+    code: string; // e.g., USD, EUR, GBP
+    name: string; // e.g., US Dollar, Euro, British Pound
+    symbol: string; // e.g., $, €, £
+    conversionRate: number; // How many INR = 1 unit of this currency
+    createdAt: string;
+};
+
+export type NewCurrency = Omit<Currency, 'id' | 'createdAt'>;
 
 export type EmployeeRoleData = {
     id: string;

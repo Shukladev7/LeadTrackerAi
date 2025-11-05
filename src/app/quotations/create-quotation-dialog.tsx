@@ -40,8 +40,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { Lead, Product, QuotationTemplate, ALL_QUOTATION_STATUSES, ProductCategory } from '@/lib/types';
+import { Lead, Product, QuotationTemplate, ALL_QUOTATION_STATUSES, ProductCategory, Currency } from '@/lib/types';
 import { getLeads, getProducts, getQuotationTemplates, getLeadById, getProductCategories } from '@/lib/data';
+import { getActiveCurrencies } from '@/lib/firestore-service';
 import { addQuotation } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -64,13 +65,20 @@ const quotationSchema = z.object({
   // Overridable template fields
   companyName: z.string().min(1, 'Company name is required.'),
   companyAddress: z.string().min(1, 'Company address is required.'),
-  companyGst: z.string().min(1, 'Company GSTIN is required.'),
+  companyGst: z.string().optional().or(z.literal('')),
   // Client billing fields
-  client_address: z.string().optional(),
-  client_gst_no: z.string().optional(),
+  client_address: z.string().optional().or(z.literal('')),
+  client_gst_no: z.string().optional().or(z.literal('')),
   termsAndConditions: z.string(),
   logoUrl: z.string().optional(),
   quotationPrefix: z.string().optional(),
+  // Additional charges (numeric or empty)
+  freightCharges: z.coerce.number().min(0).optional().or(z.literal('')),
+  courierCharges: z.coerce.number().min(0).optional().or(z.literal('')),
+  // Currency fields
+  currencyCode: z.string().optional(),
+  currencySymbol: z.string().optional(),
+  conversionRate: z.coerce.number().optional(),
 });
 
 type QuotationFormData = z.infer<typeof quotationSchema>;
@@ -88,6 +96,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<QuotationTemplate[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [rowCategoryFilters, setRowCategoryFilters] = useState<(string | 'ALL')[]>([]);
   const { toast } = useToast();
 
@@ -106,6 +115,11 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
       client_gst_no: '',
       termsAndConditions: '',
       logoUrl: '',
+      freightCharges: '',
+      courierCharges: '',
+      currencyCode: 'INR',
+      currencySymbol: '₹',
+      conversionRate: 1.0,
     },
   });
 
@@ -117,6 +131,9 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   const watchedLeadId = watch('leadId');
   const watchedTemplateId = watch('templateId');
   const watchedProducts = watch('products');
+  const watchedCurrency = watch('currencyCode');
+  const watchedFreightCharges = watch('freightCharges');
+  const watchedCourierCharges = watch('courierCharges');
 
   const productTotals = watchedProducts?.map(p => {
     const baseAmount = p.quantity * p.rate;
@@ -136,21 +153,27 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   const totalDiscountAmount = productTotals.reduce((acc, curr) => acc + curr.discountAmount, 0);
   const subTotal = productTotals.reduce((acc, curr) => acc + curr.amount, 0);
   const totalGst = productTotals.reduce((acc, curr) => acc + curr.gstAmount, 0);
-  const grandTotal = subTotal + totalGst;
+  
+  // Add freight and courier charges to grand total
+  const freightAmount = watchedFreightCharges && !isNaN(Number(watchedFreightCharges)) ? Number(watchedFreightCharges) : 0;
+  const courierAmount = watchedCourierCharges && !isNaN(Number(watchedCourierCharges)) ? Number(watchedCourierCharges) : 0;
+  const grandTotal = subTotal + totalGst + freightAmount + courierAmount;
 
   useEffect(() => {
     async function fetchData() {
         if (open) {
-            const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedCategories] = await Promise.all([
+            const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedCategories, fetchedCurrencies] = await Promise.all([
                 getLeads(),
                 getProducts(),
                 getQuotationTemplates(),
                 getProductCategories(),
+                getActiveCurrencies(),
             ]);
             setLeads(fetchedLeads);
             setAvailableProducts(fetchedProducts);
             setTemplates(fetchedTemplates);
             setCategories(fetchedCategories);
+            setCurrencies(fetchedCurrencies);
         }
     }
     fetchData();
@@ -400,6 +423,38 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                             )}
                         />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="currencyCode">Currency</Label>
+                        <Controller
+                            control={control}
+                            name="currencyCode"
+                            render={({ field }) => (
+                                <Select 
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        const selectedCurrency = currencies.find(c => c.code === value);
+                                        if (selectedCurrency) {
+                                            setValue('currencySymbol', selectedCurrency.symbol);
+                                            setValue('conversionRate', selectedCurrency.conversionRate);
+                                        }
+                                    }} 
+                                    value={field.value}
+                                >
+                                    <SelectTrigger><SelectValue placeholder="Select currency" /></SelectTrigger>
+                                    <SelectContent>
+                                        {currencies.map(currency => (
+                                            <SelectItem key={currency.id} value={currency.code}>
+                                                {currency.symbol} {currency.code} - {currency.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Enter all amounts in INR. Preview will show converted amounts in selected currency.
+                        </p>
+                    </div>
                 </div>
                 
                 <Separator />
@@ -447,6 +502,35 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                             placeholder="Client's GST number from lead"
                         />
                         <p className="text-xs text-muted-foreground">Leave empty if client doesn't have GST registration</p>
+                    </div>
+                </div>
+                
+                <Separator />
+                <h3 className="text-lg font-medium">Additional Charges</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="freightCharges">Freight Charges</Label>
+                        <Input 
+                            id="freightCharges" 
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...register('freightCharges')} 
+                            placeholder="EXTRA"
+                        />
+                        <p className="text-xs text-muted-foreground">Enter amount in INR or leave empty to show "EXTRA"</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="courierCharges">Courier Charges</Label>
+                        <Input 
+                            id="courierCharges" 
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...register('courierCharges')} 
+                            placeholder="EXTRA"
+                        />
+                        <p className="text-xs text-muted-foreground">Enter amount in INR or leave empty to show "EXTRA"</p>
                     </div>
                 </div>
                 <Separator />

@@ -60,9 +60,9 @@ const CreateLeadSchema = z.object({
   company: z.string().min(2, 'Company must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number seems too short'),
-  whatsappNumber: z.string().optional(),
-  client_address: z.string().optional(),
-  client_gst_no: z.string().optional(),
+  whatsappNumber: z.string().optional().or(z.literal('')),
+  client_address: z.string().optional().or(z.literal('')),
+  client_gst_no: z.string().optional().or(z.literal('')),
   status: z.enum(['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost']),
   source: z.string().min(1, 'Please select a lead source'),
   notes: z.string().optional(),
@@ -121,9 +121,9 @@ const UpdateLeadSchema = z.object({
   company: z.string().min(2, 'Company must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number seems too short'),
-  whatsappNumber: z.string().optional(),
-  client_address: z.string().optional(),
-  client_gst_no: z.string().optional(),
+  whatsappNumber: z.string().optional().or(z.literal('')),
+  client_address: z.string().optional().or(z.literal('')),
+  client_gst_no: z.string().optional().or(z.literal('')),
   status: z.enum(['New', 'In Discussion', 'Negotiation', 'Closed - Won', 'Closed - Lost']),
   source: z.string().min(1, 'Please select a lead source'),
   products: z.array(LeadProductSchema).optional(),
@@ -691,12 +691,19 @@ const CreateQuotationSchema = z.object({
   // Overridable template fields
   companyName: z.string().min(1),
   companyAddress: z.string().min(1),
-  companyGst: z.string().min(1),
+  companyGst: z.string().optional().or(z.literal('')).nullable(),
   // Client billing fields
-  client_address: z.string().optional(),
-  client_gst_no: z.string().optional(),
+  client_address: z.string().optional().or(z.literal('')).nullable(),
+  client_gst_no: z.string().optional().or(z.literal('')).nullable(),
   termsAndConditions: z.string(),
-  logoUrl: z.string().optional(),
+  logoUrl: z.string().optional().nullable(),
+  // Additional charges (numeric or empty/null)
+  freightCharges: z.coerce.number().min(0).optional().or(z.literal('')).nullable(),
+  courierCharges: z.coerce.number().min(0).optional().or(z.literal('')).nullable(),
+  // Currency fields
+  currencyCode: z.string().optional(),
+  currencySymbol: z.string().optional(),
+  conversionRate: z.coerce.number().optional(),
 });
 
 
@@ -720,6 +727,11 @@ export async function addQuotation(formData: FormData) {
         client_gst_no: formData.get('client_gst_no'),
         termsAndConditions: formData.get('termsAndConditions'),
         logoUrl: formData.get('logoUrl'),
+        freightCharges: formData.get('freightCharges'),
+        courierCharges: formData.get('courierCharges'),
+        currencyCode: formData.get('currencyCode'),
+        currencySymbol: formData.get('currencySymbol'),
+        conversionRate: formData.get('conversionRate'),
       });
     
       if (!validatedFields.success) {
@@ -737,9 +749,16 @@ export async function addQuotation(formData: FormData) {
         const prefix = (data.quotationPrefix?.trim() || 'QUO');
         console.log('Using prefix:', prefix);
         const { quotationPrefix: _omitPrefix, logoUrl, ...rest } = data as any;
+        
+        // Clean up null values - convert to undefined for Firestore
         const payload: any = {
           ...rest,
           products: parsedProducts,
+          companyGst: rest.companyGst || undefined,
+          client_address: rest.client_address || undefined,
+          client_gst_no: rest.client_gst_no || undefined,
+          freightCharges: rest.freightCharges || undefined,
+          courierCharges: rest.courierCharges || undefined,
         };
         if (logoUrl) payload.logoUrl = logoUrl;
         newQuotation = await dbAddQuotation(payload, prefix);
@@ -779,6 +798,11 @@ export async function updateQuotation(id: string, formData: FormData) {
         client_gst_no: formData.get('client_gst_no'),
         termsAndConditions: formData.get('termsAndConditions'),
         logoUrl: formData.get('logoUrl'),
+        freightCharges: formData.get('freightCharges'),
+        courierCharges: formData.get('courierCharges'),
+        currencyCode: formData.get('currencyCode'),
+        currencySymbol: formData.get('currencySymbol'),
+        conversionRate: formData.get('conversionRate'),
       });
     
       if (!validatedFields.success) {
@@ -792,9 +816,16 @@ export async function updateQuotation(id: string, formData: FormData) {
       try {
         const data = validatedFields.data;
         const parsedProducts = JSON.parse(data.products);
+        
+        // Clean up null values - convert to undefined for Firestore
         await dbUpdateQuotation(id, {
             ...data,
             logoUrl: data.logoUrl || undefined,
+            companyGst: data.companyGst || undefined,
+            client_address: data.client_address || undefined,
+            client_gst_no: data.client_gst_no || undefined,
+            freightCharges: data.freightCharges || undefined,
+            courierCharges: data.courierCharges || undefined,
             products: parsedProducts,
         });
 
@@ -1404,5 +1435,76 @@ export async function getCurrentUserEmployeeAction(email: string): Promise<Emplo
         console.error('Error getting current user employee:', error);
         return null;
     }
+}
+
+// ==================== Currency Actions ====================
+import { addCurrency as dbAddCurrency, updateCurrency as dbUpdateCurrency, deleteCurrency as dbDeleteCurrency } from './firestore-service';
+
+const CurrencySchema = z.object({
+  code: z.string().min(2, 'Currency code must be at least 2 characters').max(5, 'Currency code must be at most 5 characters'),
+  name: z.string().min(2, 'Currency name is required'),
+  symbol: z.string().min(1, 'Currency symbol is required'),
+  conversionRate: z.coerce.number().positive('Conversion rate must be positive'),
+});
+
+export async function addCurrencyAction(formData: FormData) {
+  const validatedFields = CurrencySchema.safeParse({
+    code: formData.get('code'),
+    name: formData.get('name'),
+    symbol: formData.get('symbol'),
+    conversionRate: formData.get('conversionRate'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation Error: Failed to add currency.',
+    };
+  }
+
+  try {
+    await dbAddCurrency(validatedFields.data);
+  } catch (error) {
+    return { message: 'Database Error: Failed to add currency.' };
+  }
+
+  revalidatePath('/setup');
+  return { message: 'Successfully added currency.' };
+}
+
+export async function updateCurrencyAction(id: string, formData: FormData) {
+  const validatedFields = CurrencySchema.safeParse({
+    code: formData.get('code'),
+    name: formData.get('name'),
+    symbol: formData.get('symbol'),
+    conversionRate: formData.get('conversionRate'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation Error: Failed to update currency.',
+    };
+  }
+
+  try {
+    await dbUpdateCurrency(id, validatedFields.data);
+  } catch (error) {
+    return { message: 'Database Error: Failed to update currency.' };
+  }
+
+  revalidatePath('/setup');
+  return { message: 'Successfully updated currency.' };
+}
+
+export async function deleteCurrencyAction(id: string) {
+  try {
+    await dbDeleteCurrency(id);
+  } catch (error) {
+    return { message: 'Database Error: Failed to delete currency.' };
+  }
+
+  revalidatePath('/setup');
+  return { message: 'Successfully deleted currency.' };
 }
 
