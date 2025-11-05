@@ -8,8 +8,10 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  serverActions: {
-    bodySizeLimit: '15mb', // Increased from default 1MB to handle PDF base64 strings
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '15mb', // Increased from default 1MB to handle PDF base64 strings
+    },
   },
   images: {
     remotePatterns: [

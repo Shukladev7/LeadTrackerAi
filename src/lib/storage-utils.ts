@@ -154,10 +154,10 @@ export async function uploadImageToStorage(
   if (!isImageFile(file)) {
     throw new Error('Only image files are allowed');
   }
-  // Allow up to 5MB for image uploads
-  const maxSize = 5 * 1024 * 1024;
+  // Allow up to 10MB for image uploads
+  const maxSize = 10 * 1024 * 1024;
   if (file.size > maxSize) {
-    throw new Error('Image size must be less than 5MB');
+    throw new Error('Image size must be less than 10MB');
   }
 
   const uniqueId = generateUUID();
@@ -209,10 +209,10 @@ export function validateImageFile(file: File): { isValid: boolean; error?: strin
     return { isValid: false, error: 'Only image files (JPG, PNG, GIF, WebP) are allowed' };
   }
 
-  // Check file size (5MB limit)
-  const maxSize = 5 * 1024 * 1024;
+  // Check file size (10MB limit)
+  const maxSize = 10 * 1024 * 1024;
   if (file.size > maxSize) {
-    return { isValid: false, error: 'Image size must be less than 5MB' };
+    return { isValid: false, error: 'Image size must be less than 10MB' };
   }
 
   // Check file name length

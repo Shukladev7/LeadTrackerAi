@@ -265,7 +265,9 @@ export async function addProduct(formData: FormData) {
   const catalogPdf = catalogPdfJSON ? JSON.parse(catalogPdfJSON as string) : undefined;
   
   const productImageJSON = formData.get('productImage');
+  console.log('Product Image JSON received:', productImageJSON);
   const productImage = productImageJSON ? JSON.parse(productImageJSON as string) : undefined;
+  console.log('Product Image parsed:', productImage);
   
   const validatedFields = ProductSchema.safeParse({
     name: formData.get('name'),
@@ -292,6 +294,8 @@ export async function addProduct(formData: FormData) {
     const cleanData = Object.fromEntries(
       Object.entries(data).filter(([_, v]) => v !== undefined)
     );
+    
+    console.log('Clean data being sent to database:', JSON.stringify(cleanData, null, 2));
     
     // Create the product
     const newProduct = await dbAddProduct(cleanData as any);

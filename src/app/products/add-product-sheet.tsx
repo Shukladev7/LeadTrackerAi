@@ -49,6 +49,7 @@ export function AddProductSheet() {
   const [pdfError, setPdfError] = useState<string>('');
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
   const [imageError, setImageError] = useState<string>('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const { toast } = useToast();
   const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -89,6 +90,9 @@ useEffect(() => {
 
 
   const onSubmit = async (data: ProductFormData) => {
+    console.log('Form submission - productImage state:', productImage);
+    console.log('Form submission - catalogPdf state:', catalogPdf);
+    
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
       if (key === 'skus') {
@@ -102,6 +106,7 @@ useEffect(() => {
 
     // Add catalog PDF data if available (only send URL + metadata)
     if (catalogPdf) {
+      console.log('Adding catalogPdf to formData');
       formData.append('catalogPdf', JSON.stringify({
         url: catalogPdf.url,
         fileName: catalogPdf.fileName,
@@ -112,12 +117,15 @@ useEffect(() => {
 
     // Add product image data if available
     if (productImage) {
+      console.log('Adding productImage to formData');
       formData.append('productImage', JSON.stringify({
         url: productImage.url,
         fileName: productImage.fileName,
         filePath: productImage.path,
         uploadedAt: new Date().toISOString()
       }));
+    } else {
+      console.log('productImage is null/undefined, not adding to formData');
     }
 
     const result = await addProduct(formData);
@@ -250,12 +258,21 @@ useEffect(() => {
           <div>
             <ImageUpload
               onUploadComplete={(result) => {
+                console.log('ImageUpload onUploadComplete called with:', result);
                 setProductImage(result);
+                setIsImageUploading(false);
+                console.log('productImage state should now be:', result);
                 setImageError('');
               }}
               onUploadError={(error) => {
+                console.log('ImageUpload onUploadError called with:', error);
                 setImageError(error);
                 setProductImage(null);
+                setIsImageUploading(false);
+              }}
+              onFileSelect={() => {
+                console.log('Image upload started');
+                setIsImageUploading(true);
               }}
               currentImage={productImage ? {
                 url: productImage.url,
@@ -307,8 +324,8 @@ useEffect(() => {
             {errors.skus && <p className="text-xs text-destructive mt-1">{errors.skus.message}</p>}
           </div>
           <SheetFooter className="pt-4 sticky bottom-0 bg-background">
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? 'Adding Product...' : 'Add Product'}
+            <Button type="submit" disabled={isSubmitting || isImageUploading} className="w-full">
+              {isImageUploading ? 'Uploading Image...' : isSubmitting ? 'Adding Product...' : 'Add Product'}
             </Button>
           </SheetFooter>
         </form>

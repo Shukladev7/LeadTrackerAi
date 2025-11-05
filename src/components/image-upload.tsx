@@ -67,7 +67,10 @@ export function ImageUpload({
       
       setUploadProgress(100);
       
+      console.log('Image upload successful, result:', result);
+      
       setTimeout(() => {
+        console.log('Calling onUploadComplete with result:', result);
         onUploadComplete(result);
         setIsUploading(false);
         setUploadProgress(0);
