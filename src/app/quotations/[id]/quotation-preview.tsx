@@ -6,7 +6,8 @@ import { format } from 'date-fns';
 import { 
   addWatermarkToJsPDF, 
   addWatermarkToAllPages, 
-  downloadPdfBlob 
+  downloadPdfBlob,
+  LinkInfo 
 } from '@/lib/pdf-watermark';
 import { 
   Quotation,
@@ -67,6 +68,75 @@ export function QuotationPreview({
   const [showCatalogs, setShowCatalogs] = useState(false);
   const { toast } = useToast();
 
+  // Helper function to collect product image link information
+  const collectProductImageLinks = (quotationElement: HTMLElement, pdfWidth: number, pdfHeight: number): LinkInfo[] => {
+    const links: LinkInfo[] = [];
+    
+    try {
+      // Find all product image links in the DOM using data attribute
+      const imageLinks = quotationElement.querySelectorAll('a[data-product-image-link="true"]');
+      
+      if (imageLinks.length === 0) {
+        console.log('No product image links found');
+        return links;
+      }
+      
+      console.log(`Found ${imageLinks.length} product image links`);
+      
+      imageLinks.forEach((link, index) => {
+        const anchor = link as HTMLAnchorElement;
+        
+        // Get position using offsetTop/offsetLeft for more accurate positioning
+        let element = anchor as HTMLElement;
+        let offsetX = 0;
+        let offsetY = 100;
+        
+        // Walk up the DOM tree to calculate total offset
+        while (element && element !== quotationElement) {
+          offsetX += element.offsetLeft;
+          offsetY += element.offsetTop;
+          element = element.offsetParent as HTMLElement;
+        }
+        
+        // Get dimensions
+        const width = anchor.offsetWidth;
+        const height = anchor.offsetHeight;
+        
+        // Get container width for scaling
+        const containerWidth = quotationElement.offsetWidth;
+        
+        // Convert to PDF coordinates (mm)
+        const mmPerPixel = pdfWidth / containerWidth;
+        const pdfX = offsetX * mmPerPixel;
+        const pdfY = offsetY * mmPerPixel;
+        const pdfLinkWidth = width * mmPerPixel;
+        const pdfLinkHeight = height * mmPerPixel;
+        
+        console.log(`Link ${index}:`);
+        console.log(`  URL: ${anchor.href}`);
+        console.log(`  Offset position: x=${offsetX.toFixed(2)}px, y=${offsetY.toFixed(2)}px`);
+        console.log(`  Size: ${width}px x ${height}px`);
+        console.log(`  Container width: ${containerWidth}px`);
+        console.log(`  PDF position: (${pdfX.toFixed(2)}, ${pdfY.toFixed(2)}) mm`);
+        console.log(`  PDF size: ${pdfLinkWidth.toFixed(2)} x ${pdfLinkHeight.toFixed(2)} mm`);
+        
+        links.push({
+          x: pdfX,
+          y: pdfY,
+          width: pdfLinkWidth,
+          height: pdfLinkHeight,
+          url: anchor.href,
+        });
+      });
+      
+      console.log(`Collected ${links.length} link info objects`);
+    } catch (error) {
+      console.error('Error collecting product image links:', error);
+    }
+    
+    return links;
+  };
+
   const handleDownload = async () => {
     // This function now only downloads the quotation part (without catalogs)
     const quotationElement = previewRef.current;
@@ -75,20 +145,25 @@ export function QuotationPreview({
     try {
       const { default: jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      
+      // Collect link information BEFORE rendering canvas to ensure accurate positions
+      const links = collectProductImageLinks(quotationElement, pdfWidth, 0);
+      
       const canvas = await html2canvas(quotationElement, {
         scale: 2, // Higher scale for better quality
         useCORS: true,
       });
       const data = canvas.toDataURL('image/png');
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
       
-      // Add watermark (use template/company logo if available) and download
-      const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl);
+      // Add watermark and links (use template/company logo if available) and download
+      const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl, links);
       downloadPdfBlob(watermarkedBlob, `Quotation-${quotation.quotationNumber}.pdf`);
     } catch (error) {
       console.error('Error generating quotation PDF with watermark:', error);
@@ -110,6 +185,13 @@ export function QuotationPreview({
     try {
       const { default: jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      
+      // Collect link information BEFORE rendering canvas
+      const links = collectProductImageLinks(completeElement, pdfWidth, 0);
+      
       const canvas = await html2canvas(completeElement, {
         scale: 1.5, // Slightly lower scale for large content
         useCORS: true,
@@ -118,17 +200,16 @@ export function QuotationPreview({
       });
       const data = canvas.toDataURL('image/png');
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
       let heightLeft = imgHeight;
       let position = 0;
-
+      
       // Add first page
       pdf.addImage(data, 'PNG', 0, position, imgWidth, imgHeight);
+      
       heightLeft -= pdfHeight;
 
       // Add additional pages if needed
@@ -139,8 +220,8 @@ export function QuotationPreview({
         heightLeft -= pdfHeight;
       }
 
-      // Add watermark (use template/company logo if available) and download
-      const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl);
+      // Add watermark and links (use template/company logo if available) and download
+      const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl, links);
       downloadPdfBlob(watermarkedBlob, `Quotation-${quotation.quotationNumber}-complete.pdf`);
       
       toast({
@@ -177,14 +258,18 @@ export function QuotationPreview({
         return;
       }
 
+      const quotationPdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = quotationPdf.internal.pageSize.getWidth();
+      
+      // Collect link information BEFORE rendering canvas
+      const links = collectProductImageLinks(element, pdfWidth, 0);
+
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
       });
       const data = canvas.toDataURL('image/png');
 
-      const quotationPdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = quotationPdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       quotationPdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
@@ -242,6 +327,16 @@ export function QuotationPreview({
 
       // Add watermark to all pages before saving (use template/company logo if available)
       await addWatermarkToAllPages(mergedPdf, quotation.logoUrl);
+      
+      // Add clickable links to the first page (quotation page)
+      if (links && links.length > 0) {
+        const pages = mergedPdf.getPages();
+        if (pages.length > 0) {
+          const { addLinksToPage } = await import('@/lib/pdf-watermark');
+          addLinksToPage(pages[0], links);
+          console.log(`Added ${links.length} clickable links to merged PDF`);
+        }
+      }
       
       // Save the merged PDF with watermark
       const mergedPdfBytes = await mergedPdf.save();
@@ -432,7 +527,13 @@ export function QuotationPreview({
                   <td className="p-3">
                     <div className="flex items-start gap-3">
                       {p.product.productImage && (
-                        <div className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                        <a 
+                          href={p.product.productImage.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                          data-product-image-link="true"
+                        >
                           <Image
                             src={p.product.productImage.url}
                             alt={p.product.name}
@@ -440,7 +541,7 @@ export function QuotationPreview({
                             className="object-cover"
                             sizes="64px"
                           />
-                        </div>
+                        </a>
                       )}
                       <div className="flex-1">
                         {(() => {

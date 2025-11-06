@@ -1,4 +1,4 @@
-import { PDFDocument, PDFPage } from 'pdf-lib';
+import { PDFDocument, PDFPage, PDFName, PDFString, PDFArray, PDFDict, PDFNumber } from 'pdf-lib';
 
 // Watermark configuration
 const WATERMARK_CONFIG = {
@@ -71,10 +71,101 @@ export async function addWatermarkToAllPages(pdfDoc: PDFDocument, logoUrl?: stri
 }
 
 /**
+ * Link information for adding to PDF
+ */
+export interface LinkInfo {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  url: string;
+}
+
+/**
+ * Adds clickable links to a PDF page using pdf-lib
+ */
+export function addLinksToPage(page: PDFPage, links: LinkInfo[]): void {
+  const { width: pageWidth, height: pageHeight } = page.getSize();
+  
+  console.log(`[addLinksToPage] Page size: ${pageWidth.toFixed(2)} x ${pageHeight.toFixed(2)} points`);
+  
+  links.forEach((link, index) => {
+    try {
+      // Links come in mm from jsPDF, need to convert to points for pdf-lib
+      // 1 mm = 2.83465 points
+      const mmToPoints = 2.83465;
+      
+      // Convert coordinates from mm to points
+      const xInPoints = link.x * mmToPoints;
+      const yInPoints = link.y * mmToPoints;
+      const widthInPoints = link.width * mmToPoints;
+      const heightInPoints = link.height * mmToPoints;
+      
+      // pdf-lib uses bottom-left origin, we have top-left origin
+      // So flip the Y coordinate
+      const yFromBottom = pageHeight - yInPoints - heightInPoints;
+      
+      const x1 = xInPoints;
+      const y1 = yFromBottom;
+      const x2 = xInPoints + widthInPoints;
+      const y2 = yFromBottom + heightInPoints;
+      
+      console.log(`[addLinksToPage] Link ${index}:`);
+      console.log(`  Input (mm): x=${link.x.toFixed(2)}, y=${link.y.toFixed(2)}, w=${link.width.toFixed(2)}, h=${link.height.toFixed(2)}`);
+      console.log(`  Rect (points): [${x1.toFixed(2)}, ${y1.toFixed(2)}, ${x2.toFixed(2)}, ${y2.toFixed(2)}]`);
+      console.log(`  URL: ${link.url}`);
+      
+      // Create the link annotation using pdf-lib's proper types
+      const context = page.doc.context;
+      
+      // Create the Rect array
+      const rectArray = PDFArray.withContext(context);
+      rectArray.push(PDFNumber.of(x1));
+      rectArray.push(PDFNumber.of(y1));
+      rectArray.push(PDFNumber.of(x2));
+      rectArray.push(PDFNumber.of(y2));
+      
+      // Create the Border array
+      const borderArray = PDFArray.withContext(context);
+      borderArray.push(PDFNumber.of(0));
+      borderArray.push(PDFNumber.of(0));
+      borderArray.push(PDFNumber.of(0));
+      
+      // Create the Action dictionary
+      const actionDict = context.obj({
+        Type: 'Action',
+        S: 'URI',
+        URI: PDFString.of(link.url),
+      });
+      
+      // Create the Link annotation dictionary
+      const linkAnnotDict = context.obj({
+        Type: 'Annot',
+        Subtype: 'Link',
+        Rect: rectArray,
+        Border: borderArray,
+        A: actionDict,
+      });
+      
+      const annotRef = context.register(linkAnnotDict);
+      page.node.addAnnot(annotRef);
+      
+      console.log(`✓ [addLinksToPage] Successfully added clickable link ${index} to PDF`);
+    } catch (error) {
+      console.error(`[addLinksToPage] Error adding link ${index} to page:`, error);
+    }
+  });
+}
+
+/**
  * Converts jsPDF to pdf-lib format, adds watermark, and returns as blob
  * This is used for jsPDF-generated PDFs that need watermark
  */
-export async function addWatermarkToJsPDF(jsPdfInstance: any, logoUrl?: string): Promise<Blob> {
+export async function addWatermarkToJsPDF(
+  jsPdfInstance: any, 
+  logoUrl?: string, 
+  links?: LinkInfo[]
+): Promise<Blob> {
   try {
     // Get jsPDF as array buffer
     const jsPdfBytes = jsPdfInstance.output('arraybuffer');
@@ -85,9 +176,22 @@ export async function addWatermarkToJsPDF(jsPdfInstance: any, logoUrl?: string):
     // Add watermark to all pages
     await addWatermarkToAllPages(pdfDoc, logoUrl);
 
-    // Return as blob
+    // Add clickable links if provided
+    if (links && links.length > 0) {
+      console.log(`[addWatermarkToJsPDF] About to add ${links.length} links to PDF`);
+      const pages = pdfDoc.getPages();
+      console.log(`[addWatermarkToJsPDF] PDF has ${pages.length} pages`);
+      if (pages.length > 0) {
+        addLinksToPage(pages[0], links);
+        console.log(`[addWatermarkToJsPDF] Finished adding ${links.length} clickable links to PDF`);
+      }
+    } else {
+      console.log(`[addWatermarkToJsPDF] No links to add (links=${links?.length || 0})`);
+    }
+
+    // Save the PDF
     const watermarkedBytes = await pdfDoc.save();
-    return new Blob([watermarkedBytes], { type: 'application/pdf' });
+    return new Blob([watermarkedBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
   } catch (error) {
     console.error('Error adding watermark to jsPDF:', error);
     // Fallback: return original PDF without watermark
