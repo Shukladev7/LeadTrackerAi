@@ -149,9 +149,40 @@ export const columns: ColumnDef<PopulatedQuotation>[] = [
     cell: ({ row }) => <FormattedDate dateString={row.original.date} />,
   },
   {
+    accessorKey: 'currencyCode',
+    header: () => <div className="text-center">Currency</div>,
+    cell: ({ row }) => {
+      const currencyCode = row.original.currencyCode || 'INR';
+      const currencySymbol = row.original.currencySymbol || '₹';
+      return (
+        <div className="text-center">
+          <span className="font-medium">{currencySymbol} {currencyCode}</span>
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: 'grandTotal',
     header: () => <div className="text-right">Amount</div>,
-    cell: ({ row }) => <div className="text-right font-medium">{formatCurrency(row.original.grandTotal)}</div>,
+    cell: ({ row }) => {
+      const grandTotal = row.original.grandTotal;
+      const conversionRate = row.original.conversionRate || 1.0;
+      const currencySymbol = row.original.currencySymbol || '₹';
+      
+      // Convert from INR to selected currency
+      const convertedAmount = grandTotal / conversionRate;
+      
+      const formatted = new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(convertedAmount);
+      
+      return (
+        <div className="text-right font-medium">
+          {currencySymbol}{formatted}
+        </div>
+      );
+    },
   },
   {
     id: 'actions',

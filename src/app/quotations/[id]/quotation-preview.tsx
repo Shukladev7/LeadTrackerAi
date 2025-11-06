@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
 import { QuotationCommunicationButtons } from './quotation-communication-buttons';
 import Image from 'next/image';
+import { amountToWords } from '@/lib/number-to-words';
 
 type QuotationPreviewProps = {
   quotation: Quotation;
@@ -652,6 +653,14 @@ export function QuotationPreview({
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>Grand Total</span>
                     <span>{formatCurrency(quotation.grandTotal)}</span>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-300">
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                      Amount in Words:
+                    </p>
+                    <p className="text-sm font-medium text-gray-800">
+                      {amountToWords(convertAmount(quotation.grandTotal), quotation.currencyCode || 'INR')}
+                    </p>
                   </div>
                 </>
               );

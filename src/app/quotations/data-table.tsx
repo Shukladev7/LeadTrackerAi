@@ -77,7 +77,7 @@ export function DataTable<TData extends PopulatedQuotation, TValue>({
   const handleExport = () => {
     const headers = [
       'Quotation Number', 'Lead Name', 'Lead Company', 'Status', 'Date', 'Valid Until',
-      'Sub-Total', 'Total GST', 'Grand Total', 'Created At'
+      'Currency', 'Sub-Total', 'Total GST', 'Grand Total', 'Created At'
     ];
 
     const escapeCsvCell = (cell: string | number) => {
@@ -90,6 +90,12 @@ export function DataTable<TData extends PopulatedQuotation, TValue>({
 
     const rows = table.getFilteredRowModel().rows.map(row => {
         const q = row.original;
+        const currencyCode = q.currencyCode || 'INR';
+        const conversionRate = q.conversionRate || 1.0;
+        const convertedSubTotal = q.subTotal / conversionRate;
+        const convertedTotalGst = q.totalGst / conversionRate;
+        const convertedGrandTotal = q.grandTotal / conversionRate;
+        
         return [
             q.quotationNumber,
             q.leadName,
@@ -97,9 +103,10 @@ export function DataTable<TData extends PopulatedQuotation, TValue>({
             q.status,
             format(new Date(q.date), 'yyyy-MM-dd'),
             format(new Date(q.validUntil), 'yyyy-MM-dd'),
-            q.subTotal,
-            q.totalGst,
-            q.grandTotal,
+            currencyCode,
+            convertedSubTotal.toFixed(2),
+            convertedTotalGst.toFixed(2),
+            convertedGrandTotal.toFixed(2),
             format(new Date(q.createdAt), 'yyyy-MM-dd HH:mm:ss'),
         ].map(escapeCsvCell).join(',');
     });
