@@ -550,7 +550,7 @@ export function QuotationPreview({
                           const lines: string[] = [];
                           const nameLine = (p.product.name || '').toString().trim();
                           if (catName) lines.push(catName);
-                          if (nameLine) lines.push(`MODEL : ${nameLine.toUpperCase()}`);
+                          if (nameLine) lines.push(`${nameLine.toUpperCase()}`);
                           // Use description from quotation item (p.description) if available, otherwise fall back to product description
                           const desc = ((p as any).description || p.product.description) as string | undefined;
                           if (desc) {
