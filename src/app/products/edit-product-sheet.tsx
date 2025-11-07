@@ -58,6 +58,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
   const [removedExistingImage, setRemovedExistingImage] = useState(false);
   const [imageError, setImageError] = useState<string>('');
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const { toast } = useToast();
   const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -85,6 +86,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       setProductImageFile(null);
       setRemovedExistingImage(false);
       setImageError('');
+      setIsImageUploading(false);
       
       // Fetch available categories
       const fetchCategories = async () => {
@@ -259,7 +261,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
                 }
               }}
               label="Catalog PDF"
-              description="Upload a PDF catalog file (max 5MB)"
+              description="Upload a PDF catalog file (max 10MB)"
             />
             {pdfError && <p className="text-xs text-destructive mt-1">{pdfError}</p>}
           </div>
@@ -270,14 +272,17 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
                 setProductImage(result);
                 setImageError('');
                 setRemovedExistingImage(false);
+                setIsImageUploading(false);
               }}
               onUploadError={(error) => {
                 setImageError(error);
                 setProductImage(null);
                 setProductImageFile(null);
+                setIsImageUploading(false);
               }}
               onFileSelect={(file) => {
                 setProductImageFile(file);
+                setIsImageUploading(true);
               }}
               currentImage={
                 removedExistingImage
@@ -297,7 +302,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
                 }
               }}
               label="Product Image"
-              description="Upload a product image (max 5MB)"
+              description="Upload a product image (max 10MB)"
             />
             {imageError && <p className="text-xs text-destructive mt-1">{imageError}</p>}
           </div>
@@ -330,8 +335,8 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
             {errors.skus && <p className="text-xs text-destructive mt-1">{errors.skus.message}</p>}
           </div>
           <SheetFooter className="pt-4 sticky bottom-0 bg-background">
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
+            <Button type="submit" disabled={isSubmitting || isImageUploading} className="w-full">
+              {isImageUploading ? 'Uploading Image...' : isSubmitting ? 'Saving Changes...' : 'Save Changes'}
             </Button>
           </SheetFooter>
         </form>

@@ -139,6 +139,7 @@ export interface QuotationProduct {
   rate: number;
   gstRate: number;
   discount?: number;
+  description?: string;
   total?: number;
 }
 

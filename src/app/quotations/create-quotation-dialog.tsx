@@ -40,12 +40,14 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { Lead, Product, QuotationTemplate, ALL_QUOTATION_STATUSES, ProductCategory, Currency } from '@/lib/types';
+import { Lead, Product, QuotationTemplate, ProductCategory, Currency } from '@/lib/business-types';
+import { ALL_QUOTATION_STATUSES } from '@/lib/types';
 import { getLeads, getProducts, getQuotationTemplates, getLeadById, getProductCategories } from '@/lib/data';
 import { getActiveCurrencies } from '@/lib/firestore-service';
 import { addQuotation } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Combobox } from '@/components/ui/combobox';
 
 const quotationProductSchema = z.object({
     productId: z.string().min(1, 'Product must be selected'),
@@ -53,6 +55,7 @@ const quotationProductSchema = z.object({
     rate: z.coerce.number().min(0, 'Rate must be a positive number'),
     gstRate: z.coerce.number().min(0),
     discount: z.coerce.number().min(0).max(100).optional(),
+    description: z.string().optional(),
 });
 
 const quotationSchema = z.object({
@@ -73,12 +76,12 @@ const quotationSchema = z.object({
   logoUrl: z.string().optional(),
   quotationPrefix: z.string().optional(),
   // Additional charges (numeric or empty)
-  freightCharges: z.coerce.number().min(0).optional().or(z.literal('')),
-  courierCharges: z.coerce.number().min(0).optional().or(z.literal('')),
+  freightCharges: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
+  courierCharges: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
   // Currency fields
-  currencyCode: z.string().optional(),
-  currencySymbol: z.string().optional(),
-  conversionRate: z.coerce.number().optional(),
+  currencyCode: z.string().nullish(),
+  currencySymbol: z.string().nullish(),
+  conversionRate: z.coerce.number().nullish(),
 });
 
 type QuotationFormData = z.infer<typeof quotationSchema>;
@@ -228,6 +231,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                             rate: lp.rate,
                             gstRate: productDetails?.gstRate || 0,
                             discount: 0,
+                            description: productDetails?.description || '',
                         };
                     });
                     setValue('products', quotationProducts, { shouldValidate: true });
@@ -288,6 +292,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
     if (product) {
       setValue(`products.${index}.rate`, product.price, { shouldValidate: true });
       setValue(`products.${index}.gstRate`, product.gstRate, { shouldValidate: true });
+      setValue(`products.${index}.description`, product.description || '', { shouldValidate: true });
     }
   };
 
@@ -312,7 +317,8 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
             </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-5xl">
+      <DialogContent className="w-fit max-w-full">
+
         <DialogHeader>
           <DialogTitle>Create New Quotation</DialogTitle>
           <DialogDescription>
@@ -328,12 +334,17 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                             control={control}
                             name="leadId"
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue placeholder="Select a lead" /></SelectTrigger>
-                                    <SelectContent>
-                                        {leads.map(lead => <SelectItem key={lead.id} value={lead.id}>{lead.name} - {lead.company}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={leads.filter(lead => lead.id).map(lead => ({
+                                        value: lead.id!,
+                                        label: `${lead.name} - ${lead.company}`
+                                    }))}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    placeholder="Select a lead"
+                                    searchPlaceholder="Search leads..."
+                                    emptyText="No leads found."
+                                />
                             )}
                         />
                         {errors.leadId && <p className="text-xs text-destructive mt-1">{errors.leadId.message}</p>}
@@ -347,7 +358,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="Select a template" /></SelectTrigger>
                                     <SelectContent>
-                                        {templates.map(template => <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>)}
+                                        {templates.filter(template => template.id).map(template => <SelectItem key={template.id} value={template.id!}>{template.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             )}
@@ -438,12 +449,12 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                                             setValue('conversionRate', selectedCurrency.conversionRate);
                                         }
                                     }} 
-                                    value={field.value}
+                                    value={field.value ?? undefined}
                                 >
                                     <SelectTrigger><SelectValue placeholder="Select currency" /></SelectTrigger>
                                     <SelectContent>
                                         {currencies.map(currency => (
-                                            <SelectItem key={currency.id} value={currency.code}>
+                                            <SelectItem key={currency.id!} value={currency.code}>
                                                 {currency.symbol} {currency.code} - {currency.name}
                                             </SelectItem>
                                         ))}
@@ -543,6 +554,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                                 <TableRow>
                                     <TableHead className="w-[18%]">Category</TableHead>
                                     <TableHead className="w-[20%]">Product Name</TableHead>
+                                    <TableHead className="w-[25%]">Description</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
                                     <TableHead>Discount %</TableHead>
@@ -572,8 +584,8 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All</SelectItem>
-              {categories.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              {categories.filter(c => c.id).map(c => (
+                <SelectItem key={c.id!} value={c.id!}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -586,10 +598,10 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
               <Select onValueChange={(value) => { field.onChange(value); handleProductChange(value, index); }} value={field.value}>
                 <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                 <SelectContent>
-                  {getFilteredProductsForRow(index).map(p => {
+                  {getFilteredProductsForRow(index).filter(p => p.id).map(p => {
                     const catName = categories.find(c => c.id === p.categoryId)?.name;
                     return (
-                      <SelectItem key={p.id} value={p.id}>
+                      <SelectItem key={p.id!} value={p.id!}>
                         {p.name}{catName ? ` — ${catName}` : ''}
                       </SelectItem>
                     );
@@ -600,6 +612,16 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
           />
         </TableCell>
 
+        {/* Description */}
+        <TableCell>
+                    <Textarea
+            {...register(`products.${index}.description`)}
+            placeholder="Product description"
+            className="min-h-[150px] min-w-[250px] text-sm"
+            rows={4}
+          />
+
+        </TableCell>
 
         {/* Quantity */}
         <TableCell>
@@ -655,40 +677,40 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
 
   {fields.length === 0 && (
     <TableRow>
-      <TableCell colSpan={8} className="text-center h-24">No products added.</TableCell>
+      <TableCell colSpan={9} className="text-center h-24">No products added.</TableCell>
     </TableRow>
   )}
 </TableBody>
 
 <UiTableFooter>
   <TableRow>
-    <TableCell colSpan={7} className="text-right">Base Amount</TableCell>
+    <TableCell colSpan={8} className="text-right">Base Amount</TableCell>
     <TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell>
     <TableCell></TableCell>
   </TableRow>
 
   {totalDiscountAmount > 0 && (
     <TableRow>
-      <TableCell colSpan={7} className="text-right text-green-600">Total Discount</TableCell>
+      <TableCell colSpan={8} className="text-right text-green-600">Total Discount</TableCell>
       <TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell>
       <TableCell></TableCell>
     </TableRow>
   )}
 
   <TableRow>
-    <TableCell colSpan={7} className="text-right">Sub-total</TableCell>
+    <TableCell colSpan={8} className="text-right">Sub-total</TableCell>
     <TableCell className="text-right">{formatCurrency(subTotal)}</TableCell>
     <TableCell></TableCell>
   </TableRow>
 
   <TableRow>
-    <TableCell colSpan={7} className="text-right">Total GST</TableCell>
+    <TableCell colSpan={8} className="text-right">Total GST</TableCell>
     <TableCell className="text-right">{formatCurrency(totalGst)}</TableCell>
     <TableCell></TableCell>
   </TableRow>
 
   <TableRow>
-    <TableCell colSpan={7} className="text-right font-bold text-lg">Grand Total</TableCell>
+    <TableCell colSpan={8} className="text-right font-bold text-lg">Grand Total</TableCell>
     <TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell>
     <TableCell></TableCell>
   </TableRow>
@@ -697,7 +719,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                         </Table>
                     </div>
                      {errors.products && <p className="text-xs text-destructive mt-1">{errors.products.message || errors.products.root?.message}</p>}
-<Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0 })}>
+<Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0, description: '' })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                     </Button>
                 </div>

@@ -70,7 +70,7 @@ export function QuotationPreview({
   const { toast } = useToast();
 
   // Helper function to collect product image link information
-  const collectProductImageLinks = (quotationElement: HTMLElement, pdfWidth: number, pdfHeight: number): LinkInfo[] => {
+  const collectProductImageLinks = (quotationElement: HTMLElement, canvas: HTMLCanvasElement, pdfWidth: number, pdfHeight: number): LinkInfo[] => {
     const links: LinkInfo[] = [];
     
     try {
@@ -84,40 +84,41 @@ export function QuotationPreview({
       
       console.log(`Found ${imageLinks.length} product image links`);
       
+      // Get the actual rendered dimensions
+      const containerWidth = quotationElement.offsetWidth;
+      const containerHeight = quotationElement.offsetHeight;
+      
+      // Calculate the scale factor used by html2canvas
+      const canvasScale = canvas.width / containerWidth;
+      
+      console.log(`Container: ${containerWidth}x${containerHeight}px, Canvas: ${canvas.width}x${canvas.height}px, Scale: ${canvasScale}`);
+      
       imageLinks.forEach((link, index) => {
         const anchor = link as HTMLAnchorElement;
         
-        // Get position using offsetTop/offsetLeft for more accurate positioning
-        let element = anchor as HTMLElement;
-        let offsetX = 0;
-        let offsetY = 100;
+        // Use getBoundingClientRect for positioning
+        const anchorRect = anchor.getBoundingClientRect();
+        const containerRect = quotationElement.getBoundingClientRect();
         
-        // Walk up the DOM tree to calculate total offset
-        while (element && element !== quotationElement) {
-          offsetX += element.offsetLeft;
-          offsetY += element.offsetTop;
-          element = element.offsetParent as HTMLElement;
-        }
+        // Calculate position relative to container (in pixels)
+        const offsetX = anchorRect.left - containerRect.left;
+        const offsetY = anchorRect.top - containerRect.top;
         
-        // Get dimensions
-        const width = anchor.offsetWidth;
-        const height = anchor.offsetHeight;
+        // Get dimensions (in pixels)
+        const width = anchorRect.width;
+        const height = anchorRect.height;
         
-        // Get container width for scaling
-        const containerWidth = quotationElement.offsetWidth;
-        
-        // Convert to PDF coordinates (mm)
-        const mmPerPixel = pdfWidth / containerWidth;
-        const pdfX = offsetX * mmPerPixel;
-        const pdfY = offsetY * mmPerPixel;
-        const pdfLinkWidth = width * mmPerPixel;
-        const pdfLinkHeight = height * mmPerPixel;
+        // Convert from container pixels to PDF mm
+        // The PDF dimensions are based on the canvas, so we need to account for that
+        const pdfX = (offsetX / containerWidth) * pdfWidth;
+        const pdfY = (offsetY / containerHeight) * pdfHeight;
+        const pdfLinkWidth = (width / containerWidth) * pdfWidth;
+        const pdfLinkHeight = (height / containerHeight) * pdfHeight;
         
         console.log(`Link ${index}:`);
         console.log(`  URL: ${anchor.href}`);
-        console.log(`  Offset position: x=${offsetX.toFixed(2)}px, y=${offsetY.toFixed(2)}px`);
-        console.log(`  Size: ${width}px x ${height}px`);
-        console.log(`  Container width: ${containerWidth}px`);
+        console.log(`  DOM position: x=${offsetX.toFixed(2)}px, y=${offsetY.toFixed(2)}px`);
+        console.log(`  DOM size: ${width.toFixed(2)}px x ${height.toFixed(2)}px`);
         console.log(`  PDF position: (${pdfX.toFixed(2)}, ${pdfY.toFixed(2)}) mm`);
         console.log(`  PDF size: ${pdfLinkWidth.toFixed(2)} x ${pdfLinkHeight.toFixed(2)} mm`);
         
@@ -150,9 +151,6 @@ export function QuotationPreview({
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       
-      // Collect link information BEFORE rendering canvas to ensure accurate positions
-      const links = collectProductImageLinks(quotationElement, pdfWidth, 0);
-      
       const canvas = await html2canvas(quotationElement, {
         scale: 2, // Higher scale for better quality
         useCORS: true,
@@ -160,6 +158,9 @@ export function QuotationPreview({
       const data = canvas.toDataURL('image/png');
 
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Collect link information AFTER rendering canvas for accurate positions
+      const links = collectProductImageLinks(quotationElement, canvas, pdfWidth, pdfHeight);
 
       pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
       
@@ -190,9 +191,6 @@ export function QuotationPreview({
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       
-      // Collect link information BEFORE rendering canvas
-      const links = collectProductImageLinks(completeElement, pdfWidth, 0);
-      
       const canvas = await html2canvas(completeElement, {
         scale: 1.5, // Slightly lower scale for large content
         useCORS: true,
@@ -204,6 +202,9 @@ export function QuotationPreview({
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Collect link information AFTER rendering canvas
+      const links = collectProductImageLinks(completeElement, canvas, pdfWidth, imgHeight);
 
       let heightLeft = imgHeight;
       let position = 0;
@@ -261,9 +262,6 @@ export function QuotationPreview({
 
       const quotationPdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = quotationPdf.internal.pageSize.getWidth();
-      
-      // Collect link information BEFORE rendering canvas
-      const links = collectProductImageLinks(element, pdfWidth, 0);
 
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -272,6 +270,9 @@ export function QuotationPreview({
       const data = canvas.toDataURL('image/png');
 
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Collect link information AFTER rendering canvas
+      const links = collectProductImageLinks(element, canvas, pdfWidth, pdfHeight);
       quotationPdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
       // Get the quotation PDF as array buffer
@@ -550,7 +551,8 @@ export function QuotationPreview({
                           const nameLine = (p.product.name || '').toString().trim();
                           if (catName) lines.push(catName);
                           if (nameLine) lines.push(`MODEL : ${nameLine.toUpperCase()}`);
-                          const desc = (p.product as any).description as string | undefined;
+                          // Use description from quotation item (p.description) if available, otherwise fall back to product description
+                          const desc = ((p as any).description || p.product.description) as string | undefined;
                           if (desc) {
                             const extra = desc
                               .split(/\r?\n/)

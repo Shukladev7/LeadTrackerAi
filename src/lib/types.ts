@@ -90,6 +90,7 @@ export type QuotationProduct = {
   rate: number;
   gstRate: number;
   discount?: number;
+  description?: string;
 };
 
 export type PopulatedQuotationProduct = QuotationProduct & {

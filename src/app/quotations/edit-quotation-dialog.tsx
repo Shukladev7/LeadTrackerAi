@@ -46,6 +46,7 @@ import { getActiveCurrencies } from '@/lib/firestore-service';
 import { updateQuotation } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Combobox } from '@/components/ui/combobox';
 
 const quotationProductSchema = z.object({
     productId: z.string().min(1, 'Product must be selected'),
@@ -53,6 +54,7 @@ const quotationProductSchema = z.object({
     rate: z.coerce.number().min(0, 'Rate must be a positive number'),
     gstRate: z.coerce.number().min(0),
     discount: z.coerce.number().min(0).max(100).optional(),
+    description: z.string().optional(),
 });
 
 const quotationSchema = z.object({
@@ -70,12 +72,12 @@ const quotationSchema = z.object({
   termsAndConditions: z.string(),
   logoUrl: z.string().optional(),
   // Additional charges (numeric or empty)
-  freightCharges: z.coerce.number().min(0).optional().or(z.literal('')),
-  courierCharges: z.coerce.number().min(0).optional().or(z.literal('')),
+  freightCharges: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
+  courierCharges: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
   // Currency fields
-  currencyCode: z.string().optional(),
-  currencySymbol: z.string().optional(),
-  conversionRate: z.coerce.number().optional(),
+  currencyCode: z.string().nullish(),
+  currencySymbol: z.string().nullish(),
+  conversionRate: z.coerce.number().nullish(),
 });
 
 type QuotationFormData = z.infer<typeof quotationSchema>;
@@ -132,6 +134,9 @@ export function EditQuotationDialog({
       logoUrl: quotation.logoUrl || '',
       freightCharges: quotation.freightCharges && !isNaN(Number(quotation.freightCharges)) ? Number(quotation.freightCharges) : '',
       courierCharges: quotation.courierCharges && !isNaN(Number(quotation.courierCharges)) ? Number(quotation.courierCharges) : '',
+      currencyCode: quotation.currencyCode || undefined,
+      currencySymbol: quotation.currencySymbol || undefined,
+      conversionRate: quotation.conversionRate || undefined,
     },
   });
 
@@ -286,6 +291,7 @@ export function EditQuotationDialog({
     if (product) {
       setValue(`products.${index}.rate`, product.price, { shouldValidate: true });
       setValue(`products.${index}.gstRate`, product.gstRate, { shouldValidate: true });
+      setValue(`products.${index}.description`, product.description || '', { shouldValidate: true });
     }
   };
 
@@ -310,7 +316,7 @@ export function EditQuotationDialog({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-5xl">
+      <DialogContent className="w-fit max-w-full">
         <DialogHeader>
           <DialogTitle>Edit Quotation #{quotation.quotationNumber}</DialogTitle>
           <DialogDescription>
@@ -326,16 +332,17 @@ export function EditQuotationDialog({
                             control={control}
                             name="leadId"
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue placeholder="Select a lead" /></SelectTrigger>
-                                    <SelectContent>
-                                        {leads.filter(lead => lead.id).map(lead => (
-                                            <SelectItem key={lead.id} value={lead.id!}>
-                                                {lead.name} - {lead.company}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={leads.filter(lead => lead.id).map(lead => ({
+                                        value: lead.id!,
+                                        label: `${lead.name} - ${lead.company}`
+                                    }))}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    placeholder="Select a lead"
+                                    searchPlaceholder="Search leads..."
+                                    emptyText="No leads found."
+                                />
                             )}
                         />
                         {errors.leadId && <p className="text-xs text-destructive mt-1">{errors.leadId.message}</p>}
@@ -506,6 +513,7 @@ export function EditQuotationDialog({
                                 <TableRow>
                                     <TableHead className="w-[18%]">Category</TableHead>
                                     <TableHead className="w-[20%]">Product Name</TableHead>
+                                    <TableHead className="w-[25%]">Description</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
                                     <TableHead>Discount %</TableHead>
@@ -562,6 +570,14 @@ export function EditQuotationDialog({
                                                 )}
                                             />
                                         </TableCell>
+                                        <TableCell>
+                                            <Textarea
+                                                {...register(`products.${index}.description`)}
+                                                placeholder="Product description"
+                                                className="min-h-[60px] text-sm"
+                                                rows={2}
+                                            />
+                                        </TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" /></TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.rate`)} min="0" className="w-24" /></TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.discount`)} min="0" max="100" step="0.01" className="w-20" placeholder="0" /></TableCell>
@@ -575,22 +591,22 @@ export function EditQuotationDialog({
                                     </TableRow>
                                 )})}
                                 {fields.length === 0 && (
-                                    <TableRow><TableCell colSpan={8} className="text-center h-24">No products added.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={9} className="text-center h-24">No products added.</TableCell></TableRow>
                                 )}
                             </TableBody>
                             <UiTableFooter>
-                                <TableRow><TableCell colSpan={7} className="text-right">Base Amount</TableCell><TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-right">Base Amount</TableCell><TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell><TableCell></TableCell></TableRow>
                                 {totalDiscountAmount > 0 && (
-                                    <TableRow><TableCell colSpan={7} className="text-right text-green-600">Total Discount</TableCell><TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell><TableCell></TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={8} className="text-right text-green-600">Total Discount</TableCell><TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell><TableCell></TableCell></TableRow>
                                 )}
-                                <TableRow><TableCell colSpan={7} className="text-right">Sub-total</TableCell><TableCell className="text-right">{formatCurrency(subTotal)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={7} className="text-right">Total GST</TableCell><TableCell className="text-right">{formatCurrency(totalGst)}</TableCell><TableCell></TableCell></TableRow>
-                                <TableRow><TableCell colSpan={7} className="text-right font-bold text-lg">Grand Total</TableCell><TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-right">Sub-total</TableCell><TableCell className="text-right">{formatCurrency(subTotal)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-right">Total GST</TableCell><TableCell className="text-right">{formatCurrency(totalGst)}</TableCell><TableCell></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-right font-bold text-lg">Grand Total</TableCell><TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell><TableCell></TableCell></TableRow>
                             </UiTableFooter>
                         </Table>
                     </div>
                      {errors.products && <p className="text-xs text-destructive mt-1">{errors.products.message || errors.products.root?.message}</p>}
-<Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0 })}>
+<Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', quantity: 1, rate: 0, gstRate: 0, discount: 0, description: '' })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                     </Button>
                 </div>

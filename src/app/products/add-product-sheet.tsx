@@ -291,7 +291,7 @@ useEffect(() => {
                 }
               }}
               label="Product Image"
-              description="Upload product image (max 5MB)"
+              description="Upload product image (max 10MB)"
             />
             {imageError && <p className="text-xs text-destructive mt-1">{imageError}</p>}
           </div>
