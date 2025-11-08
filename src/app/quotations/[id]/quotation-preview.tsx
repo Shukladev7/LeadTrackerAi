@@ -633,24 +633,28 @@ export function QuotationPreview({
                     <span>Total GST</span>
                     <span>{formatCurrency(quotation.totalGst)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>Freight Charges</span>
-                    <span>
-                      {quotation.freightCharges && !isNaN(Number(quotation.freightCharges)) 
-                        ? formatCurrency(Number(quotation.freightCharges))
-                        : <span className="text-blue-600 font-medium">EXTRA</span>
-                      }
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>Courier Charges</span>
-                    <span>
-                      {quotation.courierCharges && !isNaN(Number(quotation.courierCharges))
-                        ? formatCurrency(Number(quotation.courierCharges))
-                        : <span className="text-blue-600 font-medium">EXTRA</span>
-                      }
-                    </span>
-                  </div>
+                  {quotation.showFreight === true && (
+                    <div className="flex justify-between text-gray-700">
+                      <span>Freight Charges</span>
+                      <span>
+                        {quotation.freightCharges && !isNaN(Number(quotation.freightCharges)) 
+                          ? formatCurrency(Number(quotation.freightCharges))
+                          : <span className="text-blue-600 font-medium">EXTRA</span>
+                        }
+                      </span>
+                    </div>
+                  )}
+                  {quotation.showCourier === true && (
+                    <div className="flex justify-between text-gray-700">
+                      <span>Courier Charges</span>
+                      <span>
+                        {quotation.courierCharges && !isNaN(Number(quotation.courierCharges))
+                          ? formatCurrency(Number(quotation.courierCharges))
+                          : <span className="text-blue-600 font-medium">EXTRA</span>
+                        }
+                      </span>
+                    </div>
+                  )}
                   <Separator className="bg-gray-800" />
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>Grand Total</span>

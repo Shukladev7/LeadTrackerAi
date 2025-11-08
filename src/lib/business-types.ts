@@ -193,6 +193,9 @@ export interface Quotation extends BusinessDocument {
   // Additional charges (can be number or string for backward compatibility)
   freightCharges?: string | number;
   courierCharges?: string | number;
+  // Flags to show/hide charges in PDF
+  showFreight?: boolean;
+  showCourier?: boolean;
   // Currency fields
   currencyCode?: string; // Selected currency code (default: INR)
   currencySymbol?: string; // Currency symbol for display

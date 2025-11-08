@@ -704,6 +704,17 @@ const CreateQuotationSchema = z.object({
   // Additional charges (numeric or empty/null)
   freightCharges: z.coerce.number().min(0).optional().or(z.literal('')).nullable(),
   courierCharges: z.coerce.number().min(0).optional().or(z.literal('')).nullable(),
+  // Flags to show/hide charges in PDF
+  showFreight: z.preprocess((val) => {
+    if (val === 'true' || val === true) return true;
+    if (val === 'false' || val === false) return false;
+    return false; // default to false
+  }, z.boolean()).optional(),
+  showCourier: z.preprocess((val) => {
+    if (val === 'true' || val === true) return true;
+    if (val === 'false' || val === false) return false;
+    return false; // default to false
+  }, z.boolean()).optional(),
   // Currency fields
   currencyCode: z.string().optional(),
   currencySymbol: z.string().optional(),
@@ -733,6 +744,8 @@ export async function addQuotation(formData: FormData) {
         logoUrl: formData.get('logoUrl'),
         freightCharges: formData.get('freightCharges'),
         courierCharges: formData.get('courierCharges'),
+        showFreight: formData.get('showFreight'),
+        showCourier: formData.get('showCourier'),
         currencyCode: formData.get('currencyCode'),
         currencySymbol: formData.get('currencySymbol'),
         conversionRate: formData.get('conversionRate'),
@@ -763,6 +776,8 @@ export async function addQuotation(formData: FormData) {
           client_gst_no: rest.client_gst_no || undefined,
           freightCharges: rest.freightCharges || undefined,
           courierCharges: rest.courierCharges || undefined,
+          showFreight: rest.showFreight === true || rest.showFreight === 'true',
+          showCourier: rest.showCourier === true || rest.showCourier === 'true',
         };
         if (logoUrl) payload.logoUrl = logoUrl;
         newQuotation = await dbAddQuotation(payload, prefix);
@@ -804,6 +819,8 @@ export async function updateQuotation(id: string, formData: FormData) {
         logoUrl: formData.get('logoUrl'),
         freightCharges: formData.get('freightCharges'),
         courierCharges: formData.get('courierCharges'),
+        showFreight: formData.get('showFreight'),
+        showCourier: formData.get('showCourier'),
         currencyCode: formData.get('currencyCode'),
         currencySymbol: formData.get('currencySymbol'),
         conversionRate: formData.get('conversionRate'),
@@ -830,6 +847,8 @@ export async function updateQuotation(id: string, formData: FormData) {
             client_gst_no: data.client_gst_no || undefined,
             freightCharges: data.freightCharges || undefined,
             courierCharges: data.courierCharges || undefined,
+            showFreight: data.showFreight === true || data.showFreight === 'true',
+            showCourier: data.showCourier === true || data.showCourier === 'true',
             products: parsedProducts,
         });
 

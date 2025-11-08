@@ -5,6 +5,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PlusCircle, Trash2, CalendarIcon, Edit } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,9 @@ const quotationSchema = z.object({
   // Additional charges (numeric or empty)
   freightCharges: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
   courierCharges: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
+  // Flags to show/hide charges in PDF
+  showFreight: z.boolean().optional(),
+  showCourier: z.boolean().optional(),
   // Currency fields
   currencyCode: z.string().nullish(),
   currencySymbol: z.string().nullish(),
@@ -134,6 +138,8 @@ export function EditQuotationDialog({
       logoUrl: quotation.logoUrl || '',
       freightCharges: quotation.freightCharges && !isNaN(Number(quotation.freightCharges)) ? Number(quotation.freightCharges) : '',
       courierCharges: quotation.courierCharges && !isNaN(Number(quotation.courierCharges)) ? Number(quotation.courierCharges) : '',
+      showFreight: quotation.showFreight === true,
+      showCourier: quotation.showCourier === true,
       currencyCode: quotation.currencyCode || undefined,
       currencySymbol: quotation.currencySymbol || undefined,
       conversionRate: quotation.conversionRate || undefined,
@@ -149,6 +155,8 @@ export function EditQuotationDialog({
   const watchedProducts = watch('products');
   const watchedFreightCharges = watch('freightCharges');
   const watchedCourierCharges = watch('courierCharges');
+  const watchedShowFreight = watch('showFreight');
+  const watchedShowCourier = watch('showCourier');
 
   const productTotals = watchedProducts?.map(p => {
     const baseAmount = p.quantity * p.rate;
@@ -479,6 +487,20 @@ export function EditQuotationDialog({
                 <h3 className="text-lg font-medium">Additional Charges</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
+                        <div className="flex items-center space-x-2 mb-2">
+                            <Controller
+                                control={control}
+                                name="showFreight"
+                                render={({ field }) => (
+                                    <Checkbox
+                                        id="showFreight"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                )}
+                            />
+                            <Label htmlFor="showFreight" className="cursor-pointer">Show Freight Charges in Quotation</Label>
+                        </div>
                         <Label htmlFor="freightCharges">Freight Charges</Label>
                         <Input 
                             id="freightCharges" 
@@ -487,10 +509,25 @@ export function EditQuotationDialog({
                             min="0"
                             {...register('freightCharges')} 
                             placeholder="EXTRA"
+                            disabled={!watchedShowFreight}
                         />
                         <p className="text-xs text-muted-foreground">Enter amount in INR or leave empty to show "EXTRA"</p>
                     </div>
                     <div className="space-y-2">
+                        <div className="flex items-center space-x-2 mb-2">
+                            <Controller
+                                control={control}
+                                name="showCourier"
+                                render={({ field }) => (
+                                    <Checkbox
+                                        id="showCourier"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                )}
+                            />
+                            <Label htmlFor="showCourier" className="cursor-pointer">Show Courier Charges in Quotation</Label>
+                        </div>
                         <Label htmlFor="courierCharges">Courier Charges</Label>
                         <Input 
                             id="courierCharges" 
@@ -499,6 +536,7 @@ export function EditQuotationDialog({
                             min="0"
                             {...register('courierCharges')} 
                             placeholder="EXTRA"
+                            disabled={!watchedShowCourier}
                         />
                         <p className="text-xs text-muted-foreground">Enter amount in INR or leave empty to show "EXTRA"</p>
                     </div>
