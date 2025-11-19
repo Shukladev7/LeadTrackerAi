@@ -78,6 +78,8 @@ const quotationSchema = z.object({
   // Flags to show/hide charges in PDF
   showFreight: z.boolean().optional(),
   showCourier: z.boolean().optional(),
+  // GST visibility control
+  showGst: z.boolean().optional(),
   // Currency fields
   currencyCode: z.string().nullish(),
   currencySymbol: z.string().nullish(),
@@ -157,12 +159,13 @@ export function EditQuotationDialog({
   const watchedCourierCharges = watch('courierCharges');
   const watchedShowFreight = watch('showFreight');
   const watchedShowCourier = watch('showCourier');
+  const watchedShowGst = watch('showGst');
 
   const productTotals = watchedProducts?.map(p => {
     const baseAmount = p.quantity * p.rate;
     const discountAmount = baseAmount * ((p.discount || 0) / 100);
     const amount = baseAmount - discountAmount;
-    const gstAmount = amount * (p.gstRate / 100);
+    const gstAmount = watchedShowGst ? amount * (p.gstRate / 100) : 0;
     return { 
       baseAmount, 
       discountAmount, 
@@ -484,7 +487,24 @@ export function EditQuotationDialog({
                 </div>
                 
                 <Separator />
-                <h3 className="text-lg font-medium">Additional Charges</h3>
+                <h3 className="text-lg font-medium">Additional Charges & GST</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Controller
+                            control={control}
+                            name="showGst"
+                            render={({ field }) => (
+                                <Checkbox
+                                    id="showGst"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            )}
+                        />
+                        <Label htmlFor="showGst" className="cursor-pointer font-medium">Include GST in Quotation</Label>
+                        <p className="text-xs text-muted-foreground ml-2">Uncheck to hide GST fields and calculations from form and PDF</p>
+                    </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <div className="flex items-center space-x-2 mb-2">

@@ -82,6 +82,8 @@ const quotationSchema = z.object({
   // Flags to show/hide charges in PDF
   showFreight: z.boolean().optional(),
   showCourier: z.boolean().optional(),
+  // GST visibility control
+  showGst: z.boolean().optional(),
   // Currency fields
   currencyCode: z.string().nullish(),
   currencySymbol: z.string().nullish(),
@@ -126,6 +128,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
       courierCharges: '',
       showFreight: false,
       showCourier: false,
+      showGst: true,
       currencyCode: 'INR',
       currencySymbol: '₹',
       conversionRate: 1.0,
@@ -145,12 +148,13 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   const watchedCourierCharges = watch('courierCharges');
   const watchedShowFreight = watch('showFreight');
   const watchedShowCourier = watch('showCourier');
+  const watchedShowGst = watch('showGst');
 
   const productTotals = watchedProducts?.map(p => {
     const baseAmount = p.quantity * p.rate;
     const discountAmount = baseAmount * ((p.discount || 0) / 100);
     const amount = baseAmount - discountAmount;
-    const gstAmount = amount * (p.gstRate / 100);
+    const gstAmount = watchedShowGst ? amount * (p.gstRate / 100) : 0;
     return { 
       baseAmount, 
       discountAmount, 
@@ -525,7 +529,24 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                 </div>
                 
                 <Separator />
-                <h3 className="text-lg font-medium">Additional Charges</h3>
+                <h3 className="text-lg font-medium">Additional Charges & GST</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Controller
+                            control={control}
+                            name="showGst"
+                            render={({ field }) => (
+                                <Checkbox
+                                    id="showGst"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            )}
+                        />
+                        <Label htmlFor="showGst" className="cursor-pointer font-medium">Include GST in Quotation</Label>
+                        <p className="text-xs text-muted-foreground ml-2">Uncheck to hide GST fields and calculations from form and PDF</p>
+                    </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <div className="flex items-center space-x-2 mb-2">
@@ -596,7 +617,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
                                     <TableHead>Discount %</TableHead>
-                                    <TableHead>GST</TableHead>
+                                    {watchedShowGst && <TableHead>GST</TableHead>}
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
@@ -696,9 +717,11 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
         </TableCell>
 
         {/* GST (read-only display) */}
-        <TableCell>
-          {watchedProducts?.[index]?.gstRate ?? 0}%
-        </TableCell>
+        {watchedShowGst && (
+          <TableCell>
+            {watchedProducts?.[index]?.gstRate ?? 0}%
+          </TableCell>
+        )}
 
         {/* Amount */}
         <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
@@ -715,40 +738,42 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
 
   {fields.length === 0 && (
     <TableRow>
-      <TableCell colSpan={9} className="text-center h-24">No products added.</TableCell>
+      <TableCell colSpan={watchedShowGst ? 9 : 8} className="text-center h-24">No products added.</TableCell>
     </TableRow>
   )}
 </TableBody>
 
 <UiTableFooter>
   <TableRow>
-    <TableCell colSpan={8} className="text-right">Base Amount</TableCell>
+    <TableCell colSpan={watchedShowGst ? 8 : 7} className="text-right">Base Amount</TableCell>
     <TableCell className="text-right">{formatCurrency(totalBaseAmount)}</TableCell>
     <TableCell></TableCell>
   </TableRow>
 
   {totalDiscountAmount > 0 && (
     <TableRow>
-      <TableCell colSpan={8} className="text-right text-green-600">Total Discount</TableCell>
+      <TableCell colSpan={watchedShowGst ? 8 : 7} className="text-right text-green-600">Total Discount</TableCell>
       <TableCell className="text-right text-green-600">-{formatCurrency(totalDiscountAmount)}</TableCell>
       <TableCell></TableCell>
     </TableRow>
   )}
 
   <TableRow>
-    <TableCell colSpan={8} className="text-right">Sub-total</TableCell>
+    <TableCell colSpan={watchedShowGst ? 8 : 7} className="text-right">Sub-total</TableCell>
     <TableCell className="text-right">{formatCurrency(subTotal)}</TableCell>
     <TableCell></TableCell>
   </TableRow>
 
-  <TableRow>
-    <TableCell colSpan={8} className="text-right">Total GST</TableCell>
-    <TableCell className="text-right">{formatCurrency(totalGst)}</TableCell>
-    <TableCell></TableCell>
-  </TableRow>
+  {watchedShowGst && (
+    <TableRow>
+      <TableCell colSpan={8} className="text-right">Total GST</TableCell>
+      <TableCell className="text-right">{formatCurrency(totalGst)}</TableCell>
+      <TableCell></TableCell>
+    </TableRow>
+  )}
 
   <TableRow>
-    <TableCell colSpan={8} className="text-right font-bold text-lg">Grand Total</TableCell>
+    <TableCell colSpan={watchedShowGst ? 8 : 7} className="text-right font-bold text-lg">Grand Total</TableCell>
     <TableCell className="text-right font-bold text-lg">{formatCurrency(grandTotal)}</TableCell>
     <TableCell></TableCell>
   </TableRow>

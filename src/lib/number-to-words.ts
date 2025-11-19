@@ -33,7 +33,64 @@ function convertLessThanOneThousand(num: number): string {
 }
 
 /**
- * Converts a number to words
+ * Converts a number to words using Indian numbering system (lakhs, crores)
+ * @param num - The number to convert
+ * @returns The number in words using Indian system
+ */
+export function numberToWordsIndian(num: number): string {
+  if (num === 0) return 'Zero';
+  
+  // Handle negative numbers
+  if (num < 0) {
+    return 'Minus ' + numberToWordsIndian(Math.abs(num));
+  }
+  
+  // Round to 2 decimal places
+  num = Math.round(num * 100) / 100;
+  
+  // Split into integer and decimal parts
+  const parts = num.toString().split('.');
+  const integerPart = parseInt(parts[0]);
+  const decimalPart = parts[1] ? parseInt(parts[1]) : 0;
+  
+  let result = '';
+  
+  // Handle crores (10,000,000)
+  if (integerPart >= 10000000) {
+    const crores = Math.floor(integerPart / 10000000);
+    result += convertLessThanOneThousand(crores) + ' Crore ';
+  }
+  
+  // Handle lakhs (100,000)
+  const lakhs = Math.floor((integerPart % 10000000) / 100000);
+  if (lakhs > 0) {
+    result += convertLessThanOneThousand(lakhs) + ' Lakh ';
+  }
+  
+  // Handle thousands
+  const thousands = Math.floor((integerPart % 100000) / 1000);
+  if (thousands > 0) {
+    result += convertLessThanOneThousand(thousands) + ' Thousand ';
+  }
+  
+  // Handle hundreds
+  const hundreds = integerPart % 1000;
+  if (hundreds > 0) {
+    result += convertLessThanOneThousand(hundreds);
+  }
+  
+  result = result.trim();
+  
+  // Add decimal part if exists
+  if (decimalPart > 0) {
+    result += ' and ' + convertLessThanOneThousand(decimalPart) + ' Paise';
+  }
+  
+  return result;
+}
+
+/**
+ * Converts a number to words (International system - kept for backward compatibility)
  * @param num - The number to convert
  * @returns The number in words
  */
@@ -105,7 +162,8 @@ export function amountToWords(amount: number, currencyCode: string = 'INR'): str
   const integerPart = parseInt(parts[0]);
   const decimalPart = parts[1] ? parseInt(parts[1]) : 0;
   
-  let result = numberToWords(integerPart);
+  // Use Indian numbering system for INR, international system for others
+  let result = currencyCode === 'INR' ? numberToWordsIndian(integerPart) : numberToWords(integerPart);
   
   // Add currency name
   const currencyNames: Record<string, { major: string; minor: string }> = {
@@ -128,7 +186,8 @@ export function amountToWords(amount: number, currencyCode: string = 'INR'): str
   
   // Add decimal part if exists
   if (decimalPart > 0) {
-    result += ' and ' + numberToWords(decimalPart) + ' ' + currency.minor;
+    const decimalWords = currencyCode === 'INR' ? numberToWordsIndian(decimalPart) : numberToWords(decimalPart);
+    result += ' and ' + decimalWords + ' ' + currency.minor;
   }
   
   return result + ' Only';

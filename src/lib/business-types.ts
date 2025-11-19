@@ -196,6 +196,8 @@ export interface Quotation extends BusinessDocument {
   // Flags to show/hide charges in PDF
   showFreight?: boolean;
   showCourier?: boolean;
+  // GST visibility control
+  showGst?: boolean;
   // Currency fields
   currencyCode?: string; // Selected currency code (default: INR)
   currencySymbol?: string; // Currency symbol for display

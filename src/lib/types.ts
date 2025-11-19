@@ -124,6 +124,8 @@ export type Quotation = {
   // Additional charges
   freightCharges?: string;
   courierCharges?: string;
+  // GST visibility control
+  showGst?: boolean;
   // Currency fields
   currencyCode?: string; // Selected currency code (default: INR)
   currencySymbol?: string; // Currency symbol for display

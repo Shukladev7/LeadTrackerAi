@@ -629,10 +629,12 @@ export function QuotationPreview({
                     <span>Sub-total</span>
                     <span>{formatCurrency(quotation.subTotal)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>Total GST</span>
-                    <span>{formatCurrency(quotation.totalGst)}</span>
-                  </div>
+                  {quotation.showGst === true && (
+                    <div className="flex justify-between text-gray-700">
+                      <span>Total GST</span>
+                      <span>{formatCurrency(quotation.totalGst)}</span>
+                    </div>
+                  )}
                   {quotation.showFreight === true && (
                     <div className="flex justify-between text-gray-700">
                       <span>Freight Charges</span>

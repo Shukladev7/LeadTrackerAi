@@ -715,6 +715,12 @@ const CreateQuotationSchema = z.object({
     if (val === 'false' || val === false) return false;
     return false; // default to false
   }, z.boolean()).optional(),
+  // GST visibility control
+  showGst: z.preprocess((val) => {
+    if (val === 'true' || val === true) return true;
+    if (val === 'false' || val === false) return false;
+    return true; // default to true for backward compatibility
+  }, z.boolean()).optional(),
   // Currency fields
   currencyCode: z.string().optional(),
   currencySymbol: z.string().optional(),
@@ -746,6 +752,7 @@ export async function addQuotation(formData: FormData) {
         courierCharges: formData.get('courierCharges'),
         showFreight: formData.get('showFreight'),
         showCourier: formData.get('showCourier'),
+        showGst: formData.get('showGst'),
         currencyCode: formData.get('currencyCode'),
         currencySymbol: formData.get('currencySymbol'),
         conversionRate: formData.get('conversionRate'),
@@ -821,6 +828,7 @@ export async function updateQuotation(id: string, formData: FormData) {
         courierCharges: formData.get('courierCharges'),
         showFreight: formData.get('showFreight'),
         showCourier: formData.get('showCourier'),
+        showGst: formData.get('showGst'),
         currencyCode: formData.get('currencyCode'),
         currencySymbol: formData.get('currencySymbol'),
         conversionRate: formData.get('conversionRate'),
