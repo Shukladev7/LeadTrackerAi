@@ -62,16 +62,64 @@ export function QuotationCommunicationDialog({
         return null;
       }
 
-      const canvas = await html2canvas(element, {
+      const quotationPdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = quotationPdf.internal.pageSize.getWidth();
+      const pageHeight = quotationPdf.internal.pageSize.getHeight();
+
+      const marginLeft = 10;
+      const marginRight = 10;
+      const marginTop = 10;
+      const marginBottom = 10;
+
+      const contentWidth = pageWidth - marginLeft - marginRight;
+
+      // Separate header and body to allow repeating letterhead on each page
+      const headerElement = element.querySelector('[data-quotation-header="true"]') as HTMLElement | null;
+      const bodyElement = element.querySelector('[data-quotation-body="true"]') as HTMLElement | null || element;
+
+      let headerHeightMm = 0;
+      let headerDataUrl: string | null = null;
+
+      if (headerElement) {
+        const headerCanvas = await html2canvas(headerElement, {
+          scale: 2,
+          useCORS: true,
+        });
+        headerDataUrl = headerCanvas.toDataURL('image/png');
+        headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
+      }
+
+      const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
       });
-      const data = canvas.toDataURL('image/png');
+      const bodyData = bodyCanvas.toDataURL('image/png');
 
-      const quotationPdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = quotationPdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      quotationPdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
+      const pageContentHeight = pageHeight - marginTop - marginBottom - headerHeightMm;
+
+      // Add header + body content across multiple pages if needed
+      let position = 0;
+      let firstPage = true;
+
+      while (position < bodyContentHeight) {
+        if (!firstPage) {
+          quotationPdf.addPage();
+        }
+
+        // Draw repeating letterhead at the top of each page
+        if (headerDataUrl && headerHeightMm > 0) {
+          quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+        }
+
+        const offset = position;
+        const yBody = marginTop + headerHeightMm - offset;
+
+        quotationPdf.addImage(bodyData, 'PNG', marginLeft, yBody, contentWidth, bodyContentHeight);
+
+        position += pageContentHeight;
+        firstPage = false;
+      }
 
       // Get the quotation PDF as array buffer
       const quotationPdfBytes = quotationPdf.output('arraybuffer');

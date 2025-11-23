@@ -70,7 +70,15 @@ export function QuotationPreview({
   const { toast } = useToast();
 
   // Helper function to collect product image link information
-  const collectProductImageLinks = (quotationElement: HTMLElement, canvas: HTMLCanvasElement, pdfWidth: number, pdfHeight: number): LinkInfo[] => {
+  const collectProductImageLinks = (
+    quotationElement: HTMLElement,
+    canvas: HTMLCanvasElement,
+    contentWidthMm: number,
+    contentHeightMm: number,
+    pageContentHeightMm: number,
+    marginLeftMm: number,
+    marginTopMm: number
+  ): LinkInfo[] => {
     const links: LinkInfo[] = [];
     
     try {
@@ -88,7 +96,7 @@ export function QuotationPreview({
       const containerWidth = quotationElement.offsetWidth;
       const containerHeight = quotationElement.offsetHeight;
       
-      // Calculate the scale factor used by html2canvas
+      // Calculate the scale factor used by html2canvas (for debugging)
       const canvasScale = canvas.width / containerWidth;
       
       console.log(`Container: ${containerWidth}x${containerHeight}px, Canvas: ${canvas.width}x${canvas.height}px, Scale: ${canvasScale}`);
@@ -108,25 +116,33 @@ export function QuotationPreview({
         const width = anchorRect.width;
         const height = anchorRect.height;
         
-        // Convert from container pixels to PDF mm
-        // The PDF dimensions are based on the canvas, so we need to account for that
-        const pdfX = (offsetX / containerWidth) * pdfWidth;
-        const pdfY = (offsetY / containerHeight) * pdfHeight;
-        const pdfLinkWidth = (width / containerWidth) * pdfWidth;
-        const pdfLinkHeight = (height / containerHeight) * pdfHeight;
+        // Convert from container pixels to content mm inside the PDF margin box
+        const xInContentMm = (offsetX / containerWidth) * contentWidthMm;
+        const yInContentMm = (offsetY / containerHeight) * contentHeightMm;
+        const linkWidthMm = (width / containerWidth) * contentWidthMm;
+        const linkHeightMm = (height / containerHeight) * contentHeightMm;
+
+        // Only keep links that appear on the first content page
+        if (yInContentMm > pageContentHeightMm) {
+          console.log(`Skipping link ${index} because it is on a subsequent PDF page`);
+          return;
+        }
+
+        const pdfX = marginLeftMm + xInContentMm;
+        const pdfY = marginTopMm + yInContentMm;
         
         console.log(`Link ${index}:`);
         console.log(`  URL: ${anchor.href}`);
         console.log(`  DOM position: x=${offsetX.toFixed(2)}px, y=${offsetY.toFixed(2)}px`);
         console.log(`  DOM size: ${width.toFixed(2)}px x ${height.toFixed(2)}px`);
         console.log(`  PDF position: (${pdfX.toFixed(2)}, ${pdfY.toFixed(2)}) mm`);
-        console.log(`  PDF size: ${pdfLinkWidth.toFixed(2)} x ${pdfLinkHeight.toFixed(2)} mm`);
+        console.log(`  PDF size: ${linkWidthMm.toFixed(2)} x ${linkHeightMm.toFixed(2)} mm`);
         
         links.push({
           x: pdfX,
           y: pdfY,
-          width: pdfLinkWidth,
-          height: pdfLinkHeight,
+          width: linkWidthMm,
+          height: linkHeightMm,
           url: anchor.href,
         });
       });
@@ -144,25 +160,121 @@ export function QuotationPreview({
     const quotationElement = previewRef.current;
     if (!quotationElement) return;
 
+    // Apply compact typography only for PDF rendering
+    quotationElement.classList.add('pdf-compact');
+
     try {
       const { default: jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
       
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      
-      const canvas = await html2canvas(quotationElement, {
-        scale: 2, // Higher scale for better quality
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const marginLeft = 5;
+      const marginRight = 5;
+      const marginTop = 5;
+      const marginBottom = 5;
+
+      const contentWidth = pageWidth - marginLeft - marginRight;
+
+      // Separate header and body to allow repeating letterhead on each page
+      const headerElement = quotationElement.querySelector('[data-quotation-header="true"]') as HTMLElement | null;
+      const bodyElement = quotationElement.querySelector('[data-quotation-body="true"]') as HTMLElement | null || quotationElement;
+
+      let headerHeightMm = 0;
+      let headerDataUrl: string | null = null;
+
+      if (headerElement) {
+        const headerCanvas = await html2canvas(headerElement, {
+          scale: 2,
+          useCORS: true,
+        });
+        headerDataUrl = headerCanvas.toDataURL('image/png');
+        headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
+      }
+
+      const bodyCanvas = await html2canvas(bodyElement, {
+        scale: 2,
         useCORS: true,
       });
-      const data = canvas.toDataURL('image/png');
+      const bodyData = bodyCanvas.toDataURL('image/png');
 
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      // Collect link information AFTER rendering canvas for accurate positions
-      const links = collectProductImageLinks(quotationElement, canvas, pdfWidth, pdfHeight);
+      const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
+      const pageContentHeight = pageHeight - marginTop - marginBottom - headerHeightMm;
 
-      pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Collect link information AFTER rendering canvas for accurate positions (body only)
+      const links = collectProductImageLinks(
+        bodyElement,
+        bodyCanvas,
+        contentWidth,
+        bodyContentHeight,
+        pageContentHeight,
+        marginLeft,
+        marginTop + headerHeightMm
+      );
+
+      // Add header + body content across multiple pages using cropped slices
+      const canvasWidth = bodyCanvas.width;
+      const canvasHeight = bodyCanvas.height;
+      const pxPerMm = canvasHeight / bodyContentHeight;
+
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvasWidth;
+      const sliceContext = sliceCanvas.getContext('2d');
+
+      if (!sliceContext) {
+        // Fallback: single-page render if canvas context is unavailable
+        if (headerDataUrl && headerHeightMm > 0) {
+          pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+        }
+        pdf.addImage(bodyData, 'PNG', marginLeft, marginTop + headerHeightMm, contentWidth, bodyContentHeight);
+      } else {
+        let positionMm = 0;
+        let firstPage = true;
+
+        while (positionMm < bodyContentHeight - 0.1) {
+          if (!firstPage) {
+            pdf.addPage();
+          }
+
+          if (headerDataUrl && headerHeightMm > 0) {
+            pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+          }
+
+          const remainingMm = bodyContentHeight - positionMm;
+          const sliceHeightMm = Math.min(pageContentHeight, remainingMm);
+          const sliceStartPx = positionMm * pxPerMm;
+          const sliceHeightPx = sliceHeightMm * pxPerMm;
+
+          sliceCanvas.height = sliceHeightPx;
+          sliceContext.clearRect(0, 0, canvasWidth, sliceHeightPx);
+          sliceContext.drawImage(
+            bodyCanvas,
+            0,
+            sliceStartPx,
+            canvasWidth,
+            sliceHeightPx,
+            0,
+            0,
+            canvasWidth,
+            sliceHeightPx
+          );
+
+          const sliceDataUrl = sliceCanvas.toDataURL('image/png');
+          pdf.addImage(
+            sliceDataUrl,
+            'PNG',
+            marginLeft,
+            marginTop + headerHeightMm,
+            contentWidth,
+            sliceHeightMm
+          );
+
+          positionMm += sliceHeightMm;
+          firstPage = false;
+        }
+      }
       
       // Add watermark and links (use template/company logo if available) and download
       const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl, links);
@@ -174,6 +286,9 @@ export function QuotationPreview({
         title: 'Error',
         description: 'Failed to generate quotation PDF with watermark',
       });
+    } finally {
+      // Always remove compact class so on-screen preview keeps normal spacing
+      quotationElement.classList.remove('pdf-compact');
     }
   };
 
@@ -189,37 +304,76 @@ export function QuotationPreview({
       const html2canvas = (await import('html2canvas')).default;
       
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      
-      const canvas = await html2canvas(completeElement, {
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const marginLeft = 10;
+      const marginRight = 10;
+      const marginTop = 10;
+      const marginBottom = 10;
+
+      const contentWidth = pageWidth - marginLeft - marginRight;
+
+      // Use the same header/body/export-body separation for complete preview
+      const headerElement = completeElement.querySelector('[data-quotation-header="true"]') as HTMLElement | null;
+      const exportBodyElement = completeElement.querySelector('[data-quotation-export-body="true"]') as HTMLElement | null || completeElement;
+      const bodyElement = completeElement.querySelector('[data-quotation-body="true"]') as HTMLElement | null || exportBodyElement;
+
+      let headerHeightMm = 0;
+      let headerDataUrl: string | null = null;
+
+      if (headerElement) {
+        const headerCanvas = await html2canvas(headerElement, {
+          scale: 1.5,
+          useCORS: true,
+        });
+        headerDataUrl = headerCanvas.toDataURL('image/png');
+        headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
+      }
+
+      const bodyCanvas = await html2canvas(exportBodyElement, {
         scale: 1.5, // Slightly lower scale for large content
         useCORS: true,
-        height: completeElement.scrollHeight,
-        windowHeight: completeElement.scrollHeight,
+        height: exportBodyElement.scrollHeight,
+        windowHeight: exportBodyElement.scrollHeight,
       });
-      const data = canvas.toDataURL('image/png');
+      const bodyData = bodyCanvas.toDataURL('image/png');
 
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
+      const pageContentHeight = pageHeight - marginTop - marginBottom - headerHeightMm;
       
-      // Collect link information AFTER rendering canvas
-      const links = collectProductImageLinks(completeElement, canvas, pdfWidth, imgHeight);
+      // Collect link information AFTER rendering canvas, relative to the body region
+      const links = collectProductImageLinks(
+        bodyElement,
+        bodyCanvas,
+        contentWidth,
+        bodyContentHeight,
+        pageContentHeight,
+        marginLeft,
+        marginTop + headerHeightMm
+      );
 
-      let heightLeft = imgHeight;
+      // Add header + body content across multiple pages if needed
       let position = 0;
-      
-      // Add first page
-      pdf.addImage(data, 'PNG', 0, position, imgWidth, imgHeight);
-      
-      heightLeft -= pdfHeight;
+      let firstPage = true;
 
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(data, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
+      while (position < bodyContentHeight) {
+        if (!firstPage) {
+          pdf.addPage();
+        }
+
+        // Draw repeating letterhead at the top of each page
+        if (headerDataUrl && headerHeightMm > 0) {
+          pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+        }
+
+        const offset = position;
+        const yBody = marginTop + headerHeightMm - offset;
+
+        pdf.addImage(bodyData, 'PNG', marginLeft, yBody, contentWidth, bodyContentHeight);
+
+        position += pageContentHeight;
+        firstPage = false;
       }
 
       // Add watermark and links (use template/company logo if available) and download
@@ -261,19 +415,74 @@ export function QuotationPreview({
       }
 
       const quotationPdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = quotationPdf.internal.pageSize.getWidth();
+      const pageWidth = quotationPdf.internal.pageSize.getWidth();
+      const pageHeight = quotationPdf.internal.pageSize.getHeight();
 
-      const canvas = await html2canvas(element, {
+      const marginLeft = 10;
+      const marginRight = 10;
+      const marginTop = 10;
+      const marginBottom = 10;
+
+      const contentWidth = pageWidth - marginLeft - marginRight;
+
+      // Separate header and body to allow repeating letterhead on each page
+      const headerElement = element.querySelector('[data-quotation-header="true"]') as HTMLElement | null;
+      const bodyElement = element.querySelector('[data-quotation-body="true"]') as HTMLElement | null || element;
+
+      let headerHeightMm = 0;
+      let headerDataUrl: string | null = null;
+
+      if (headerElement) {
+        const headerCanvas = await html2canvas(headerElement, {
+          scale: 2,
+          useCORS: true,
+        });
+        headerDataUrl = headerCanvas.toDataURL('image/png');
+        headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
+      }
+
+      const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
       });
-      const data = canvas.toDataURL('image/png');
+      const bodyData = bodyCanvas.toDataURL('image/png');
 
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
+      const pageContentHeight = pageHeight - marginTop - marginBottom - headerHeightMm;
       
-      // Collect link information AFTER rendering canvas
-      const links = collectProductImageLinks(element, canvas, pdfWidth, pdfHeight);
-      quotationPdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Collect link information AFTER rendering canvas (body only)
+      const links = collectProductImageLinks(
+        bodyElement,
+        bodyCanvas,
+        contentWidth,
+        bodyContentHeight,
+        pageContentHeight,
+        marginLeft,
+        marginTop + headerHeightMm
+      );
+
+      // Add header + body content across multiple pages if needed
+      let position = 0;
+      let firstPage = true;
+
+      while (position < bodyContentHeight) {
+        if (!firstPage) {
+          quotationPdf.addPage();
+        }
+
+        // Draw repeating letterhead at the top of each page
+        if (headerDataUrl && headerHeightMm > 0) {
+          quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+        }
+
+        const offset = position;
+        const yBody = marginTop + headerHeightMm - offset;
+
+        quotationPdf.addImage(bodyData, 'PNG', marginLeft, yBody, contentWidth, bodyContentHeight);
+
+        position += pageContentHeight;
+        firstPage = false;
+      }
 
       // Get the quotation PDF as array buffer
       const quotationPdfBytes = quotationPdf.output('arraybuffer');
@@ -403,6 +612,9 @@ export function QuotationPreview({
           />
         </div>
       </div>
+
+      <div data-quotation-export-body="true">
+
       <div
         ref={previewRef}
         className="relative bg-white p-4 sm:p-8 rounded-lg shadow-lg max-w-4xl mx-auto border text-gray-900"
@@ -421,7 +633,10 @@ export function QuotationPreview({
         
         {/* Content with higher z-index to appear above watermark */}
         <div className="relative z-10">
-        <header className="flex flex-col sm:flex-row justify-between items-start pb-6 border-b-2 border-gray-800 gap-4">
+        <header
+          className="flex flex-col sm:flex-row justify-between items-start pb-4 border-b-2 border-gray-800 gap-3"
+          data-quotation-header="true"
+        >
           <div className="flex items-center gap-4">
             {quotation.logoUrl && (
               <img
@@ -458,7 +673,9 @@ export function QuotationPreview({
           </div>
         </header>
 
-        <section className="grid sm:grid-cols-2 gap-8 my-6 text-sm">
+        <div data-quotation-body="true">
+
+        <section className="grid sm:grid-cols-2 gap-4 my-4 text-sm leading-snug">
           <div>
             <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">
             To
@@ -497,23 +714,23 @@ export function QuotationPreview({
           </div>
         </section>
 
-        <section className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <section className="overflow-x-auto mt-3">
+          <table className="w-full text-left text-sm leading-snug">
             <thead className="bg-gray-800 text-white">
               <tr>
-                <th className="p-3 text-xs font-semibold uppercase tracking-wider">
+                <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider">
                   Product / Service
                 </th>
-                <th className="p-3 text-xs font-semibold uppercase tracking-wider text-center">
+                <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-center">
                   Qty
                 </th>
-                <th className="p-3 text-xs font-semibold uppercase tracking-wider text-right">
+                <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-right">
                   Rate
                 </th>
-                <th className="p-3 text-xs font-semibold uppercase tracking-wider text-center">
+                <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-center">
                   Discount
                 </th>
-                <th className="p-3 text-xs font-semibold uppercase tracking-wider text-right">
+                <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-right">
                   Amount
                 </th>
               </tr>
@@ -526,8 +743,8 @@ export function QuotationPreview({
                   const catName = categoryNameById[catId];
                   rows.push(
                     <tr key={p.productId} className="border-b">
-                  <td className="p-3">
-                    <div className="flex items-start gap-3">
+                  <td className="px-3 py-2">
+                    <div className="flex items-start gap-2">
                       {p.product.productImage && (
                         <a 
                           href={p.product.productImage.url} 
@@ -561,7 +778,7 @@ export function QuotationPreview({
                             lines.push(...extra);
                           }
                           return (
-                            <div className="leading-5">
+                            <div className="leading-snug">
                               {lines.map((text, idx) => (
                                 <p key={`${p.productId}-l-${idx}`} className={idx === 0 ? 'font-semibold tracking-wide' : ''}>
                                   {text}
@@ -581,16 +798,16 @@ export function QuotationPreview({
                       </div>
                     </div>
                   </td>
-                  <td className="p-3 text-center text-gray-700">
+                  <td className="px-3 py-2 text-center text-gray-700">
                     {p.quantity}
                   </td>
-                  <td className="p-3 text-right text-gray-700">
+                  <td className="px-3 py-2 text-right text-gray-700">
                     {formatCurrency(p.rate)}
                   </td>
-                  <td className="p-3 text-center text-gray-700">
+                  <td className="px-3 py-2 text-center text-gray-700">
                     {p.discount ? `${p.discount}%` : '-'}
                   </td>
-                  <td className="p-3 text-right text-gray-800 font-semibold">
+                  <td className="px-3 py-2 text-right text-gray-800 font-semibold">
                     {formatCurrency(p.amount)}
                   </td>
                 </tr>
@@ -602,8 +819,8 @@ export function QuotationPreview({
           </table>
         </section>
 
-        <section className="flex justify-end mt-6">
-          <div className="w-full max-w-xs space-y-2 text-sm">
+        <section className="flex justify-end mt-4">
+          <div className="w-full max-w-xs space-y-1.5 text-sm leading-snug">
             {(() => {
               // Calculate totals including discount breakdown
               const totalBaseAmount = products.reduce((acc, p) => acc + (p.quantity * p.rate), 0);
@@ -657,12 +874,12 @@ export function QuotationPreview({
                       </span>
                     </div>
                   )}
-                  <Separator className="bg-gray-800" />
-                  <div className="flex justify-between text-lg font-bold text-gray-900">
+                  <Separator className="bg-gray-800 my-1" />
+                  <div className="flex justify-between text-base font-bold text-gray-900">
                     <span>Grand Total</span>
                     <span>{formatCurrency(quotation.grandTotal)}</span>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-300">
+                  <div className="mt-2 pt-2 border-t border-gray-300">
                     <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
                       Amount in Words:
                     </p>
@@ -676,7 +893,7 @@ export function QuotationPreview({
           </div>
         </section>
         
-        <footer className="mt-8 pt-6 border-t">
+        <footer className="mt-4 pt-4 border-t">
           <h4 className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2">
             Terms & Conditions
           </h4>
@@ -684,6 +901,7 @@ export function QuotationPreview({
             {quotation.termsAndConditions}
           </p>
         </footer>
+        </div>
         </div> {/* Close content div */}
       </div>
 
@@ -749,6 +967,9 @@ export function QuotationPreview({
           )}
         </div>
       )}
+
+      </div>
+
     </div>
   );
 }

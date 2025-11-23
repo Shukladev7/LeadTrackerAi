@@ -86,3 +86,18 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .pdf-compact {
+    line-height: 1.2;
+  }
+
+  .pdf-compact p,
+  .pdf-compact li,
+  .pdf-compact td,
+  .pdf-compact th {
+    line-height: 1.2;
+    margin-top: 0.1rem;
+    margin-bottom: 0.1rem;
+  }
+}
