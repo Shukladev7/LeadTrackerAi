@@ -37,8 +37,8 @@ import {
   } from '@/components/ui/table';
 import { createLead } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { ALL_STATUSES, Product, LeadSource } from '@/lib/types';
-import { getProducts, getLeadSources } from '@/lib/data';
+import { ALL_STATUSES, Product, LeadSource, ProductCategory } from '@/lib/types';
+import { getProducts, getLeadSources, getProductCategories } from '@/lib/data';
 import { useAuth } from '@/lib/auth-context';
 
 const leadProductSchema = z.object({
@@ -69,6 +69,8 @@ export function CreateLeadDialog() {
   const [open, setOpen] = useState(false);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [rowCategoryFilters, setRowCategoryFilters] = useState<(string | 'ALL')[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -85,6 +87,15 @@ export function CreateLeadDialog() {
     name: 'products',
   });
 
+  useEffect(() => {
+    setRowCategoryFilters((prev) => {
+      const next = [...prev];
+      while (next.length < fields.length) next.push('ALL');
+      if (next.length > fields.length) next.length = fields.length;
+      return next;
+    });
+  }, [fields.length]);
+
   const watchedProducts = watch('products');
 
   const productTotals = watchedProducts?.map(p => {
@@ -100,12 +111,14 @@ export function CreateLeadDialog() {
   useEffect(() => {
     async function fetchData() {
         if (open) {
-            const [fetchedProducts, fetchedLeadSources] = await Promise.all([
+            const [fetchedProducts, fetchedLeadSources, fetchedCategories] = await Promise.all([
                 getProducts(),
                 getLeadSources(),
+                getProductCategories(),
             ]);
             setAvailableProducts(fetchedProducts);
             setLeadSources(fetchedLeadSources);
+            setCategories(fetchedCategories);
         }
     }
     fetchData();
@@ -152,6 +165,12 @@ export function CreateLeadDialog() {
       setValue(`products.${index}.rate`, product.price, { shouldValidate: true });
       setValue(`products.${index}.selectedSku`, undefined); // Reset SKU
     }
+  };
+
+  const getFilteredProductsForRow = (rowIndex: number) => {
+    const filterValue = rowCategoryFilters[rowIndex] || 'ALL';
+    if (filterValue === 'ALL') return availableProducts;
+    return availableProducts.filter(p => p.categoryId === filterValue);
   };
 
   return (
@@ -266,6 +285,7 @@ export function CreateLeadDialog() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[18%]">Category</TableHead>
                                     <TableHead className="w-[20%]">Product</TableHead>
 <TableHead className="w-[15%]">SKU</TableHead>
                                     <TableHead>Qty</TableHead>
@@ -283,6 +303,28 @@ export function CreateLeadDialog() {
                                     return (
                                     <TableRow key={field.id}>
                                         <TableCell>
+                                            <Select
+                                                value={rowCategoryFilters[index] || 'ALL'}
+                                                onValueChange={(v) => {
+                                                    setRowCategoryFilters((prev) => {
+                                                        const next = [...prev];
+                                                        next[index] = v as any;
+                                                        return next;
+                                                    });
+                                                }}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="All" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="ALL">All</SelectItem>
+                                                    {categories.map(category => (
+                                                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell>
                                             <Controller
                                                 control={control}
                                                 name={`products.${index}.productId`}
@@ -295,7 +337,7 @@ export function CreateLeadDialog() {
                                                             <SelectValue placeholder="Select product" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            {availableProducts.map(p => (
+                                                            {getFilteredProductsForRow(index).map(p => (
                                                                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                                                             ))}
                                                         </SelectContent>

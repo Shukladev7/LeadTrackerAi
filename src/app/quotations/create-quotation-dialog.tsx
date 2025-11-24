@@ -197,12 +197,18 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   // Keep per-row category filter state in sync with number of product rows
   useEffect(() => {
     setRowCategoryFilters((prev) => {
+      // If this quotation is based on a selected lead and filters are not yet initialized,
+      // let the lead-based mapping (populateFromLead) set them instead of defaulting to 'ALL'.
+      if (prev.length === 0 && fields.length > 0 && watchedLeadId) {
+        return prev;
+      }
+
       const next = [...prev];
       while (next.length < fields.length) next.push('ALL');
       if (next.length > fields.length) next.length = fields.length;
       return next;
     });
-  }, [fields.length]);
+  }, [fields.length, watchedLeadId]);
 
   useEffect(() => {
     async function populateFromTemplate() {
@@ -247,8 +253,26 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                         };
                     });
                     setValue('products', quotationProducts, { shouldValidate: true });
+
+                    const mappedCategoryFilters = lead.products.map(lp => {
+                        const productDetails = availableProducts.find(ap => ap.id === lp.productId);
+                        if (!productDetails) return 'ALL';
+
+                        // Prefer explicit categoryId on the product
+                        if (productDetails.categoryId) return productDetails.categoryId;
+
+                        // Fallback: try to resolve by category name (e.g., AOD, XYZ)
+                        if (productDetails.category) {
+                            const matchedCategory = categories.find(c => c.name === productDetails.category);
+                            if (matchedCategory?.id) return matchedCategory.id;
+                        }
+
+                        return 'ALL';
+                    });
+                    setRowCategoryFilters(mappedCategoryFilters);
                 } else {
                     setValue('products', [], { shouldValidate: true });
+                    setRowCategoryFilters([]);
                 }
             }
         }
@@ -256,7 +280,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
     if (open) {
         populateFromLead();
     }
-  }, [watchedLeadId, open, availableProducts, setValue]);
+  }, [watchedLeadId, open, availableProducts, categories, setValue]);
 
 
   const onSubmit = async (data: QuotationFormData) => {
