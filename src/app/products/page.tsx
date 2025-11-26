@@ -24,12 +24,28 @@ import { ProductActions } from "./product-actions";
 import { PDFViewer } from "@/components/pdf-viewer";
 import Image from 'next/image';
 import { getProductCategoriesAction } from "@/lib/actions";
+import { ProductsFilters } from "./products-filters";
 
-export default async function ProductsPage() {
-const [products, allCategories] = await Promise.all([
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const [products, allCategories] = await Promise.all([
     getProducts(),
-    getProductCategoriesAction()
+    getProductCategoriesAction(),
   ]);
+
+  const categoryParam =
+    typeof searchParams?.category === "string"
+      ? searchParams.category
+      : Array.isArray(searchParams?.category)
+      ? searchParams?.category[0]
+      : undefined;
+
+  const filteredProducts = categoryParam
+    ? products.filter((product) => product.categoryId === categoryParam)
+    : products;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -40,9 +56,14 @@ const [products, allCategories] = await Promise.all([
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Products {products.length}</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-3xl font-bold tracking-tight">
+            Products {filteredProducts.length}
+          </h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 justify-end">
+          <ProductsFilters categories={allCategories} />
           <ImportProductsDialog />
           <AddProductSheet />
         </div>
@@ -69,7 +90,7 @@ const [products, allCategories] = await Promise.all([
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     {product.productImage ? (
@@ -136,9 +157,11 @@ const [products, allCategories] = await Promise.all([
               ))}
             </TableBody>
           </Table>
-          {products.length === 0 && (
+          {filteredProducts.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
-              You haven't added any products yet.
+              {products.length === 0
+                ? "You haven't added any products yet."
+                : "No products found for the selected category."}
             </div>
           )}
         </CardContent>
