@@ -201,7 +201,43 @@ export function QuotationPreview({
       const bodyData = bodyCanvas.toDataURL('image/png');
 
       const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
-      const pageContentHeight = pageHeight - marginTop - marginBottom - headerHeightMm;
+
+      // Reserve a safe header area on each page (in mm) to ensure no overlap
+      const minHeaderSafeAreaMm = 25;
+      const effectiveHeaderMm = Math.max(headerHeightMm, minHeaderSafeAreaMm);
+
+      // Extra vertical gap between header and body on each page (in mm)
+      const extraTopGapMm = 3;
+
+      // Add header + body content across multiple pages using cropped slices
+      const canvasWidth = bodyCanvas.width;
+      const canvasHeight = bodyCanvas.height;
+
+      // Convert between mm (PDF space) and pixels (canvas space)
+      const pxPerMm = canvasHeight / bodyContentHeight;
+
+      // Usable body height on the page after header and margins
+      const maxUsableBodyMm = pageHeight - marginTop - marginBottom - effectiveHeaderMm - extraTopGapMm;
+
+      // Keep roughly 5 products per page as a baseline estimate
+      const rowsPerPageTarget = 5;
+      const estimatedRowHeightMm = products.length > 0
+        ? bodyContentHeight / (products.length + 2) // +2 to account for totals/other content
+        : bodyContentHeight;
+      const targetBodyHeightMm = rowsPerPageTarget * estimatedRowHeightMm;
+
+      // Also constrain the bottom whitespace to be around 20mm on full pages
+      const desiredBodyHeightMmByBottom = Math.max(0, maxUsableBodyMm - 16);
+
+      // Final per-page body height:
+      // - cannot exceed max usable area
+      // - at least large enough to reduce bottom whitespace to ~70mm
+      // - at least the 5-row estimate so we don't accidentally go smaller
+      const pageBodyHeightMm = Math.min(
+        maxUsableBodyMm,
+        Math.max(targetBodyHeightMm, desiredBodyHeightMmByBottom)
+      );
+      const pageBodyHeightPx = pageBodyHeightMm * pxPerMm;
 
       // Collect link information AFTER rendering canvas for accurate positions (body only)
       const links = collectProductImageLinks(
@@ -209,15 +245,10 @@ export function QuotationPreview({
         bodyCanvas,
         contentWidth,
         bodyContentHeight,
-        pageContentHeight,
+        pageBodyHeightMm,
         marginLeft,
-        marginTop + headerHeightMm
+        marginTop + effectiveHeaderMm + extraTopGapMm
       );
-
-      // Add header + body content across multiple pages using cropped slices
-      const canvasWidth = bodyCanvas.width;
-      const canvasHeight = bodyCanvas.height;
-      const pxPerMm = canvasHeight / bodyContentHeight;
 
       const sliceCanvas = document.createElement('canvas');
       sliceCanvas.width = canvasWidth;
@@ -228,12 +259,19 @@ export function QuotationPreview({
         if (headerDataUrl && headerHeightMm > 0) {
           pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
         }
-        pdf.addImage(bodyData, 'PNG', marginLeft, marginTop + headerHeightMm, contentWidth, bodyContentHeight);
+        pdf.addImage(
+          bodyData,
+          'PNG',
+          marginLeft,
+          marginTop + effectiveHeaderMm + extraTopGapMm,
+          contentWidth,
+          bodyContentHeight
+        );
       } else {
-        let positionMm = 0;
+        let currentYpx = 0;
         let firstPage = true;
 
-        while (positionMm < bodyContentHeight - 0.1) {
+        while (currentYpx < canvasHeight) {
           if (!firstPage) {
             pdf.addPage();
           }
@@ -242,17 +280,15 @@ export function QuotationPreview({
             pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
           }
 
-          const remainingMm = bodyContentHeight - positionMm;
-          const sliceHeightMm = Math.min(pageContentHeight, remainingMm);
-          const sliceStartPx = positionMm * pxPerMm;
-          const sliceHeightPx = sliceHeightMm * pxPerMm;
+          const sliceHeightPx = Math.min(pageBodyHeightPx, canvasHeight - currentYpx);
+          const sliceHeightMm = sliceHeightPx / pxPerMm;
 
           sliceCanvas.height = sliceHeightPx;
           sliceContext.clearRect(0, 0, canvasWidth, sliceHeightPx);
           sliceContext.drawImage(
             bodyCanvas,
             0,
-            sliceStartPx,
+            currentYpx,
             canvasWidth,
             sliceHeightPx,
             0,
@@ -266,12 +302,12 @@ export function QuotationPreview({
             sliceDataUrl,
             'PNG',
             marginLeft,
-            marginTop + headerHeightMm,
+            marginTop + effectiveHeaderMm + extraTopGapMm,
             contentWidth,
             sliceHeightMm
           );
 
-          positionMm += sliceHeightMm;
+          currentYpx += sliceHeightPx;
           firstPage = false;
         }
       }
@@ -800,7 +836,7 @@ export function QuotationPreview({
                   </td>
                   <td className="px-3 py-2 text-center text-gray-700">
                     {p.quantity}
-                    {p.product.uom ? ` ${p.product.uom}` : ''}
+                    {` ${p.product.uom || 'units'}`}
                   </td>
                   <td className="px-3 py-2 text-right text-gray-700">
                     {formatCurrency(p.rate)}
@@ -820,19 +856,32 @@ export function QuotationPreview({
           </table>
         </section>
 
-        <section className="flex justify-end mt-4">
-          <div className="w-full max-w-xs space-y-1.5 text-sm leading-snug">
-            {(() => {
-              // Calculate totals including discount breakdown
-              const totalBaseAmount = products.reduce((acc, p) => acc + (p.quantity * p.rate), 0);
-              const totalDiscountAmount = products.reduce((acc, p) => {
-                const baseAmount = p.quantity * p.rate;
-                return acc + (baseAmount * ((p.discount || 0) / 100));
-              }, 0);
-              const hasDiscounts = totalDiscountAmount > 0;
-              
-              return (
-                <>
+        <section className="flex justify-between mt-4 gap-8">
+          {(() => {
+            // Calculate totals including discount breakdown
+            const totalBaseAmount = products.reduce((acc, p) => acc + (p.quantity * p.rate), 0);
+            const totalDiscountAmount = products.reduce((acc, p) => {
+              const baseAmount = p.quantity * p.rate;
+              return acc + (baseAmount * ((p.discount || 0) / 100));
+            }, 0);
+            const hasDiscounts = totalDiscountAmount > 0;
+
+            return (
+              <>
+                {/* Left column: Amount in Words */}
+                <div className="w-full max-w-sm text-sm flex items-end">
+                  <div className="mt-2 pt-2">
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
+                      Amount in Words:
+                    </p>
+                    <p className="text-sm font-medium text-gray-800">
+                      {amountToWords(convertAmount(quotation.grandTotal), quotation.currencyCode || 'INR')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right column: Numeric totals */}
+                <div className="w-full max-w-xs space-y-1.5 text-sm leading-snug">
                   <div className="flex justify-between text-gray-700">
                     <span>Base Amount</span>
                     <span>{formatCurrency(totalBaseAmount)}</span>
@@ -857,7 +906,7 @@ export function QuotationPreview({
                     <div className="flex justify-between text-gray-700">
                       <span>Freight Charges</span>
                       <span>
-                        {quotation.freightCharges && !isNaN(Number(quotation.freightCharges)) 
+                        {quotation.freightCharges && !isNaN(Number(quotation.freightCharges))
                           ? formatCurrency(Number(quotation.freightCharges))
                           : <span className="text-blue-600 font-medium">EXTRA</span>
                         }
@@ -880,18 +929,10 @@ export function QuotationPreview({
                     <span>Grand Total</span>
                     <span>{formatCurrency(quotation.grandTotal)}</span>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-gray-300">
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                      Amount in Words:
-                    </p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {amountToWords(convertAmount(quotation.grandTotal), quotation.currencyCode || 'INR')}
-                    </p>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
+                </div>
+              </>
+            );
+          })()}
         </section>
         
         <footer className="mt-4 pt-4 border-t">

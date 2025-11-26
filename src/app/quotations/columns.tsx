@@ -20,6 +20,7 @@ import type { Quotation } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { deleteQuotationAction } from '@/lib/actions';
 import { EditQuotationDialog } from './edit-quotation-dialog';
+import { UpdateQuotationStatusDialog } from './update-quotation-status-dialog';
 
 type PopulatedQuotation = Quotation & { leadName: string; leadCompany: string };
 
@@ -55,6 +56,7 @@ const statusStyles: Record<string, string> = {
 
 function QuotationActions({ quotation }: { quotation: PopulatedQuotation }) {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
 
     const handleDelete = async () => {
       if (confirm(`Are you sure you want to delete quotation "${quotation.quotationNumber}"? This action cannot be undone.`)) {
@@ -74,6 +76,11 @@ function QuotationActions({ quotation }: { quotation: PopulatedQuotation }) {
             window.location.reload();
           }} 
         />
+        <UpdateQuotationStatusDialog
+          quotation={quotation}
+          open={isStatusDialogOpen}
+          onOpenChange={setIsStatusDialogOpen}
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -89,6 +96,10 @@ function QuotationActions({ quotation }: { quotation: PopulatedQuotation }) {
                 <Eye className="mr-2 h-4 w-4" />
                 View/Download
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setIsStatusDialogOpen(true)}>
+              <FileText className="mr-2 h-4 w-4" />
+              Update Status
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
                 <Edit className="mr-2 h-4 w-4" />

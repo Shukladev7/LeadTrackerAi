@@ -58,7 +58,7 @@ export function AddProductSheet() {
       skus: [],
       categoryId: undefined,
       description: '',
-      uom: '',
+      uom: 'units',
     },
   });
   

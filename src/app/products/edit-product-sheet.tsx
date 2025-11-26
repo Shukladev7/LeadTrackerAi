@@ -77,6 +77,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
         skus: product.skus?.map(sku => ({ value: sku })) || [],
         categoryId: product.categoryId,
         description: (product as any).description || '',
+        uom: (product as any).uom || 'units',
       });
       setSelectedCategoryId(product.categoryId);
       // Reset local PDF and image state flags whenever the sheet is (re)opened

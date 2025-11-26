@@ -66,10 +66,10 @@ export function QuotationCommunicationDialog({
       const pageWidth = quotationPdf.internal.pageSize.getWidth();
       const pageHeight = quotationPdf.internal.pageSize.getHeight();
 
-      const marginLeft = 10;
-      const marginRight = 10;
-      const marginTop = 10;
-      const marginBottom = 10;
+      const marginLeft = 5;
+      const marginRight = 5;
+      const marginTop = 5;
+      const marginBottom = 5;
 
       const contentWidth = pageWidth - marginLeft - marginRight;
 
@@ -96,13 +96,45 @@ export function QuotationCommunicationDialog({
       const bodyData = bodyCanvas.toDataURL('image/png');
 
       const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
-      const pageContentHeight = pageHeight - marginTop - marginBottom - headerHeightMm;
 
-      // Add header + body content across multiple pages if needed
-      let position = 0;
+      // Reserve a safe header area on each page (in mm) to ensure no overlap
+      const minHeaderSafeAreaMm = 25;
+      const effectiveHeaderMm = Math.max(headerHeightMm, minHeaderSafeAreaMm);
+
+      // Extra vertical gap between header and body on each page (in mm)
+      const extraTopGapMm = 3;
+
+      // Convert between mm (PDF space) and pixels (canvas space)
+      const pxPerMm = bodyCanvas.height / bodyContentHeight;
+
+      // Usable body height on the page after header and margins
+      const maxUsableBodyMm = pageHeight - marginTop - marginBottom - effectiveHeaderMm - extraTopGapMm;
+
+      // Keep roughly 5 products per page as a baseline estimate
+      const rowsPerPageTarget = 5;
+      const estimatedRowHeightMm = products.length > 0
+        ? bodyContentHeight / (products.length + 2) // +2 to account for totals/other content
+        : bodyContentHeight;
+      const targetBodyHeightMm = rowsPerPageTarget * estimatedRowHeightMm;
+
+      // Also constrain the bottom whitespace to be around 20mm on full pages
+      const desiredBodyHeightMmByBottom = Math.max(0, maxUsableBodyMm - 16);
+
+      // Final per-page body height:
+      // - cannot exceed max usable area
+      // - at least large enough to reduce bottom whitespace to ~70mm
+      // - at least the 5-row estimate so we don't accidentally go smaller
+      const pageBodyHeightMm = Math.min(
+        maxUsableBodyMm,
+        Math.max(targetBodyHeightMm, desiredBodyHeightMmByBottom)
+      );
+      const pageBodyHeightPx = pageBodyHeightMm * pxPerMm;
+
+      // Add header + body content across multiple pages by slicing the body image
+      let currentYpx = 0;
       let firstPage = true;
 
-      while (position < bodyContentHeight) {
+      while (currentYpx < bodyCanvas.height) {
         if (!firstPage) {
           quotationPdf.addPage();
         }
@@ -112,12 +144,44 @@ export function QuotationCommunicationDialog({
           quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
         }
 
-        const offset = position;
-        const yBody = marginTop + headerHeightMm - offset;
+        const sliceHeightPx = Math.min(pageBodyHeightPx, bodyCanvas.height - currentYpx);
+        const sliceHeightMm = sliceHeightPx / pxPerMm;
 
-        quotationPdf.addImage(bodyData, 'PNG', marginLeft, yBody, contentWidth, bodyContentHeight);
+        // Create a temporary canvas for this page slice
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = bodyCanvas.width;
+        pageCanvas.height = sliceHeightPx;
+        const pageCtx = pageCanvas.getContext('2d');
 
-        position += pageContentHeight;
+        if (!pageCtx) {
+          break;
+        }
+
+        pageCtx.drawImage(
+          bodyCanvas,
+          0,
+          currentYpx,
+          bodyCanvas.width,
+          sliceHeightPx,
+          0,
+          0,
+          bodyCanvas.width,
+          sliceHeightPx
+        );
+
+        const pageData = pageCanvas.toDataURL('image/png');
+
+        // Draw this slice just below the header area
+        quotationPdf.addImage(
+          pageData,
+          'PNG',
+          marginLeft,
+          marginTop + effectiveHeaderMm + extraTopGapMm,
+          contentWidth,
+          sliceHeightMm
+        );
+
+        currentYpx += sliceHeightPx;
         firstPage = false;
       }
 
@@ -169,7 +233,8 @@ const productTitle = `Product Catalog: ${productItem.product.name}`;
 
       // Generate the merged PDF blob
       const mergedPdfBytes = await mergedPdf.save();
-      const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+      // Use underlying ArrayBuffer (casted) to avoid TS issues with Uint8Array-as-BlobPart
+      const blob = new Blob([mergedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       
       return blob;
     } catch (error) {

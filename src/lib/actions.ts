@@ -880,6 +880,24 @@ export async function updateQuotation(id: string, formData: FormData) {
   return { message: 'Successfully updated quotation.' };
 }
 
+// Lightweight status-only update for quotations
+export async function updateQuotationStatusAction(quotationId: string, status: string) {
+  try {
+    if (!quotationId) {
+      return { message: 'Error: Quotation ID is missing.' };
+    }
+
+    await dbUpdateQuotation(quotationId, { status });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return { message: `Database Error: Failed to update quotation status. ${message}` };
+  }
+
+  revalidatePath('/quotations');
+  revalidatePath(`/quotations/${quotationId}`);
+  return { message: 'Successfully updated quotation status.' };
+}
+
 // Quotation Status setup actions
 
 const AddQuotationStatusSchema = z.object({
