@@ -10,7 +10,8 @@ import {
   employeeRolesService,
   leadSourcesService,
   productCategoriesService,
-  quotationTemplatesService
+  quotationTemplatesService,
+  quotationStatusesService,
 } from './business-services';
 import { 
   Employee, 
@@ -22,7 +23,8 @@ import {
   EmployeeRole,
   LeadSource,
   ProductCategory,
-  LeadActivity
+  LeadActivity,
+  QuotationStatusConfig,
 } from './business-types';
 import { Timestamp } from 'firebase/firestore';
 
@@ -350,6 +352,31 @@ export const addLeadSource = async (name: string): Promise<LeadSource> => {
 
 export const deleteLeadSource = async (id: string): Promise<{ success: boolean }> => {
   await leadSourcesService.delete(id);
+  return { success: true };
+};
+
+// Quotation Status functions
+export const getQuotationStatuses = async (): Promise<QuotationStatusConfig[]> => {
+  const statuses = await quotationStatusesService.getAll();
+  return statuses.map(status => convertFirestoreDocToPlain(status));
+};
+
+export const addQuotationStatus = async (name: string): Promise<QuotationStatusConfig> => {
+  const id = await quotationStatusesService.create({
+    name,
+    isActive: true,
+  });
+
+  const newStatus = await quotationStatusesService.getById(id);
+  if (!newStatus) {
+    throw new Error('Failed to create quotation status');
+  }
+
+  return convertFirestoreDocToPlain(newStatus);
+};
+
+export const deleteQuotationStatus = async (id: string): Promise<{ success: boolean }> => {
+  await quotationStatusesService.delete(id);
   return { success: true };
 };
 

@@ -64,7 +64,8 @@ const quotationSchema = z.object({
   templateId: z.string().min(1, 'A template must be selected'),
   date: z.date(),
   validUntil: z.date(),
-  status: z.enum(['Draft', 'Sent', 'Accepted', 'Rejected'] as const),
+  // Allow custom statuses; UI will constrain to configured list
+  status: z.string().min(1, 'Status is required'),
   products: z.array(quotationProductSchema).min(1, 'At least one product is required'),
   // Overridable template fields
   companyName: z.string().min(1, 'Company name is required.'),
@@ -99,7 +100,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 };
 
-export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: string }) {
+export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses }: { leadId?: string; quotationStatuses?: string[] }) {
   const [open, setOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
@@ -109,13 +110,15 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
   const [rowCategoryFilters, setRowCategoryFilters] = useState<(string | 'ALL')[]>([]);
   const { toast } = useToast();
 
+  const availableStatuses = (quotationStatuses && quotationStatuses.length ? quotationStatuses : ALL_QUOTATION_STATUSES);
+
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<QuotationFormData>({
     resolver: zodResolver(quotationSchema),
     defaultValues: {
       leadId: initialLeadId || undefined,
       date: new Date(),
       validUntil: new Date(new Date().setDate(new Date().getDate() + 15)), // Default validity: 15 days
-      status: 'Draft',
+      status: availableStatuses[0] || 'Draft',
       products: [],
       companyName: '',
       companyAddress: '',
@@ -464,7 +467,9 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="Set status" /></SelectTrigger>
                                     <SelectContent>
-                                        {ALL_QUOTATION_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                        {(availableStatuses || ALL_QUOTATION_STATUSES).map((s) => (
+                                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             )}
@@ -649,6 +654,10 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
                             <TableBody>
   {fields.map((field, index) => {
     const { total } = productTotals[index] || { total: 0 };
+    const currentProductId = watchedProducts?.[index]?.productId;
+    const productDetails = currentProductId
+      ? availableProducts.find(p => p.id === currentProductId)
+      : undefined;
     return (
       <TableRow key={field.id}>
         <TableCell>
@@ -708,12 +717,17 @@ export function CreateQuotationDialog({ leadId: initialLeadId }: { leadId?: stri
 
         {/* Quantity */}
         <TableCell>
-          <Input
-            type="number"
-            {...register(`products.${index}.quantity`, { valueAsNumber: true })}
-            min="1"
-            className="w-20"
-          />
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              {...register(`products.${index}.quantity`, { valueAsNumber: true })}
+              min="1"
+              className="w-20"
+            />
+            <span className="text-xs text-muted-foreground">
+              {productDetails?.uom || 'units'}
+            </span>
+          </div>
         </TableCell>
 
         {/* RATE (was missing) */}

@@ -800,6 +800,7 @@ export function QuotationPreview({
                   </td>
                   <td className="px-3 py-2 text-center text-gray-700">
                     {p.quantity}
+                    {p.product.uom ? ` ${p.product.uom}` : ''}
                   </td>
                   <td className="px-3 py-2 text-right text-gray-700">
                     {formatCurrency(p.rate)}

@@ -32,6 +32,7 @@ export type Product = {
   gstRate: number;
   categoryId?: string;
   description?: string;
+  uom?: string;
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { summarizeMeetingNotes } from '@/ai/flows/summarize-meeting-notes';
-import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductCategory as dbAddProductCategory, deleteProductCategory as dbDeleteProductCategory, getProductCategories, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount, updateProductCategory as dbUpdateProductCategory } from './data';
+import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductCategory as dbAddProductCategory, deleteProductCategory as dbDeleteProductCategory, getProductCategories, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount, updateProductCategory as dbUpdateProductCategory, addQuotationStatus as dbAddQuotationStatus, deleteQuotationStatus as dbDeleteQuotationStatus } from './data';
 import { deletePDFFromStorage, deleteImageFromStorage, uploadImageToStorage } from './storage-utils';
 import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, QuotationTemplate } from './types';
 import type { Employee } from './business-types';
@@ -241,6 +241,7 @@ const ProductSchema = z.object({
     gstRate: z.coerce.number().min(0).max(100),
     categoryId: z.string().optional(),
     description: z.string().optional(),
+    uom: z.string().optional(),
     skus: z.array(z.string()).optional(),
     catalogueUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
     cataloguePdf: z.object({
@@ -275,6 +276,7 @@ export async function addProduct(formData: FormData) {
     gstRate: formData.get('gstRate'),
     categoryId: formData.get('categoryId'),
     description: formData.get('description') || undefined,
+    uom: formData.get('uom') || undefined,
     skus: skus,
     catalogueUrl: formData.get('catalogueUrl') || '',
     cataloguePdf: catalogPdf,
@@ -351,6 +353,7 @@ export async function updateProduct(id: string, formData: FormData) {
       gstRate: formData.get('gstRate'),
       categoryId: formData.get('categoryId'),
       description: formData.get('description') || undefined,
+      uom: formData.get('uom') || undefined,
       skus: skus,
       catalogueUrl: formData.get('catalogueUrl') || '',
       cataloguePdf: catalogPdf,
@@ -686,7 +689,8 @@ const CreateQuotationSchema = z.object({
   templateId: z.string().min(1),
   date: z.string(),
   validUntil: z.string(),
-  status: z.enum(['Draft', 'Sent', 'Accepted', 'Rejected']),
+  // Allow custom statuses defined from Setup; UI will constrain values
+  status: z.string().min(1),
   products: z.string(), // JSON string
   subTotal: z.coerce.number(),
   totalGst: z.coerce.number(),
@@ -806,75 +810,116 @@ export async function addQuotation(formData: FormData) {
 }
 
 export async function updateQuotation(id: string, formData: FormData) {
-    const validatedFields = CreateQuotationSchema.safeParse({
-        leadId: formData.get('leadId'),
-        templateId: formData.get('templateId'),
-        date: formData.get('date'),
-        validUntil: formData.get('validUntil'),
-        status: formData.get('status'),
-        products: formData.get('products'),
-        subTotal: formData.get('subTotal'),
-        totalGst: formData.get('totalGst'),
-        grandTotal: formData.get('grandTotal'),
-        quotationPrefix: formData.get('quotationPrefix') || '',
-        companyName: formData.get('companyName'),
-        companyAddress: formData.get('companyAddress'),
-        companyGst: formData.get('companyGst'),
-        client_address: formData.get('client_address'),
-        client_gst_no: formData.get('client_gst_no'),
-        termsAndConditions: formData.get('termsAndConditions'),
-        logoUrl: formData.get('logoUrl'),
-        freightCharges: formData.get('freightCharges'),
-        courierCharges: formData.get('courierCharges'),
-        showFreight: formData.get('showFreight'),
-        showCourier: formData.get('showCourier'),
-        showGst: formData.get('showGst'),
-        currencyCode: formData.get('currencyCode'),
-        currencySymbol: formData.get('currencySymbol'),
-        conversionRate: formData.get('conversionRate'),
-      });
-    
-      if (!validatedFields.success) {
-        console.error(validatedFields.error.flatten().fieldErrors);
-        return {
-          errors: validatedFields.error.flatten().fieldErrors,
-          message: 'Validation Error: Failed to update quotation.',
-        };
-      }
-      
-      try {
-        const data = validatedFields.data;
-        const parsedProducts = JSON.parse(data.products);
-        
-        // Clean up null values - convert to undefined for Firestore
-        await dbUpdateQuotation(id, {
-            ...data,
-            logoUrl: data.logoUrl || undefined,
-            companyGst: data.companyGst || undefined,
-            client_address: data.client_address || undefined,
-            client_gst_no: data.client_gst_no || undefined,
-            freightCharges: data.freightCharges || undefined,
-            courierCharges: data.courierCharges || undefined,
-            showFreight: data.showFreight === true || data.showFreight === 'true',
-            showCourier: data.showCourier === true || data.showCourier === 'true',
-            products: parsedProducts,
-        });
+  const validatedFields = CreateQuotationSchema.safeParse({
+    leadId: formData.get('leadId'),
+    templateId: formData.get('templateId'),
+    date: formData.get('date'),
+    validUntil: formData.get('validUntil'),
+    status: formData.get('status'),
+    products: formData.get('products'),
+    subTotal: formData.get('subTotal'),
+    totalGst: formData.get('totalGst'),
+    grandTotal: formData.get('grandTotal'),
+    quotationPrefix: formData.get('quotationPrefix') || '',
+    companyName: formData.get('companyName'),
+    companyAddress: formData.get('companyAddress'),
+    companyGst: formData.get('companyGst'),
+    client_address: formData.get('client_address'),
+    client_gst_no: formData.get('client_gst_no'),
+    termsAndConditions: formData.get('termsAndConditions'),
+    logoUrl: formData.get('logoUrl'),
+    freightCharges: formData.get('freightCharges'),
+    courierCharges: formData.get('courierCharges'),
+    showFreight: formData.get('showFreight'),
+    showCourier: formData.get('showCourier'),
+    showGst: formData.get('showGst'),
+    currencyCode: formData.get('currencyCode'),
+    currencySymbol: formData.get('currencySymbol'),
+    conversionRate: formData.get('conversionRate'),
+  });
 
-        // Log activity on the lead
-        await addActivityToLead(data.leadId, {
-            type: 'Revision Request',
-            notes: `Quotation was updated.`
-        });
+  if (!validatedFields.success) {
+    console.error(validatedFields.error.flatten().fieldErrors);
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation Error: Failed to update quotation.',
+    };
+  }
 
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unknown error occurred';
-        return { message: `Database Error: Failed to Update Quotation. ${message}` };
-      }
+  try {
+    const data = validatedFields.data;
+    const parsedProducts = JSON.parse(data.products);
 
-    revalidatePath('/quotations');
-    revalidatePath(`/quotations/${id}`);
-    revalidatePath(`/leads/${validatedFields.data.leadId}`);
-    return { message: 'Successfully updated quotation.' };
+    // Clean up null values - convert to undefined for Firestore
+    await dbUpdateQuotation(id, {
+      ...data,
+      logoUrl: data.logoUrl || undefined,
+      companyGst: data.companyGst || undefined,
+      client_address: data.client_address || undefined,
+      client_gst_no: data.client_gst_no || undefined,
+      freightCharges: data.freightCharges || undefined,
+      courierCharges: data.courierCharges || undefined,
+      showFreight: data.showFreight === true || data.showFreight === 'true',
+      showCourier: data.showCourier === true || data.showCourier === 'true',
+      products: parsedProducts,
+    });
+
+    // Log activity on the lead
+    await addActivityToLead(data.leadId, {
+      type: 'Revision Request',
+      notes: `Quotation was updated.`,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return { message: `Database Error: Failed to Update Quotation. ${message}` };
+  }
+
+  revalidatePath('/quotations');
+  revalidatePath(`/quotations/${id}`);
+  revalidatePath(`/leads/${validatedFields.data.leadId}`);
+  return { message: 'Successfully updated quotation.' };
+}
+
+// Quotation Status setup actions
+
+const AddQuotationStatusSchema = z.object({
+  name: z.string().min(2, 'Status name must be at least 2 characters'),
+});
+
+export async function addQuotationStatusAction(formData: FormData) {
+  const validatedFields = AddQuotationStatusSchema.safeParse({
+    name: formData.get('name'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      message:
+        validatedFields.error.flatten().fieldErrors.name?.[0] ??
+        'Invalid status name',
+    };
+  }
+
+  try {
+    await dbAddQuotationStatus(validatedFields.data.name);
+  } catch (error) {
+    return { message: 'Database Error: Failed to add quotation status.' };
+  }
+
+  revalidatePath('/setup');
+  revalidatePath('/quotations');
+  return { message: `Successfully added '${validatedFields.data.name}'.` };
+}
+
+export async function deleteQuotationStatusAction(id: string) {
+  try {
+    await dbDeleteQuotationStatus(id);
+  } catch (error) {
+    return { message: 'Database Error: Failed to delete quotation status.' };
+  }
+
+  revalidatePath('/setup');
+  revalidatePath('/quotations');
+  return { message: 'Successfully deleted quotation status.' };
 }
 
 export async function deleteQuotationAction(quotationId: string) {

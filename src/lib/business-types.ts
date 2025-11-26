@@ -51,6 +51,14 @@ export interface LeadSource extends BusinessDocument {
   conversionRate?: number;
 }
 
+// Quotation Status configuration (for custom statuses managed from Setup)
+export interface QuotationStatusConfig extends BusinessDocument {
+  name: string;
+  color?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
 // Product Category interface
 export interface ProductCategory extends BusinessDocument {
   name: string;
@@ -65,6 +73,7 @@ export interface Product extends BusinessDocument {
   gstRate: number;
   categoryId?: string;
   description?: string;
+  uom?: string;
   skus?: string[];
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
@@ -383,11 +392,12 @@ export const COLLECTIONS = {
   DEPARTMENTS: 'departments',
   EMPLOYEE_ROLES: 'employeeRoles',
   LEAD_SOURCES: 'leadSources',
-PRODUCT_CATEGORIES: 'productModels',
+  PRODUCT_CATEGORIES: 'productModels',
   PRODUCTS: 'products',
   LEADS: 'leads',
   QUOTATIONS: 'quotations',
   QUOTATION_TEMPLATES: 'quotationTemplates',
+  QUOTATION_STATUSES: 'quotationStatuses',
   CUSTOMERS: 'customers',
   ORDERS: 'orders',
   INVOICES: 'invoices',

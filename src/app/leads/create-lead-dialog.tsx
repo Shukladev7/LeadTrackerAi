@@ -368,7 +368,12 @@ export function CreateLeadDialog() {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" />
+                                            <div className="flex items-center gap-1">
+                                                <Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" />
+                                                <span className="text-xs text-muted-foreground">
+                                                    {productDetails?.uom || 'units'}
+                                                </span>
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             <Input type="number" {...register(`products.${index}.rate`)} min="0" className="w-24" />

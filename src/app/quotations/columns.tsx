@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import type { Quotation, QuotationStatus } from '@/lib/types';
+import type { Quotation } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { deleteQuotationAction } from '@/lib/actions';
 import { EditQuotationDialog } from './edit-quotation-dialog';
@@ -46,7 +46,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 };
 
-const statusStyles: Record<QuotationStatus, string> = {
+const statusStyles: Record<string, string> = {
     'Draft': 'bg-gray-100 text-gray-800 border-gray-200',
     'Sent': 'bg-blue-100 text-blue-800 border-blue-200',
     'Accepted': 'bg-green-100 text-green-800 border-green-200',
@@ -131,7 +131,12 @@ export const columns: ColumnDef<PopulatedQuotation>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => <Badge variant="outline" className={statusStyles[row.original.status]}>{row.original.status}</Badge>,
+    cell: ({ row }) => {
+      const cls = statusStyles[row.original.status] || 'bg-gray-100 text-gray-800 border-gray-200';
+      return (
+        <Badge variant="outline" className={cls}>{row.original.status}</Badge>
+      );
+    },
   },
   {
     accessorKey: 'date',

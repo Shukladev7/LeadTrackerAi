@@ -35,6 +35,7 @@ const productSchema = z.object({
   gstRate: z.coerce.number().min(0, { message: 'GST rate must be a positive number.' }).max(100, { message: 'GST rate cannot exceed 100.' }),
   categoryId: z.string().optional(),
   description: z.string().optional(),
+  uom: z.string().optional(),
   skus: z.array(z.object({ value: z.string().min(1, "SKU cannot be empty.") })).optional(),
 });
 
@@ -217,6 +218,10 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
         <div>
           <Label htmlFor="description">Description</Label>
           <Textarea id="description" rows={3} placeholder="Optional product description" {...register('description')} />
+        </div>
+        <div>
+          <Label htmlFor="uom">Unit of Measurement (UOM)</Label>
+          <Input id="uom" placeholder="e.g. pcs, kg, meter" {...register('uom')} />
         </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

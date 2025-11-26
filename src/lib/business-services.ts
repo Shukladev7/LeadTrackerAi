@@ -17,6 +17,7 @@ import {
   CompanySettings,
   Notification,
   ActivityLog,
+  QuotationStatusConfig,
   COLLECTIONS
 } from './business-types';
 
@@ -25,6 +26,7 @@ export const employeesService = new FirestoreService<Employee>(COLLECTIONS.EMPLO
 export const departmentsService = new FirestoreService<Department>(COLLECTIONS.DEPARTMENTS);
 export const employeeRolesService = new FirestoreService<EmployeeRole>(COLLECTIONS.EMPLOYEE_ROLES);
 export const leadSourcesService = new FirestoreService<LeadSource>(COLLECTIONS.LEAD_SOURCES);
+export const quotationStatusesService = new FirestoreService<QuotationStatusConfig>(COLLECTIONS.QUOTATION_STATUSES);
 export const productCategoriesService = new FirestoreService<ProductCategory>(COLLECTIONS.PRODUCT_CATEGORIES);
 export const productsService = new FirestoreService<Product>(COLLECTIONS.PRODUCTS);
 export const leadsService = new FirestoreService<Lead>(COLLECTIONS.LEADS);

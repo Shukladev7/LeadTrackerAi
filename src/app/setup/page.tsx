@@ -11,18 +11,19 @@ import {
   import { PlusCircle, Trash2, FileText, Building2, Box, DollarSign } from "lucide-react";
 import { ALL_STATUSES } from "@/lib/types";
 import { StatusBadge } from "@/components/status-badge";
-import { getLeadSources, getEmployeeRoles, getDepartments, getProductCategories } from "@/lib/data";
-import { addLeadSourceAction, deleteLeadSourceAction, addProductCategoryAction, deleteProductCategoryAction, addEmployeeRoleAction, deleteEmployeeRoleAction, addDepartmentAction, deleteDepartmentAction } from "@/lib/actions";
+import { getLeadSources, getEmployeeRoles, getDepartments, getProductCategories, getQuotationStatuses } from "@/lib/data";
+import { addLeadSourceAction, deleteLeadSourceAction, addProductCategoryAction, deleteProductCategoryAction, addEmployeeRoleAction, deleteEmployeeRoleAction, addDepartmentAction, deleteDepartmentAction, addQuotationStatusAction, deleteQuotationStatusAction } from "@/lib/actions";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
   
 export default async function SetupPage() {
-    const [leadSources, employeeRoles, departments, productCategories] = await Promise.all([
+    const [leadSources, employeeRoles, departments, productCategories, quotationStatuses] = await Promise.all([
         getLeadSources(),
         getEmployeeRoles(),
         getDepartments(),
         getProductCategories(),
+        getQuotationStatuses(),
     ]);
   
     return (
@@ -73,6 +74,47 @@ export default async function SetupPage() {
                 <CardFooter className="border-t pt-6">
                     <form className="flex w-full items-center gap-2">
                         <Input placeholder="Add new status" />
+                        <Button type="submit">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add Status
+                        </Button>
+                    </form>
+                </CardFooter>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Quotation Statuses</CardTitle>
+                    <CardDescription>Manage the statuses available for quotations. These are used in quotation creation, editing, and filters.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        {quotationStatuses.map((status) => (
+                            <div key={status.id} className="flex items-center justify-between p-2 rounded-md bg-secondary">
+                                <Badge variant="secondary">{status.name}</Badge>
+                                <form
+                                    action={async () => {
+                                        "use server";
+                                        if (!status.id) return;
+                                        await deleteQuotationStatusAction(status.id);
+                                    }}
+                                >
+                                    <Button
+                                        type="submit"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </form>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+                <CardFooter className="border-t pt-6">
+                    <form action={addQuotationStatusAction} className="flex w-full items-center gap-2">
+                        <Input name="name" placeholder="Add new quotation status" />
                         <Button type="submit">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add Status

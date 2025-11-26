@@ -63,7 +63,8 @@ const quotationSchema = z.object({
   templateId: z.string().min(1, 'A template must be selected'),
   date: z.date(),
   validUntil: z.date(),
-  status: z.enum(['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired'] as const),
+  // Allow custom statuses; UI will constrain to configured list
+  status: z.string().min(1, 'Status is required'),
   products: z.array(quotationProductSchema).min(1, 'At least one product is required'),
   companyName: z.string().min(1, 'Company name is required.'),
   companyAddress: z.string().min(1, 'Company address is required.'),
@@ -101,6 +102,7 @@ interface EditQuotationDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
+  quotationStatuses?: string[];
 }
 
 export function EditQuotationDialog({ 
@@ -108,7 +110,8 @@ export function EditQuotationDialog({
   onQuotationUpdated, 
   open: externalOpen, 
   onOpenChange: externalOnOpenChange,
-  trigger 
+  trigger,
+  quotationStatuses,
 }: EditQuotationDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   
@@ -121,6 +124,8 @@ export function EditQuotationDialog({
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [rowCategoryFilters, setRowCategoryFilters] = useState<(string | 'ALL')[]>([]);
   const { toast } = useToast();
+
+  const availableStatuses = (quotationStatuses && quotationStatuses.length ? quotationStatuses : ALL_QUOTATION_STATUSES);
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<QuotationFormData>({
     resolver: zodResolver(quotationSchema),
@@ -430,8 +435,10 @@ export function EditQuotationDialog({
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="Set status" /></SelectTrigger>
                                     <SelectContent>
-                                        {ALL_QUOTATION_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                    </SelectContent>
+                                    {availableStatuses.map((s) => (
+                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                </SelectContent>
                                 </Select>
                             )}
                         />
@@ -583,6 +590,10 @@ export function EditQuotationDialog({
                             <TableBody>
                                 {fields.map((field, index) => {
                                     const { total } = productTotals[index] || { total: 0 };
+                                    const currentProductId = watchedProducts?.[index]?.productId;
+                                    const productDetails = currentProductId
+                                      ? availableProducts.find(p => p.id === currentProductId)
+                                      : undefined;
                                     return (
                                     <TableRow key={field.id}>
                                         <TableCell>
@@ -636,7 +647,14 @@ export function EditQuotationDialog({
                                                 rows={2}
                                             />
                                         </TableCell>
-                                        <TableCell><Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" /></TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1">
+                                                <Input type="number" {...register(`products.${index}.quantity`)} min="1" className="w-20" />
+                                                <span className="text-xs text-muted-foreground">
+                                                    {productDetails?.uom || 'units'}
+                                                </span>
+                                            </div>
+                                        </TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.rate`)} min="0" className="w-24" /></TableCell>
                                         <TableCell><Input type="number" {...register(`products.${index}.discount`)} min="0" max="100" step="0.01" className="w-20" placeholder="0" /></TableCell>
                                         <TableCell>{watchedProducts?.[index]?.gstRate || 0}%</TableCell>
