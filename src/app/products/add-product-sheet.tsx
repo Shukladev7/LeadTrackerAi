@@ -26,8 +26,9 @@ import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getProductCategoriesAction } from '@/lib/actions';
+import { getProductCategoriesAction, getUnitsOfMeasurementAction } from '@/lib/actions';
 import { ProductCategory } from '@/lib/types';
+import { UnitOfMeasurement } from '@/lib/business-types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
@@ -46,6 +47,7 @@ export function AddProductSheet() {
   const [currentSku, setCurrentSku] = useState('');
   const [availableCategories, setAvailableCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [availableUnits, setAvailableUnits] = useState<UnitOfMeasurement[]>([]);
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   const [pdfError, setPdfError] = useState<string>('');
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
@@ -67,18 +69,22 @@ export function AddProductSheet() {
     name: "skus"
   });
 
-// Fetch available categories when component opens
+// Fetch available categories and units when component opens
 useEffect(() => {
   if (open) {
-    const fetchCategories = async () => {
+    const fetchMasterData = async () => {
       try {
-        const categories = await getProductCategoriesAction();
+        const [categories, units] = await Promise.all([
+          getProductCategoriesAction(),
+          getUnitsOfMeasurementAction(),
+        ]);
         setAvailableCategories(categories);
+        setAvailableUnits(units);
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error fetching product setup data:', error);
       }
     };
-    fetchCategories();
+    fetchMasterData();
   }
 }, [open]);
 
@@ -196,7 +202,28 @@ useEffect(() => {
           </div>
           <div>
             <Label htmlFor="uom">Unit of Measurement (UOM)</Label>
-            <Input id="uom" placeholder="e.g. pcs, kg, meter" {...register('uom')} />
+            {availableUnits.length > 0 ? (
+              <Controller
+                control={control}
+                name="uom"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableUnits.map(unit => (
+                        <SelectItem key={unit.id} value={unit.name}>
+                          {unit.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            ) : (
+              <Input id="uom" placeholder="e.g. pcs, kg, meter" {...register('uom')} />
+            )}
           </div>
           <div className="space-y-2">
             <Label>Product Category</Label>

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { summarizeMeetingNotes } from '@/ai/flows/summarize-meeting-notes';
-import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductCategory as dbAddProductCategory, deleteProductCategory as dbDeleteProductCategory, getProductCategories, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount, updateProductCategory as dbUpdateProductCategory, addQuotationStatus as dbAddQuotationStatus, deleteQuotationStatus as dbDeleteQuotationStatus } from './data';
+import { addLead as dbAddLead, addActivityToLead, updateLeadStatus as updateStatus, addProduct as dbAddProduct, addLeadSource as dbAddLeadSource, deleteLeadSource as dbDeleteLeadSource, addProductCategory as dbAddProductCategory, deleteProductCategory as dbDeleteProductCategory, getProductCategories, updateLead as dbUpdateLead, getLeadById as dbGetLeadById, deleteLead as dbDeleteLead, addQuotation as dbAddQuotation, updateQuotation as dbUpdateQuotation, deleteQuotation as dbDeleteQuotation, addQuotationTemplate as dbAddQuotationTemplate, updateProduct as dbUpdateProduct, deleteProduct as dbDeleteProduct, addEmployee as dbAddEmployee, deleteEmployee as dbDeleteEmployee, updateEmployee as dbUpdateEmployee, getEmployeeByEmail, getEmployeeRoles, addEmployeeRole as dbAddEmployeeRole, deleteEmployeeRole as dbDeleteEmployeeRole, getDepartments, addDepartment as dbAddDepartment, deleteDepartment as dbDeleteDepartment, updateQuotationTemplate as dbUpdateQuotationTemplate, deleteQuotationTemplate as dbDeleteQuotationTemplate, getLeadsCount, getQuotationsCount, getProductsCount, getEmployeesCount, getLeadsCountByStatus, getQuotationsCountByStatus, getActiveProductsCount, getActiveEmployeesCount, updateProductCategory as dbUpdateProductCategory, addQuotationStatus as dbAddQuotationStatus, deleteQuotationStatus as dbDeleteQuotationStatus, getUnitsOfMeasurement, addUnitOfMeasurement as dbAddUnitOfMeasurement, deleteUnitOfMeasurement as dbDeleteUnitOfMeasurement } from './data';
 import { deletePDFFromStorage, deleteImageFromStorage, uploadImageToStorage } from './storage-utils';
 import type { Lead, LeadStatus, LeadProduct, UpdatableLeadData, Product, NewQuotationTemplate, Quotation, NewEmployee, QuotationTemplate } from './types';
 import type { Employee } from './business-types';
@@ -616,6 +616,54 @@ export async function deleteLeadSourceAction(id: string) {
     revalidatePath('/setup');
     revalidatePath('/leads');
     return { message: 'Successfully deleted lead source.' };
+}
+
+const AddUnitOfMeasurementSchema = z.object({
+    name: z.string().min(1, 'Unit name must be at least 1 character'),
+});
+
+export async function addUnitOfMeasurementAction(formData: FormData) {
+    const validatedFields = AddUnitOfMeasurementSchema.safeParse({
+        name: formData.get('name'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            message: validatedFields.error.flatten().fieldErrors.name?.[0] ?? 'Invalid unit name',
+        };
+    }
+
+    try {
+        await dbAddUnitOfMeasurement(validatedFields.data.name);
+    } catch (error) {
+        return { message: 'Database Error: Failed to add unit of measurement.' };
+    }
+
+    revalidatePath('/setup');
+    revalidatePath('/products');
+    return { message: `Successfully added unit '${validatedFields.data.name}'.` };
+}
+
+export async function deleteUnitOfMeasurementAction(id: string) {
+    try {
+        await dbDeleteUnitOfMeasurement(id);
+    } catch (error) {
+        return { message: 'Database Error: Failed to delete unit of measurement.' };
+    }
+
+    revalidatePath('/setup');
+    revalidatePath('/products');
+    return { message: 'Successfully deleted unit of measurement.' };
+}
+
+export async function getUnitsOfMeasurementAction() {
+    try {
+        const units = await getUnitsOfMeasurement();
+        return units;
+    } catch (error) {
+        console.error('Error fetching units of measurement:', error);
+        return [];
+    }
 }
 
 const AddProductCategorySchema = z.object({

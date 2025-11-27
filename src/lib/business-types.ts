@@ -66,6 +66,12 @@ export interface ProductCategory extends BusinessDocument {
   isActive?: boolean;
 }
 
+// Unit of Measurement interface
+export interface UnitOfMeasurement extends BusinessDocument {
+  name: string; // e.g., pcs, kg, meter
+  isActive?: boolean;
+}
+
 // Product interface
 export interface Product extends BusinessDocument {
   name: string;
@@ -407,6 +413,7 @@ export const COLLECTIONS = {
   NOTIFICATIONS: 'notifications',
   ACTIVITY_LOGS: 'activityLogs',
   CURRENCIES: 'currencies',
+  UNITS_OF_MEASUREMENT: 'unitsOfMeasurement',
 } as const;
 
 // Type for collection names

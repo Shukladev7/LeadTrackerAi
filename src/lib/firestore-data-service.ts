@@ -12,6 +12,7 @@ import {
   productCategoriesService,
   quotationTemplatesService,
   quotationStatusesService,
+  unitsOfMeasurementService,
 } from './business-services';
 import { 
   Employee, 
@@ -25,6 +26,7 @@ import {
   ProductCategory,
   LeadActivity,
   QuotationStatusConfig,
+  UnitOfMeasurement,
 } from './business-types';
 import { Timestamp } from 'firebase/firestore';
 
@@ -590,4 +592,29 @@ export const getActiveEmployeesCount = async (): Promise<number> => {
   return await employeeService.count({
     where: [{ field: 'isActive', operator: '==', value: true }]
   });
+};
+
+// Units of Measurement functions
+export const getUnitsOfMeasurement = async (): Promise<UnitOfMeasurement[]> => {
+  const units = await unitsOfMeasurementService.getAll();
+  return units.map(unit => convertFirestoreDocToPlain(unit));
+};
+
+export const addUnitOfMeasurement = async (name: string): Promise<UnitOfMeasurement> => {
+  const id = await unitsOfMeasurementService.create({
+    name,
+    isActive: true,
+  });
+
+  const newUnit = await unitsOfMeasurementService.getById(id);
+  if (!newUnit) {
+    throw new Error('Failed to create unit of measurement');
+  }
+
+  return convertFirestoreDocToPlain(newUnit);
+};
+
+export const deleteUnitOfMeasurement = async (id: string): Promise<{ success: boolean }> => {
+  await unitsOfMeasurementService.delete(id);
+  return { success: true };
 };

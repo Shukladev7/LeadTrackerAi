@@ -18,6 +18,7 @@ import {
   Notification,
   ActivityLog,
   QuotationStatusConfig,
+  UnitOfMeasurement,
   COLLECTIONS
 } from './business-types';
 
@@ -28,6 +29,7 @@ export const employeeRolesService = new FirestoreService<EmployeeRole>(COLLECTIO
 export const leadSourcesService = new FirestoreService<LeadSource>(COLLECTIONS.LEAD_SOURCES);
 export const quotationStatusesService = new FirestoreService<QuotationStatusConfig>(COLLECTIONS.QUOTATION_STATUSES);
 export const productCategoriesService = new FirestoreService<ProductCategory>(COLLECTIONS.PRODUCT_CATEGORIES);
+export const unitsOfMeasurementService = new FirestoreService<UnitOfMeasurement>(COLLECTIONS.UNITS_OF_MEASUREMENT);
 export const productsService = new FirestoreService<Product>(COLLECTIONS.PRODUCTS);
 export const leadsService = new FirestoreService<Lead>(COLLECTIONS.LEADS);
 export const quotationsService = new FirestoreService<Quotation>(COLLECTIONS.QUOTATIONS);

@@ -21,12 +21,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { updateProduct } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Product } from '@/lib/business-types';
+import { Product, UnitOfMeasurement } from '@/lib/business-types';
 import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getProductCategoriesAction } from '@/lib/actions';
+import { getProductCategoriesAction, getUnitsOfMeasurementAction } from '@/lib/actions';
 import { ProductCategory } from '@/lib/types';
 
 const productSchema = z.object({
@@ -51,6 +51,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
   const [currentSku, setCurrentSku] = useState('');
   const [availableCategories, setAvailableCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [availableUnits, setAvailableUnits] = useState<UnitOfMeasurement[]>([]);
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   // Track if user explicitly removed the existing PDF (when editing an item that already had a catalogue)
   const [removedExistingPdf, setRemovedExistingPdf] = useState(false);
@@ -90,16 +91,20 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       setImageError('');
       setIsImageUploading(false);
       
-      // Fetch available categories
-      const fetchCategories = async () => {
+      // Fetch available categories and units
+      const fetchMasterData = async () => {
         try {
-          const categories = await getProductCategoriesAction();
+          const [categories, units] = await Promise.all([
+            getProductCategoriesAction(),
+            getUnitsOfMeasurementAction(),
+          ]);
           setAvailableCategories(categories);
+          setAvailableUnits(units);
         } catch (error) {
-          console.error('Error fetching categories:', error);
+          console.error('Error fetching product setup data:', error);
         }
       };
-      fetchCategories();
+      fetchMasterData();
     }
   }, [product, open, reset]);
 
@@ -222,7 +227,28 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
         </div>
         <div>
           <Label htmlFor="uom">Unit of Measurement (UOM)</Label>
-          <Input id="uom" placeholder="e.g. pcs, kg, meter" {...register('uom')} />
+          {availableUnits.length > 0 ? (
+            <Controller
+              control={control}
+              name="uom"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableUnits.map(unit => (
+                      <SelectItem key={unit.id} value={unit.name}>
+                        {unit.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          ) : (
+            <Input id="uom" placeholder="e.g. pcs, kg, meter" {...register('uom')} />
+          )}
         </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

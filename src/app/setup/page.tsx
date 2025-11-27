@@ -8,7 +8,7 @@ import {
   } from "@/components/ui/card";
   import { Button } from "@/components/ui/button";
   import { Input } from "@/components/ui/input";
-  import { PlusCircle, Trash2, FileText, Building2, Box, DollarSign } from "lucide-react";
+  import { PlusCircle, Trash2, FileText, Building2, Box, DollarSign, Ruler } from "lucide-react";
 import { ALL_STATUSES } from "@/lib/types";
 import { StatusBadge } from "@/components/status-badge";
 import { getLeadSources, getEmployeeRoles, getDepartments, getProductCategories, getQuotationStatuses } from "@/lib/data";
@@ -49,6 +49,24 @@ export default async function SetupPage() {
                         <Button className="w-full">
                             <DollarSign className="mr-2 h-4 w-4" />
                             Manage Currencies
+                        </Button>
+                    </Link>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Ruler className="h-5 w-5" />
+                        Units of Measurement
+                    </CardTitle>
+                    <CardDescription>Define units like pcs, kg, meter and use them in products.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/setup/units">
+                        <Button className="w-full">
+                            <Ruler className="mr-2 h-4 w-4" />
+                            Manage Units
                         </Button>
                     </Link>
                 </CardContent>
