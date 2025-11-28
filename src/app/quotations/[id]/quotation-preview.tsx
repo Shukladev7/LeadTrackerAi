@@ -194,7 +194,7 @@ export function QuotationPreview({
         headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
       }
 
-      const extraHeightPx = 100;
+      const extraHeightPx = 0;
       const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
@@ -257,6 +257,8 @@ export function QuotationPreview({
       sliceCanvas.width = canvasWidth;
       const sliceContext = sliceCanvas.getContext('2d');
 
+      let usedPages = 0;
+
       if (!sliceContext) {
         // Fallback: single-page render if canvas context is unavailable
         if (headerDataUrl && headerHeightMm > 0) {
@@ -270,11 +272,17 @@ export function QuotationPreview({
           contentWidth,
           bodyContentHeight
         );
+        usedPages = 1;
       } else {
         let currentYpx = 0;
         let firstPage = true;
+        const minRemainingSlicePx = 4;
 
         while (currentYpx < canvasHeight) {
+          const remainingPx = canvasHeight - currentYpx;
+          if (remainingPx <= minRemainingSlicePx) {
+            break;
+          }
           if (!firstPage) {
             pdf.addPage();
           }
@@ -283,7 +291,7 @@ export function QuotationPreview({
             pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
           }
 
-          const sliceHeightPx = Math.min(pageBodyHeightPx, canvasHeight - currentYpx);
+          const sliceHeightPx = Math.min(pageBodyHeightPx, remainingPx);
           const sliceHeightMm = sliceHeightPx / pxPerMm;
 
           sliceCanvas.height = sliceHeightPx;
@@ -312,7 +320,12 @@ export function QuotationPreview({
 
           currentYpx += sliceHeightPx;
           firstPage = false;
+          usedPages += 1;
         }
+      }
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = totalPages; p > usedPages && usedPages > 0; p--) {
+        pdf.deletePage(p);
       }
       
       // Add watermark and links (use template/company logo if available) and download
@@ -395,8 +408,14 @@ export function QuotationPreview({
       // Add header + body content across multiple pages if needed
       let position = 0;
       let firstPage = true;
+      const minRemainingContentMm = 1;
+      let usedPages = 0;
 
       while (position < bodyContentHeight) {
+        const remainingMm = bodyContentHeight - position;
+        if (remainingMm <= minRemainingContentMm) {
+          break;
+        }
         if (!firstPage) {
           pdf.addPage();
         }
@@ -413,6 +432,12 @@ export function QuotationPreview({
 
         position += pageContentHeight;
         firstPage = false;
+        usedPages += 1;
+      }
+
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = totalPages; p > usedPages && usedPages > 0; p--) {
+        pdf.deletePage(p);
       }
 
       // Add watermark and links (use template/company logo if available) and download
@@ -453,14 +478,17 @@ export function QuotationPreview({
         return;
       }
 
+      // Apply compact typography just like the quotation-only PDF
+      element.classList.add('pdf-compact');
+
       const quotationPdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = quotationPdf.internal.pageSize.getWidth();
       const pageHeight = quotationPdf.internal.pageSize.getHeight();
 
-      const marginLeft = 10;
-      const marginRight = 10;
-      const marginTop = 10;
-      const marginBottom = 10;
+      const marginLeft = 5;
+      const marginRight = 5;
+      const marginTop = 5;
+      const marginBottom = 5;
 
       const contentWidth = pageWidth - marginLeft - marginRight;
 
@@ -480,7 +508,7 @@ export function QuotationPreview({
         headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
       }
 
-      const extraHeightPx = 100;
+      const extraHeightPx = 0;
       const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
@@ -490,40 +518,129 @@ export function QuotationPreview({
       const bodyData = bodyCanvas.toDataURL('image/png');
 
       const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
-      const pageContentHeight = pageHeight - marginTop - marginBottom - headerHeightMm;
-      
-      // Collect link information AFTER rendering canvas (body only)
+
+      // Reserve a safe header area on each page (in mm) to ensure no overlap
+      const minHeaderSafeAreaMm = 25;
+      const effectiveHeaderMm = Math.max(headerHeightMm, minHeaderSafeAreaMm);
+
+      // Extra vertical gap between header and body on each page (in mm)
+      const extraTopGapMm = 3;
+
+      // Add header + body content across multiple pages using cropped slices
+      const canvasWidth = bodyCanvas.width;
+      const canvasHeight = bodyCanvas.height;
+
+      // Convert between mm (PDF space) and pixels (canvas space)
+      const pxPerMm = canvasHeight / bodyContentHeight;
+
+      // Usable body height on the page after header and margins
+      const maxUsableBodyMm = pageHeight - marginTop - marginBottom - effectiveHeaderMm - extraTopGapMm;
+
+      // Keep roughly 5 products per page as a baseline estimate
+      const rowsPerPageTarget = 5;
+      const estimatedRowHeightMm = products.length > 0
+        ? bodyContentHeight / (products.length + 2) // +2 to account for totals/other content
+        : bodyContentHeight;
+      const targetBodyHeightMm = rowsPerPageTarget * estimatedRowHeightMm;
+
+      // Also constrain the bottom whitespace to be around 20mm on full pages
+      const desiredBodyHeightMmByBottom = Math.max(0, maxUsableBodyMm - 16);
+
+      // Final per-page body height:
+      // - cannot exceed max usable area
+      // - at least large enough to reduce bottom whitespace to ~70mm
+      // - at least the 5-row estimate so we don't accidentally go smaller
+      const pageBodyHeightMm = Math.min(
+        maxUsableBodyMm,
+        Math.max(targetBodyHeightMm, desiredBodyHeightMmByBottom)
+      );
+      const pageBodyHeightPx = pageBodyHeightMm * pxPerMm;
+
+      // Collect link information AFTER rendering canvas for accurate positions (body only)
       const links = collectProductImageLinks(
         bodyElement,
         bodyCanvas,
         contentWidth,
         bodyContentHeight,
-        pageContentHeight,
+        pageBodyHeightMm,
         marginLeft,
-        marginTop + headerHeightMm
+        marginTop + effectiveHeaderMm + extraTopGapMm
       );
 
-      // Add header + body content across multiple pages if needed
-      let position = 0;
-      let firstPage = true;
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvasWidth;
+      const sliceContext = sliceCanvas.getContext('2d');
 
-      while (position < bodyContentHeight) {
-        if (!firstPage) {
-          quotationPdf.addPage();
-        }
+      let usedPages = 0;
 
-        // Draw repeating letterhead at the top of each page
+      if (!sliceContext) {
+        // Fallback: single-page render if canvas context is unavailable
         if (headerDataUrl && headerHeightMm > 0) {
           quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
         }
+        quotationPdf.addImage(
+          bodyData,
+          'PNG',
+          marginLeft,
+          marginTop + effectiveHeaderMm + extraTopGapMm,
+          contentWidth,
+          bodyContentHeight
+        );
+        usedPages = 1;
+      } else {
+        let currentYpx = 0;
+        let firstPage = true;
+        const minRemainingSlicePx = 4;
 
-        const offset = position;
-        const yBody = marginTop + headerHeightMm - offset;
+        while (currentYpx < canvasHeight) {
+          const remainingPx = canvasHeight - currentYpx;
+          if (remainingPx <= minRemainingSlicePx) {
+            break;
+          }
+          if (!firstPage) {
+            quotationPdf.addPage();
+          }
 
-        quotationPdf.addImage(bodyData, 'PNG', marginLeft, yBody, contentWidth, bodyContentHeight);
+          if (headerDataUrl && headerHeightMm > 0) {
+            quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+          }
 
-        position += pageContentHeight;
-        firstPage = false;
+          const sliceHeightPx = Math.min(pageBodyHeightPx, remainingPx);
+          const sliceHeightMm = sliceHeightPx / pxPerMm;
+
+          sliceCanvas.height = sliceHeightPx;
+          sliceContext.clearRect(0, 0, canvasWidth, sliceHeightPx);
+          sliceContext.drawImage(
+            bodyCanvas,
+            0,
+            currentYpx,
+            canvasWidth,
+            sliceHeightPx,
+            0,
+            0,
+            canvasWidth,
+            sliceHeightPx
+          );
+
+          const sliceDataUrl = sliceCanvas.toDataURL('image/png');
+          quotationPdf.addImage(
+            sliceDataUrl,
+            'PNG',
+            marginLeft,
+            marginTop + effectiveHeaderMm + extraTopGapMm,
+            contentWidth,
+            sliceHeightMm
+          );
+
+          currentYpx += sliceHeightPx;
+          firstPage = false;
+          usedPages += 1;
+        }
+      }
+
+      const totalPages = quotationPdf.getNumberOfPages();
+      for (let p = totalPages; p > usedPages && usedPages > 0; p--) {
+        quotationPdf.deletePage(p);
       }
 
       // Get the quotation PDF as array buffer
@@ -609,6 +726,10 @@ export function QuotationPreview({
         description: 'Failed to generate merged PDF with catalogs',
       });
     } finally {
+      const element = previewRef.current;
+      if (element) {
+        element.classList.remove('pdf-compact');
+      }
       setIsGeneratingMerged(false);
     }
   };
