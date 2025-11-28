@@ -89,9 +89,12 @@ export function QuotationCommunicationDialog({
         headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
       }
 
+      const extraHeightPx = 100;
       const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
+        height: bodyElement.scrollHeight + extraHeightPx,
+        windowHeight: bodyElement.scrollHeight + extraHeightPx,
       });
       const bodyData = bodyCanvas.toDataURL('image/png');
 

@@ -194,9 +194,12 @@ export function QuotationPreview({
         headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
       }
 
+      const extraHeightPx = 100;
       const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
+        height: bodyElement.scrollHeight + extraHeightPx,
+        windowHeight: bodyElement.scrollHeight + extraHeightPx,
       });
       const bodyData = bodyCanvas.toDataURL('image/png');
 
@@ -477,9 +480,12 @@ export function QuotationPreview({
         headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
       }
 
+      const extraHeightPx = 100;
       const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
+        height: bodyElement.scrollHeight + extraHeightPx,
+        windowHeight: bodyElement.scrollHeight + extraHeightPx,
       });
       const bodyData = bodyCanvas.toDataURL('image/png');
 
@@ -935,7 +941,7 @@ export function QuotationPreview({
           })()}
         </section>
         
-        <footer className="mt-4 pt-4 border-t">
+        <footer className="mt-4 p-4 border-t">
           <h4 className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2">
             Terms & Conditions
           </h4>
