@@ -101,6 +101,7 @@ export const PROTECTED_ROUTES = [
   '/products',
   '/quotations',
   '/employees',
+  '/tasks',
   '/setup',
   '/profile',
 ] as const;

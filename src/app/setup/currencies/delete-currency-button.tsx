@@ -1,30 +1,35 @@
-'use client';
+"use client";
 
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { deleteCurrencyAction } from '@/lib/actions';
+import { deleteCurrency } from '@/lib/firestore-service';
 import { useToast } from '@/hooks/use-toast';
 
 type DeleteCurrencyButtonProps = {
   currencyId: string;
+  onCurrencyDeleted?: () => void;
 };
 
-export function DeleteCurrencyButton({ currencyId }: DeleteCurrencyButtonProps) {
+export function DeleteCurrencyButton({ currencyId, onCurrencyDeleted }: DeleteCurrencyButtonProps) {
   const { toast } = useToast();
 
   async function handleDelete() {
-    const result = await deleteCurrencyAction(currencyId);
-    
-    if (result.message.includes('Successfully')) {
+    try {
+      await deleteCurrency(currencyId);
       toast({
         title: 'Currency Deleted',
-        description: result.message,
+        description: 'Successfully deleted currency.',
       });
-    } else {
+
+      if (onCurrencyDeleted) {
+        await onCurrencyDeleted();
+      }
+    } catch (error) {
+      console.error('Error deleting currency', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.message,
+        description: 'Failed to delete currency. Please try again.',
       });
     }
   }

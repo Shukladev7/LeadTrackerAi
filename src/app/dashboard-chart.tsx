@@ -44,18 +44,27 @@ const statusToColor = (status: string) => {
 export default function DashboardChart({ data }: { data: ChartData[] }) {
   const router = useRouter();
 
-  const handleBarClick = (data: any) => {
-    if (data && data.activePayload && data.activePayload.length > 0) {
-      const statusName = data.activePayload[0].payload.name;
-      const actualStatus = statusMapping[statusName] || statusName;
-      // Navigate to leads page with status filter
-      router.push(`/leads?status=${encodeURIComponent(actualStatus)}`);
+  const handleBarClick = (barData: any) => {
+    const statusName = barData?.payload?.name;
+    if (!statusName) return;
+
+    const actualStatus = statusMapping[statusName] || statusName;
+    // Store selected status for client-side filtering on the leads page
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem('leadsStatusFilter', actualStatus);
+      } catch {
+        // Ignore storage errors and just navigate
+      }
     }
+
+    // Navigate to leads page without URL query filters
+    router.push('/leads');
   };
 
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={data} onClick={handleBarClick} style={{ cursor: 'pointer' }}>
+      <BarChart data={data} style={{ cursor: 'pointer' }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="name"
@@ -78,7 +87,7 @@ export default function DashboardChart({ data }: { data: ChartData[] }) {
             border: '1px solid hsl(var(--border))',
           }}
         />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="value" radius={[4, 4, 0, 0]} onClick={handleBarClick}>
           {data.map((entry, index) => (
             <Cell
               key={`cell-${index}`}

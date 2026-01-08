@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
 import React from 'react';
-import { getLeadsCountAction, getQuotationsCountAction, getProductsCountAction } from '@/lib/actions';
+import { getLeadsCount, getQuotationsCount, getProductsCount } from '@/lib/data';
 
 export function CountTest() {
   const [counts, setCounts] = React.useState({
@@ -16,9 +16,9 @@ export function CountTest() {
     async function fetchCounts() {
       try {
         const [leadsCount, quotationsCount, productsCount] = await Promise.all([
-          getLeadsCountAction(),
-          getQuotationsCountAction(),
-          getProductsCountAction(),
+          getLeadsCount(),
+          getQuotationsCount(),
+          getProductsCount(),
         ]);
 
         setCounts({

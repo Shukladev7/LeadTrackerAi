@@ -1,8 +1,11 @@
 
 
-import { notFound } from 'next/navigation';
+"use client";
+
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { getLeadById, getProducts } from '@/lib/data';
+import { useParams } from 'next/navigation';
+import { getLeadById, getProducts, getQuotationsByLeadId } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, Building, ArrowLeft, User, Package, Zap, MessageSquare, FilePlus, History } from 'lucide-react';
@@ -18,39 +21,120 @@ import {
 import ActivityTimeline from './activity-timeline';
 import LogActivityForm from './log-activity-form';
 import { EditLeadDialog } from './edit-lead-dialog';
-import { PopulatedLeadProduct } from '@/lib/types';
+import { PopulatedLeadProduct, Quotation } from '@/lib/types';
 import { CreateQuotationDialog } from '@/app/quotations/create-quotation-dialog';
 import { Badge } from '@/components/ui/badge';
 import { StatusUpdateForm } from './status-update-form';
 import { CommunicationButtons } from './communication-buttons';
+import { format, parseISO } from 'date-fns';
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
-export default async function LeadDetailPage({ params }: { params: Promise<{ id:string }> }) {
-  const { id } = await params;
-  const lead = await getLeadById(id);
-  const allProducts = await getProducts();
+type LeadDetailPageParams = {
+  id: string;
+};
 
-  if (!lead) {
-    notFound();
+function FormattedDate({ dateString }: { dateString: string }) {
+  const [formattedDate, setFormattedDate] = useState('');
+
+  useEffect(() => {
+    if (dateString) {
+      setFormattedDate(format(parseISO(dateString), 'PPP'));
+    }
+  }, [dateString]);
+
+  if (!formattedDate) {
+    return <span>-</span>;
   }
 
-  const populatedProducts: PopulatedLeadProduct[] = (lead.products || []).map(p => {
-    const product = allProducts.find(ap => ap.id === p.productId);
-    if (!product) {
-      // This should ideally not happen if data integrity is maintained
-      throw new Error(`Product with ID ${p.productId} not found for lead ${lead.id}`);
-    }
-    const amount = p.quantity * p.rate;
-    const gst = amount * (product.gstRate / 100);
-    const total = amount + gst;
-    return {
-      ...p,
-      product,
-      amount: total,
+  return <span>{formattedDate}</span>;
+}
+
+export default function LeadDetailPage() {
+  const params = useParams<LeadDetailPageParams>();
+  const id = params?.id;
+
+  const [lead, setLead] = useState<any | null>(null);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!id || typeof id !== 'string') {
+        if (!isMounted) return;
+        setError('Missing lead ID');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const [leadData, productsData, quotationsData] = await Promise.all([
+          getLeadById(id),
+          getProducts(),
+          getQuotationsByLeadId(id),
+        ]);
+
+        if (!isMounted) return;
+
+        if (!leadData) {
+          setError('Lead not found');
+          setLoading(false);
+          return;
+        }
+        setLead(leadData as any);
+        setAllProducts(productsData || []);
+        setQuotations(quotationsData || []);
+      } catch (err) {
+        console.error('Error loading lead details', err);
+        if (!isMounted) return;
+        setError('Failed to load lead details. Please try again.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
-  });
-  
-  const totalAmount = populatedProducts.reduce((sum, p) => sum + p.amount, 0);
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const populatedProducts: PopulatedLeadProduct[] = useMemo(() => {
+    if (!lead) return [];
+
+    return (lead.products || [])
+      .map((p: any) => {
+        const product = allProducts.find((ap: any) => ap.id === p.productId);
+        if (!product) {
+          console.warn(
+            `Product with ID ${p.productId} not found for lead ${lead.id}`,
+          );
+          return null;
+        }
+        const amount = p.quantity * p.rate;
+        const gst = amount * (product.gstRate / 100);
+        const total = amount + gst;
+        return {
+          ...p,
+          product,
+          amount: total,
+        } as PopulatedLeadProduct;
+      })
+      .filter((p: PopulatedLeadProduct | null): p is PopulatedLeadProduct => p !== null);
+  }, [lead, allProducts]);
+
+  const totalAmount = useMemo(
+    () => populatedProducts.reduce((sum, p) => sum + (p.amount || 0), 0),
+    [populatedProducts],
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -59,6 +143,43 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     }).format(amount);
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/leads">
+            <Button variant="outline" size="icon" className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h2 className="text-3xl font-bold tracking-tight">Loading lead...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !lead) {
+    return (
+      <>
+        <div className="flex items-center gap-4">
+          <Link href="/leads">
+            <Button variant="outline" size="icon" className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h2 className="text-3xl font-bold tracking-tight">Lead Details</h2>
+        </div>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Unable to load lead</CardTitle>
+            <CardDescription>
+              {error || 'The requested lead could not be found.'}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>
@@ -190,6 +311,61 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </CardContent>
                 </Card>
             )}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <FilePlus className="h-5 w-5" />
+                        Quotations
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {quotations.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-6">
+                            No quotations created for this lead yet.
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Quotation Number</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Total Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {quotations.map((q) => {
+                                    const conversionRate = q.conversionRate || 1.0;
+                                    const currencySymbol = q.currencySymbol || '₹';
+                                    const convertedAmount = q.grandTotal / conversionRate;
+                                    const formattedAmount = new Intl.NumberFormat('en-IN', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    }).format(convertedAmount);
+
+                                    return (
+                                        <TableRow key={q.id}>
+                                            <TableCell>
+                                                <Link href={`/quotations/${q.id}`} className="font-medium text-primary hover:underline">
+                                                    {q.quotationNumber}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                <FormattedDate dateString={q.date} />
+                                            </TableCell>
+                                            <TableCell>{q.status}</TableCell>
+                                            <TableCell className="text-right font-medium">
+                                                {currencySymbol}{formattedAmount}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
             <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -198,7 +374,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ActivityTimeline activities={lead.activities} />
+                    <ActivityTimeline activities={lead.activities || []} />
                 </CardContent>
             </Card>
         </div>

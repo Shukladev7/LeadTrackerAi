@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign } from "lucide-react";
 import { getAllCurrencies } from "@/lib/firestore-service";
@@ -6,15 +9,65 @@ import { EditCurrencySheet } from "./edit-currency-sheet";
 import { DeleteCurrencyButton } from "./delete-currency-button";
 import { Badge } from "@/components/ui/badge";
 
-export default async function CurrenciesPage() {
-  const currenciesRaw = await getAllCurrencies();
-  
-  // Serialize currencies to remove Firestore Timestamps
-  const currencies = currenciesRaw.map(currency => ({
-    ...currency,
-    createdAt: currency.createdAt?.toString() || '',
-    updatedAt: currency.updatedAt ? new Date(currency.updatedAt.seconds * 1000).toISOString() : undefined,
-  }));
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+export default function CurrenciesPage() {
+  const [currencies, setCurrencies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadCurrencies = async () => {
+    try {
+      const currenciesRaw = await getAllCurrencies();
+      const serialized = currenciesRaw.map((currency: any) => ({
+        ...currency,
+        createdAt: currency.createdAt?.toString() || "",
+        updatedAt: currency.updatedAt
+          ? (currency.updatedAt.seconds
+              ? new Date(currency.updatedAt.seconds * 1000).toISOString()
+              : currency.updatedAt.toString())
+          : undefined,
+      }));
+      setCurrencies(serialized);
+      setError(null);
+    } catch (err) {
+      console.error("Error loading currencies", err);
+      setError("Failed to load currencies. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCurrencies();
+  }, []);
+
+  if (loading) {
+    return (
+      <>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Currency Management</h2>
+            <p className="text-muted-foreground mt-1">
+              Manage currencies for quotations. INR is the base currency.
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Currencies
+            </CardTitle>
+            <CardDescription>
+              Loading currencies...
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>
@@ -25,7 +78,7 @@ export default async function CurrenciesPage() {
             Manage currencies for quotations. INR is the base currency.
           </p>
         </div>
-        <AddCurrencySheet />
+        <AddCurrencySheet onCurrencyAdded={loadCurrencies} />
       </div>
 
       <Card>
@@ -40,6 +93,9 @@ export default async function CurrenciesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {error && (
+              <p className="text-sm text-destructive mb-2">{error}</p>
+            )}
             {currencies.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <DollarSign className="h-12 w-12 mx-auto mb-3 opacity-20" />
@@ -69,8 +125,8 @@ export default async function CurrenciesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <EditCurrencySheet currency={currency} />
-                    <DeleteCurrencyButton currencyId={currency.id!} />
+                    <EditCurrencySheet currency={currency} onCurrencyUpdated={loadCurrencies} />
+                    <DeleteCurrencyButton currencyId={currency.id!} onCurrencyDeleted={loadCurrencies} />
                   </div>
                 </div>
               ))

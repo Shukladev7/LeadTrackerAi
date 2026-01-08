@@ -10,7 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { ALL_STATUSES } from '@/lib/types';
-import { updateLeadStatusAction } from '@/lib/actions';
+import { updateLeadStatus } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { Loader2 } from 'lucide-react';
@@ -39,32 +39,12 @@ export function StatusUpdateForm({ leadId, currentStatus, leadName }: StatusUpda
 
         startTransition(async () => {
             try {
-                const userId = user?.uid;
-                const userName = user?.displayName || user?.email || undefined;
-                const result = await updateLeadStatusAction(leadId, selectedStatus as any, userId, userName);
-                
-                if (result?.message) {
-                    // Check if it's an error message
-                    if (result.message.includes('Error') || result.message.includes('Failed')) {
-                        toast({
-                            title: "Update Failed",
-                            description: result.message,
-                            variant: "destructive",
-                        });
-                    } else {
-                        toast({
-                            title: "Status Updated",
-                            description: `${leadName}'s status has been updated to "${selectedStatus}".`,
-                            variant: "default",
-                        });
-                    }
-                } else {
-                    toast({
-                        title: "Status Updated",
-                        description: `${leadName}'s status has been updated to "${selectedStatus}".`,
-                        variant: "default",
-                    });
-                }
+                await updateLeadStatus(leadId, selectedStatus as any);
+                toast({
+                    title: "Status Updated",
+                    description: `${leadName}'s status has been updated to "${selectedStatus}".`,
+                    variant: "default",
+                });
             } catch (error) {
                 toast({
                     title: "Update Failed",

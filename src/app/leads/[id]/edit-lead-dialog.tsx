@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -35,10 +35,10 @@ import {
     TableRow,
     TableFooter as UiTableFooter,
   } from '@/components/ui/table';
-import { updateLead } from '@/lib/actions';
+import { Combobox } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { ALL_STATUSES, Product, LeadSource, Lead, ProductCategory } from '@/lib/types';
-import { getProducts, getLeadSources, getProductCategories } from '@/lib/data';
+import { getProducts, getLeadSources, getProductCategories, getManufacturingCompanies, updateLead } from '@/lib/data';
 
 const leadProductSchema = z.object({
     productId: z.string().min(1, 'Product must be selected'),
@@ -55,9 +55,10 @@ const leadSchema = z.object({
   whatsappNumber: z.string().optional().or(z.literal('')),
   client_address: z.string().optional().or(z.literal('')),
   client_gst_no: z.string().optional().or(z.literal('')),
-  status: z.enum(ALL_STATUSES),
+  status: z.string().min(1, { message: 'Please select a status.' }),
   source: z.string().min(1, { message: 'Please select a lead source.' }),
   products: z.array(leadProductSchema).optional(),
+  manufacturingCompany: z.string().optional(),
 });
 
 type LeadFormData = z.infer<typeof leadSchema>;
@@ -74,10 +75,11 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
   const currentOpen = isControlled ? open : internalOpen;
   const setCurrentOpen = isControlled ? onOpenChange : setInternalOpen;
   
-  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
-  const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [leadSources, setLeadSources] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [rowCategoryFilters, setRowCategoryFilters] = useState<(string | 'ALL')[]>([]);
+  const [manufacturingCompanies, setManufacturingCompanies] = useState<any[]>([]);
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<LeadFormData>({
@@ -103,6 +105,8 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
   }, [fields.length]);
 
   const watchedProducts = watch('products');
+  const watchedManufacturingCompany = watch('manufacturingCompany');
+  const prevManufacturingCompanyRef = useRef(watchedManufacturingCompany);
 
   const productTotals = watchedProducts?.map(p => {
     const productDetails = availableProducts.find(ap => ap.id === p.productId);
@@ -117,14 +121,16 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
   useEffect(() => {
     async function fetchData() {
         if (currentOpen) {
-            const [fetchedProducts, fetchedLeadSources, fetchedCategories] = await Promise.all([
+            const [fetchedProducts, fetchedLeadSources, fetchedCategories, fetchedCompanies] = await Promise.all([
                 getProducts(),
                 getLeadSources(),
                 getProductCategories(),
+                getManufacturingCompanies(),
             ]);
             setAvailableProducts(fetchedProducts);
             setLeadSources(fetchedLeadSources);
             setCategories(fetchedCategories);
+            setManufacturingCompanies(fetchedCompanies);
         }
     }
     fetchData();
@@ -139,33 +145,68 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
     }
   }, [currentOpen, lead, reset]);
 
+  // When manufacturing company changes, reset selected products as per requirements
+  useEffect(() => {
+    if (!currentOpen) return;
+
+    // Avoid clearing products on initial open; only react to actual changes
+    if (prevManufacturingCompanyRef.current === watchedManufacturingCompany) {
+      return;
+    }
+
+    prevManufacturingCompanyRef.current = watchedManufacturingCompany;
+
+    if (fields.length > 0) {
+      for (let i = fields.length - 1; i >= 0; i--) {
+        remove(i);
+      }
+    }
+    setRowCategoryFilters([]);
+  }, [watchedManufacturingCompany, currentOpen]);
+
 
   const onSubmit = async (data: LeadFormData) => {
-    const formData = new FormData();
-    
-    Object.entries(data).forEach(([key, value]) => {
-        if (key === 'products') {
-            formData.append('products', JSON.stringify(value));
-        } else {
-            // Always append the field, even if empty (for optional fields like notes)
-            formData.append(key, value as string || '');
-        }
-    });
+    try {
+      // Deep-clean products to remove any undefined fields that Firestore
+      // does not accept (including nested inside arrays of objects).
+      const sanitizedProducts = (data.products || []).map((p) => {
+        const clean: any = {};
+        Object.entries(p).forEach(([key, value]) => {
+          if (value !== undefined) {
+            clean[key] = value;
+          }
+        });
+        return clean;
+      });
 
-    const result = await updateLead(lead.id, formData);
+      const payload: any = {
+        name: data.name,
+        company: data.company,
+        email: data.email,
+        phone: data.phone,
+        whatsappNumber: data.whatsappNumber || undefined,
+        client_address: data.client_address || undefined,
+        client_gst_no: data.client_gst_no || undefined,
+        status: data.status,
+        source: data.source,
+        products: sanitizedProducts,
+        manufacturingCompany: data.manufacturingCompany || undefined,
+      };
 
-    if (result.message === 'Successfully updated lead.') {
+      await (updateLead as any)(lead.id, payload);
+
       toast({
         title: 'Lead Updated',
         description: `Lead "${data.name}" has been successfully updated.`,
       });
       setCurrentOpen(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: result.message,
-        });
+    } catch (error: any) {
+      console.error('Error updating lead', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error?.message || 'Failed to update lead. Please try again.',
+      });
     }
   };
 
@@ -179,21 +220,32 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
 
   const getFilteredProductsForRow = (rowIndex: number) => {
     const filterValue = rowCategoryFilters[rowIndex] || 'ALL';
-    if (filterValue === 'ALL') return availableProducts;
-    return availableProducts.filter(p => p.categoryId === filterValue);
+    let filtered = availableProducts as any[];
+
+    if (watchedManufacturingCompany) {
+      filtered = filtered.filter(
+        (p) => p.manufacturingCompany === watchedManufacturingCompany
+      );
+    }
+
+    if (filterValue !== 'ALL') {
+      filtered = filtered.filter(p => p.categoryId === filterValue);
+    }
+
+    return filtered;
   };
 
   const dialog = (
     <Dialog open={currentOpen} onOpenChange={setCurrentOpen}>
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Lead</DialogTitle>
           <DialogDescription>
             Update the details for this lead.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+            <div className="grid gap-4 py-4 flex-1 overflow-y-auto pr-6 min-h-0">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Name</Label>
@@ -278,16 +330,54 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                         />
                         {errors.source && <p className="text-xs text-destructive mt-1">{errors.source.message}</p>}
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="manufacturingCompany">Manufacturing Company</Label>
+                        <Controller
+                          control={control}
+                          name="manufacturingCompany"
+                          render={({ field }) => (
+                            (() => {
+                              const ALL_COMPANIES_VALUE = '__ALL_COMPANIES__';
+                              const currentValue = field.value ?? ALL_COMPANIES_VALUE;
+
+                              return (
+                                <Select
+                                  onValueChange={(val) => {
+                                    if (val === ALL_COMPANIES_VALUE) {
+                                      field.onChange(undefined);
+                                    } else {
+                                      field.onChange(val);
+                                    }
+                                  }}
+                                  value={currentValue}
+                                >
+                                  <SelectTrigger id="manufacturingCompany">
+                                    <SelectValue placeholder="All companies" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value={ALL_COMPANIES_VALUE}>All companies</SelectItem>
+                                    {manufacturingCompanies.map((company) => (
+                                      <SelectItem key={company.id} value={company.name}>
+                                        {company.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              );
+                            })()
+                          )}
+                        />
+                      </div>
                 </div>
                 
                 <div className="space-y-2">
                     <Label>Products Interested</Label>
                     <div className="border rounded-lg">
-                        <Table>
+                        <Table className="table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[18%]">Category</TableHead>
-                                    <TableHead className="w-[20%]">Product</TableHead>
+                                    <TableHead className="w-[12%]">Category</TableHead>
+                                    <TableHead className="w-[14%]">Product</TableHead>
 <TableHead className="w-[15%]">SKU</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate (₹)</TableHead>
@@ -303,48 +393,53 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                                     
                                     return (
                                     <TableRow key={field.id}>
-                                        <TableCell>
-                                            <Select
-                                                value={rowCategoryFilters[index] || 'ALL'}
-                                                onValueChange={(v) => {
-                                                    setRowCategoryFilters((prev) => {
-                                                        const next = [...prev];
-                                                        next[index] = v as any;
-                                                        return next;
-                                                    });
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="All" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="ALL">All</SelectItem>
-                                                    {categories.map(category => (
-                                                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                        <TableCell className="w-[12%] overflow-hidden">
+                                            <div className="w-full max-w-full">
+                                                <Combobox
+                                                    options={[
+                                                        { value: 'ALL', label: 'All categories' },
+                                                        ...categories.map((category) => ({
+                                                            value: category.id as string,
+                                                            label: category.name,
+                                                        })),
+                                                    ]}
+                                                    value={rowCategoryFilters[index] || 'ALL'}
+                                                    onValueChange={(v) => {
+                                                        setRowCategoryFilters((prev) => {
+                                                            const next = [...prev];
+                                                            next[index] = v as any;
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    placeholder="All categories"
+                                                    searchPlaceholder="Search categories..."
+                                                    emptyText="No categories found."
+                                                />
+                                            </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <Controller
-                                                control={control}
-                                                name={`products.${index}.productId`}
-                                                render={({ field }) => (
-                                                    <Select onValueChange={(value) => {
-                                                        field.onChange(value);
-                                                        handleProductChange(value, index);
-                                                    }} value={field.value}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select product" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {getFilteredProductsForRow(index).map(p => (
-                                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            />
+                                        <TableCell className="w-[14%] overflow-hidden">
+                                            <div className="w-full max-w-full">
+                                                <Controller
+                                                    control={control}
+                                                    name={`products.${index}.productId`}
+                                                    render={({ field }) => (
+                                                        <Combobox
+                                                            options={getFilteredProductsForRow(index).map((p) => ({
+                                                                value: p.id as string,
+                                                                label: p.name,
+                                                            }))}
+                                                            value={field.value}
+                                                            onValueChange={(value) => {
+                                                                field.onChange(value);
+                                                                handleProductChange(value, index);
+                                                            }}
+                                                            placeholder="Select product"
+                                                            searchPlaceholder="Search products..."
+                                                            emptyText="No products found."
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             {productDetails?.skus && productDetails.skus.length > 0 ? (
@@ -357,7 +452,7 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                                                                 <SelectValue placeholder="SKU" />
                                                             </SelectTrigger>
                                                             <SelectContent>
-                                                                {productDetails.skus?.map(sku => (
+                                                                {productDetails.skus?.map((sku: string) => (
                                                                     <SelectItem key={sku} value={sku}>{sku}</SelectItem>
                                                                 ))}
                                                             </SelectContent>

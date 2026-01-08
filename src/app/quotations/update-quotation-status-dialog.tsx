@@ -21,18 +21,20 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { Quotation } from '@/lib/types';
 import { ALL_QUOTATION_STATUSES } from '@/lib/types';
-import { updateQuotationStatusAction } from '@/lib/actions';
+import { updateQuotation } from '@/lib/data';
 
 interface UpdateQuotationStatusDialogProps {
   quotation: Quotation;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onStatusUpdated?: () => void;
 }
 
 export function UpdateQuotationStatusDialog({
   quotation,
   open,
   onOpenChange,
+  onStatusUpdated,
 }: UpdateQuotationStatusDialogProps) {
   const { toast } = useToast();
   const [status, setStatus] = useState<string>(quotation.status);
@@ -40,7 +42,10 @@ export function UpdateQuotationStatusDialog({
 
   const availableStatuses = ALL_QUOTATION_STATUSES.includes(quotation.status as any)
     ? ALL_QUOTATION_STATUSES
-    : [quotation.status, ...ALL_QUOTATION_STATUSES.filter((s) => s !== quotation.status)];
+    : [
+        quotation.status,
+        ...ALL_QUOTATION_STATUSES.filter((s: string) => s !== quotation.status),
+      ];
 
   const handleSave = async () => {
     if (!quotation.id) {
@@ -54,21 +59,14 @@ export function UpdateQuotationStatusDialog({
 
     setIsSubmitting(true);
     try {
-      const result = await updateQuotationStatusAction(quotation.id, status);
-      if (result?.message === 'Successfully updated quotation status.') {
-        toast({
-          title: 'Status Updated',
-          description: `Quotation status changed to "${status}".`,
-        });
-        onOpenChange(false);
-        // Refresh list so status badge updates
-        window.location.reload();
-      } else if (result?.message) {
-        toast({
-          variant: 'destructive',
-          title: 'Error updating status',
-          description: result.message,
-        });
+      await updateQuotation(quotation.id, { status } as any);
+      toast({
+        title: 'Status Updated',
+        description: `Quotation status changed to "${status}".`,
+      });
+      onOpenChange(false);
+      if (onStatusUpdated) {
+        onStatusUpdated();
       }
     } catch (error) {
       console.error('Error updating quotation status:', error);
@@ -99,7 +97,7 @@ export function UpdateQuotationStatusDialog({
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {availableStatuses.map((s) => (
+                {availableStatuses.map((s: string) => (
                   <SelectItem key={s} value={s}>
                     {s}
                   </SelectItem>

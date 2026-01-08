@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -90,16 +89,12 @@ export function QuotationPreview({
         return links;
       }
       
-      console.log(`Found ${imageLinks.length} product image links`);
-      
       // Get the actual rendered dimensions
       const containerWidth = quotationElement.offsetWidth;
       const containerHeight = quotationElement.offsetHeight;
       
       // Calculate the scale factor used by html2canvas (for debugging)
       const canvasScale = canvas.width / containerWidth;
-      
-      console.log(`Container: ${containerWidth}x${containerHeight}px, Canvas: ${canvas.width}x${canvas.height}px, Scale: ${canvasScale}`);
       
       imageLinks.forEach((link, index) => {
         const anchor = link as HTMLAnchorElement;
@@ -124,19 +119,11 @@ export function QuotationPreview({
 
         // Only keep links that appear on the first content page
         if (yInContentMm > pageContentHeightMm) {
-          console.log(`Skipping link ${index} because it is on a subsequent PDF page`);
           return;
         }
 
         const pdfX = marginLeftMm + xInContentMm;
         const pdfY = marginTopMm + yInContentMm;
-        
-        console.log(`Link ${index}:`);
-        console.log(`  URL: ${anchor.href}`);
-        console.log(`  DOM position: x=${offsetX.toFixed(2)}px, y=${offsetY.toFixed(2)}px`);
-        console.log(`  DOM size: ${width.toFixed(2)}px x ${height.toFixed(2)}px`);
-        console.log(`  PDF position: (${pdfX.toFixed(2)}, ${pdfY.toFixed(2)}) mm`);
-        console.log(`  PDF size: ${linkWidthMm.toFixed(2)} x ${linkHeightMm.toFixed(2)} mm`);
         
         links.push({
           x: pdfX,
@@ -146,8 +133,6 @@ export function QuotationPreview({
           url: anchor.href,
         });
       });
-      
-      console.log(`Collected ${links.length} link info objects`);
     } catch (error) {
       console.error('Error collecting product image links:', error);
     }
@@ -156,196 +141,26 @@ export function QuotationPreview({
   };
 
   const handleDownload = async () => {
-    // This function now only downloads the quotation part (without catalogs)
-    const quotationElement = previewRef.current;
-    if (!quotationElement) return;
-
-    // Apply compact typography only for PDF rendering
-    quotationElement.classList.add('pdf-compact');
-
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const html2canvas = (await import('html2canvas')).default;
-      
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
+      // Use dedicated Cloud Function for PDF generation to avoid Puppeteer
+      // limitations in the Firebase Hosting frameworks backend.
+      const functionUrl = 'https://generatequotationpdf-srerirxeya-uc.a.run.app';
+      const url = `${functionUrl}?id=${encodeURIComponent(quotation.id)}`;
 
-      const marginLeft = 5;
-      const marginRight = 5;
-      const marginTop = 5;
-      const marginBottom = 5;
-
-      const contentWidth = pageWidth - marginLeft - marginRight;
-
-      // Separate header and body to allow repeating letterhead on each page
-      const headerElement = quotationElement.querySelector('[data-quotation-header="true"]') as HTMLElement | null;
-      const bodyElement = quotationElement.querySelector('[data-quotation-body="true"]') as HTMLElement | null || quotationElement;
-
-      let headerHeightMm = 0;
-      let headerDataUrl: string | null = null;
-
-      if (headerElement) {
-        const headerCanvas = await html2canvas(headerElement, {
-          scale: 2,
-          useCORS: true,
-        });
-        headerDataUrl = headerCanvas.toDataURL('image/png');
-        headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
-      }
-
-      const extraHeightPx = 0;
-      const bodyCanvas = await html2canvas(bodyElement, {
-        scale: 2,
-        useCORS: true,
-        height: bodyElement.scrollHeight + extraHeightPx,
-        windowHeight: bodyElement.scrollHeight + extraHeightPx,
-      });
-      const bodyData = bodyCanvas.toDataURL('image/png');
-
-      const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
-
-      // Reserve a safe header area on each page (in mm) to ensure no overlap
-      const minHeaderSafeAreaMm = 25;
-      const effectiveHeaderMm = Math.max(headerHeightMm, minHeaderSafeAreaMm);
-
-      // Extra vertical gap between header and body on each page (in mm)
-      const extraTopGapMm = 3;
-
-      // Add header + body content across multiple pages using cropped slices
-      const canvasWidth = bodyCanvas.width;
-      const canvasHeight = bodyCanvas.height;
-
-      // Convert between mm (PDF space) and pixels (canvas space)
-      const pxPerMm = canvasHeight / bodyContentHeight;
-
-      // Usable body height on the page after header and margins
-      const maxUsableBodyMm = pageHeight - marginTop - marginBottom - effectiveHeaderMm - extraTopGapMm;
-
-      // Keep roughly 5 products per page as a baseline estimate
-      const rowsPerPageTarget = 5;
-      const estimatedRowHeightMm = products.length > 0
-        ? bodyContentHeight / (products.length + 2) // +2 to account for totals/other content
-        : bodyContentHeight;
-      const targetBodyHeightMm = rowsPerPageTarget * estimatedRowHeightMm;
-
-      // Also constrain the bottom whitespace to be around 20mm on full pages
-      const desiredBodyHeightMmByBottom = Math.max(0, maxUsableBodyMm - 16);
-
-      // Final per-page body height:
-      // - cannot exceed max usable area
-      // - at least large enough to reduce bottom whitespace to ~70mm
-      // - at least the 5-row estimate so we don't accidentally go smaller
-      const pageBodyHeightMm = Math.min(
-        maxUsableBodyMm,
-        Math.max(targetBodyHeightMm, desiredBodyHeightMmByBottom)
-      );
-      const pageBodyHeightPx = pageBodyHeightMm * pxPerMm;
-
-      // Collect link information AFTER rendering canvas for accurate positions (body only)
-      const links = collectProductImageLinks(
-        bodyElement,
-        bodyCanvas,
-        contentWidth,
-        bodyContentHeight,
-        pageBodyHeightMm,
-        marginLeft,
-        marginTop + effectiveHeaderMm + extraTopGapMm
-      );
-
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = canvasWidth;
-      const sliceContext = sliceCanvas.getContext('2d');
-
-      let usedPages = 0;
-
-      if (!sliceContext) {
-        // Fallback: single-page render if canvas context is unavailable
-        if (headerDataUrl && headerHeightMm > 0) {
-          pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
-        }
-        pdf.addImage(
-          bodyData,
-          'PNG',
-          marginLeft,
-          marginTop + effectiveHeaderMm + extraTopGapMm,
-          contentWidth,
-          bodyContentHeight
-        );
-        usedPages = 1;
-      } else {
-        let currentYpx = 0;
-        let firstPage = true;
-        const minRemainingSlicePx = 4;
-
-        while (currentYpx < canvasHeight) {
-          const remainingPx = canvasHeight - currentYpx;
-          if (remainingPx <= minRemainingSlicePx) {
-            break;
-          }
-          if (!firstPage) {
-            pdf.addPage();
-          }
-
-          if (headerDataUrl && headerHeightMm > 0) {
-            pdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
-          }
-
-          const sliceHeightPx = Math.min(pageBodyHeightPx, remainingPx);
-          const sliceHeightMm = sliceHeightPx / pxPerMm;
-
-          sliceCanvas.height = sliceHeightPx;
-          sliceContext.clearRect(0, 0, canvasWidth, sliceHeightPx);
-          sliceContext.drawImage(
-            bodyCanvas,
-            0,
-            currentYpx,
-            canvasWidth,
-            sliceHeightPx,
-            0,
-            0,
-            canvasWidth,
-            sliceHeightPx
-          );
-
-          const sliceDataUrl = sliceCanvas.toDataURL('image/png');
-          pdf.addImage(
-            sliceDataUrl,
-            'PNG',
-            marginLeft,
-            marginTop + effectiveHeaderMm + extraTopGapMm,
-            contentWidth,
-            sliceHeightMm
-          );
-
-          currentYpx += sliceHeightPx;
-          firstPage = false;
-          usedPages += 1;
-        }
-      }
-      const totalPages = pdf.getNumberOfPages();
-      for (let p = totalPages; p > usedPages && usedPages > 0; p--) {
-        pdf.deletePage(p);
-      }
-      
-      // Add watermark and links (use template/company logo if available) and download
-      const watermarkedBlob = await addWatermarkToJsPDF(pdf, quotation.logoUrl, links);
-      downloadPdfBlob(watermarkedBlob, `Quotation-${quotation.quotationNumber}.pdf`);
+      // Open in a new window/tab so the browser can handle the PDF download
+      // using the Content-Disposition header set by the function.
+      window.open(url, '_blank');
     } catch (error) {
-      console.error('Error generating quotation PDF with watermark:', error);
+      console.error('Error downloading quotation PDF via Puppeteer:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to generate quotation PDF with watermark',
+        description: 'Failed to generate quotation PDF',
       });
-    } finally {
-      // Always remove compact class so on-screen preview keeps normal spacing
-      quotationElement.classList.remove('pdf-compact');
     }
   };
 
   const handleDownloadCompletePreview = async () => {
-    // This function downloads the complete preview (quotation + catalogs) as HTML-to-PDF
     const completeElement = completePreviewRef.current;
     if (!completeElement) return;
 
@@ -383,12 +198,18 @@ export function QuotationPreview({
         headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
       }
 
-      const bodyCanvas = await html2canvas(exportBodyElement, {
-        scale: 1.5, // Slightly lower scale for large content
+      const bodyCanvas = await html2canvas(bodyElement, {
+        scale: 2,
         useCORS: true,
-        height: exportBodyElement.scrollHeight,
-        windowHeight: exportBodyElement.scrollHeight,
+        backgroundColor: "#ffffff",
+        height: bodyElement.offsetHeight,
+        windowHeight: bodyElement.offsetHeight,
       });
+
+      if (!bodyCanvas || bodyCanvas.height === 0 || bodyCanvas.width === 0) {
+        throw new Error('html2canvas produced empty canvas for complete preview body');
+      }
+
       const bodyData = bodyCanvas.toDataURL('image/png');
 
       const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
@@ -413,9 +234,8 @@ export function QuotationPreview({
 
       while (position < bodyContentHeight) {
         const remainingMm = bodyContentHeight - position;
-        if (remainingMm <= minRemainingContentMm) {
-          break;
-        }
+        if (remainingMm <= minRemainingContentMm) break;
+
         if (!firstPage) {
           pdf.addPage();
         }
@@ -430,14 +250,18 @@ export function QuotationPreview({
 
         pdf.addImage(bodyData, 'PNG', marginLeft, yBody, contentWidth, bodyContentHeight);
 
+        if (sliceHeightPx / pxPerMm < 8) {
+    break;
+}usedPages += 1;
         position += pageContentHeight;
         firstPage = false;
-        usedPages += 1;
       }
 
-      const totalPages = pdf.getNumberOfPages();
-      for (let p = totalPages; p > usedPages && usedPages > 0; p--) {
-        pdf.deletePage(p);
+      // Remove trailing empty pages if any
+      let totalPages = pdf.getNumberOfPages();
+      while (totalPages > usedPages && totalPages > 0) {
+        pdf.deletePage(totalPages);
+        totalPages = pdf.getNumberOfPages();
       }
 
       // Add watermark and links (use template/company logo if available) and download
@@ -462,274 +286,27 @@ export function QuotationPreview({
 
   const handleDownloadWithCatalogs = async () => {
     setIsGeneratingMerged(true);
-    
+
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const html2canvas = (await import('html2canvas')).default;
-      const { PDFDocument } = await import('pdf-lib');
-      // Generate the quotation PDF first
-      const element = previewRef.current;
-      if (!element) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not generate quotation PDF',
-        });
-        return;
-      }
+      const functionUrl = 'https://generatemergedquotationpdf-srerirxeya-uc.a.run.app';
+      const url = `${functionUrl}?id=${encodeURIComponent(quotation.id)}`;
 
-      // Apply compact typography just like the quotation-only PDF
-      element.classList.add('pdf-compact');
-
-      const quotationPdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = quotationPdf.internal.pageSize.getWidth();
-      const pageHeight = quotationPdf.internal.pageSize.getHeight();
-
-      const marginLeft = 5;
-      const marginRight = 5;
-      const marginTop = 5;
-      const marginBottom = 5;
-
-      const contentWidth = pageWidth - marginLeft - marginRight;
-
-      // Separate header and body to allow repeating letterhead on each page
-      const headerElement = element.querySelector('[data-quotation-header="true"]') as HTMLElement | null;
-      const bodyElement = element.querySelector('[data-quotation-body="true"]') as HTMLElement | null || element;
-
-      let headerHeightMm = 0;
-      let headerDataUrl: string | null = null;
-
-      if (headerElement) {
-        const headerCanvas = await html2canvas(headerElement, {
-          scale: 2,
-          useCORS: true,
-        });
-        headerDataUrl = headerCanvas.toDataURL('image/png');
-        headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
-      }
-
-      const extraHeightPx = 0;
-      const bodyCanvas = await html2canvas(bodyElement, {
-        scale: 2,
-        useCORS: true,
-        height: bodyElement.scrollHeight + extraHeightPx,
-        windowHeight: bodyElement.scrollHeight + extraHeightPx,
-      });
-      const bodyData = bodyCanvas.toDataURL('image/png');
-
-      const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
-
-      // Reserve a safe header area on each page (in mm) to ensure no overlap
-      const minHeaderSafeAreaMm = 25;
-      const effectiveHeaderMm = Math.max(headerHeightMm, minHeaderSafeAreaMm);
-
-      // Extra vertical gap between header and body on each page (in mm)
-      const extraTopGapMm = 3;
-
-      // Add header + body content across multiple pages using cropped slices
-      const canvasWidth = bodyCanvas.width;
-      const canvasHeight = bodyCanvas.height;
-
-      // Convert between mm (PDF space) and pixels (canvas space)
-      const pxPerMm = canvasHeight / bodyContentHeight;
-
-      // Usable body height on the page after header and margins
-      const maxUsableBodyMm = pageHeight - marginTop - marginBottom - effectiveHeaderMm - extraTopGapMm;
-
-      // Keep roughly 5 products per page as a baseline estimate
-      const rowsPerPageTarget = 5;
-      const estimatedRowHeightMm = products.length > 0
-        ? bodyContentHeight / (products.length + 2) // +2 to account for totals/other content
-        : bodyContentHeight;
-      const targetBodyHeightMm = rowsPerPageTarget * estimatedRowHeightMm;
-
-      // Also constrain the bottom whitespace to be around 20mm on full pages
-      const desiredBodyHeightMmByBottom = Math.max(0, maxUsableBodyMm - 16);
-
-      // Final per-page body height:
-      // - cannot exceed max usable area
-      // - at least large enough to reduce bottom whitespace to ~70mm
-      // - at least the 5-row estimate so we don't accidentally go smaller
-      const pageBodyHeightMm = Math.min(
-        maxUsableBodyMm,
-        Math.max(targetBodyHeightMm, desiredBodyHeightMmByBottom)
-      );
-      const pageBodyHeightPx = pageBodyHeightMm * pxPerMm;
-
-      // Collect link information AFTER rendering canvas for accurate positions (body only)
-      const links = collectProductImageLinks(
-        bodyElement,
-        bodyCanvas,
-        contentWidth,
-        bodyContentHeight,
-        pageBodyHeightMm,
-        marginLeft,
-        marginTop + effectiveHeaderMm + extraTopGapMm
-      );
-
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = canvasWidth;
-      const sliceContext = sliceCanvas.getContext('2d');
-
-      let usedPages = 0;
-
-      if (!sliceContext) {
-        // Fallback: single-page render if canvas context is unavailable
-        if (headerDataUrl && headerHeightMm > 0) {
-          quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
-        }
-        quotationPdf.addImage(
-          bodyData,
-          'PNG',
-          marginLeft,
-          marginTop + effectiveHeaderMm + extraTopGapMm,
-          contentWidth,
-          bodyContentHeight
-        );
-        usedPages = 1;
-      } else {
-        let currentYpx = 0;
-        let firstPage = true;
-        const minRemainingSlicePx = 4;
-
-        while (currentYpx < canvasHeight) {
-          const remainingPx = canvasHeight - currentYpx;
-          if (remainingPx <= minRemainingSlicePx) {
-            break;
-          }
-          if (!firstPage) {
-            quotationPdf.addPage();
-          }
-
-          if (headerDataUrl && headerHeightMm > 0) {
-            quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
-          }
-
-          const sliceHeightPx = Math.min(pageBodyHeightPx, remainingPx);
-          const sliceHeightMm = sliceHeightPx / pxPerMm;
-
-          sliceCanvas.height = sliceHeightPx;
-          sliceContext.clearRect(0, 0, canvasWidth, sliceHeightPx);
-          sliceContext.drawImage(
-            bodyCanvas,
-            0,
-            currentYpx,
-            canvasWidth,
-            sliceHeightPx,
-            0,
-            0,
-            canvasWidth,
-            sliceHeightPx
-          );
-
-          const sliceDataUrl = sliceCanvas.toDataURL('image/png');
-          quotationPdf.addImage(
-            sliceDataUrl,
-            'PNG',
-            marginLeft,
-            marginTop + effectiveHeaderMm + extraTopGapMm,
-            contentWidth,
-            sliceHeightMm
-          );
-
-          currentYpx += sliceHeightPx;
-          firstPage = false;
-          usedPages += 1;
-        }
-      }
-
-      const totalPages = quotationPdf.getNumberOfPages();
-      for (let p = totalPages; p > usedPages && usedPages > 0; p--) {
-        quotationPdf.deletePage(p);
-      }
-
-      // Get the quotation PDF as array buffer
-      const quotationPdfBytes = quotationPdf.output('arraybuffer');
-
-      // Create a new PDF document using pdf-lib
-      const mergedPdf = await PDFDocument.create();
-      
-      // Add the quotation PDF
-      const quotationPdfDoc = await PDFDocument.load(quotationPdfBytes);
-      const quotationPages = await mergedPdf.copyPages(quotationPdfDoc, quotationPdfDoc.getPageIndices());
-      quotationPages.forEach((page) => mergedPdf.addPage(page));
-
-      // Get products with catalog PDFs
-      const productsWithCatalogs = products.filter(p => p.product.cataloguePdf?.url);
-      
-      if (productsWithCatalogs.length === 0) {
-        toast({
-          variant: 'destructive',
-          title: 'No Catalog PDFs',
-          description: 'None of the products in this quotation have catalog PDFs to merge.',
-        });
-        setIsGeneratingMerged(false);
-        return;
-      }
-
-      // Add catalog PDFs
-      for (const productItem of productsWithCatalogs) {
-        const catalogPdf = productItem.product.cataloguePdf;
-        if (catalogPdf?.url) {
-          try {
-            // Fetch PDF from Firebase Storage URL
-            const response = await fetch(catalogPdf.url);
-            const arrayBuffer = await response.arrayBuffer();
-
-            // Load the catalog PDF
-            const catalogPdfDoc = await PDFDocument.load(arrayBuffer);
-            // Copy and add catalog pages
-            const catalogPages = await mergedPdf.copyPages(catalogPdfDoc, catalogPdfDoc.getPageIndices());
-            catalogPages.forEach((page) => {
-              mergedPdf.addPage(page);
-            });
-          } catch (error) {
-            console.error(`Error processing catalog for ${productItem.product.name}:`, error);
-            console.error('Error details:', error);
-            toast({
-              variant: 'destructive',
-              title: 'PDF Processing Error',
-              description: `Could not process catalog for ${productItem.product.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            });
-          }
-        }
-      }
-
-      // Add watermark to all pages before saving (use template/company logo if available)
-      await addWatermarkToAllPages(mergedPdf, quotation.logoUrl);
-      
-      // Add clickable links to the first page (quotation page)
-      if (links && links.length > 0) {
-        const pages = mergedPdf.getPages();
-        if (pages.length > 0) {
-          const { addLinksToPage } = await import('@/lib/pdf-watermark');
-          addLinksToPage(pages[0], links);
-          console.log(`Added ${links.length} clickable links to merged PDF`);
-        }
-      }
-      
-      // Save the merged PDF with watermark
-      const mergedPdfBytes = await mergedPdf.save();
-      const blob = new Blob([mergedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
-      downloadPdfBlob(blob, `Quotation-${quotation.quotationNumber}-with-catalogs.pdf`);
+      // Open in a new window/tab so the browser can handle the PDF download
+      // using the Content-Disposition header set by the function.
+      window.open(url, '_blank');
 
       toast({
-        title: 'Success',
-        description: `Merged PDF with ${productsWithCatalogs.length} catalog(s) downloaded successfully!`,
+        title: 'Download started',
+        description: 'Merged quotation with catalogs is being generated.',
       });
-
     } catch (error) {
-      console.error('Error generating merged PDF:', error);
+      console.error('Error downloading merged quotation PDF via Cloud Run:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to generate merged PDF with catalogs',
       });
     } finally {
-      const element = previewRef.current;
-      if (element) {
-        element.classList.remove('pdf-compact');
-      }
       setIsGeneratingMerged(false);
     }
   };
@@ -838,7 +415,7 @@ export function QuotationPreview({
 
         <div data-quotation-body="true">
 
-        <section className="grid sm:grid-cols-2 gap-4 my-4 text-sm leading-snug">
+        <section className="pdf-page-section grid sm:grid-cols-2 gap-4 my-4 text-sm leading-snug">
           <div>
             <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">
             To
@@ -877,7 +454,7 @@ export function QuotationPreview({
           </div>
         </section>
 
-        <section className="overflow-x-auto mt-3">
+        <section className="pdf-page-section overflow-x-auto mt-3">
           <table className="w-full text-left text-sm leading-snug">
             <thead className="bg-gray-800 text-white">
               <tr>
@@ -908,23 +485,28 @@ export function QuotationPreview({
                     <tr key={p.productId} className="border-b">
                   <td className="px-3 py-2">
                     <div className="flex items-start gap-2">
-                      {p.product.productImage && (
-                        <a 
-                          href={p.product.productImage.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                          data-product-image-link="true"
-                        >
-                          <Image
-                            src={p.product.productImage.url}
-                            alt={p.product.name}
-                            fill
-                            className="object-cover"
-                            sizes="64px"
-                          />
-                        </a>
-                      )}
+                      {(() => {
+                        const thumbUrl = (p.product as any).thumbnailImage?.url as string | undefined;
+                        if (!thumbUrl) return null;
+                        const originalUrl = p.product.productImage?.url || thumbUrl;
+                        return (
+                          <a
+                            href={originalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                            data-product-image-link="true"
+                          >
+                            <Image
+                              src={thumbUrl}
+                              alt={p.product.name}
+                              fill
+                              className="object-cover"
+                              sizes="64px"
+                            />
+                          </a>
+                        );
+                      })()}
                       <div className="flex-1">
                         {(() => {
                           const lines: string[] = [];
@@ -983,7 +565,7 @@ export function QuotationPreview({
           </table>
         </section>
 
-        <section className="flex justify-between mt-4 gap-8">
+        <section className="pdf-page-section flex justify-between mt-4 gap-8">
           {(() => {
             // Calculate totals including discount breakdown
             const totalBaseAmount = products.reduce((acc, p) => acc + (p.quantity * p.rate), 0);
@@ -1062,7 +644,7 @@ export function QuotationPreview({
           })()}
         </section>
         
-        <footer className="mt-4 p-4 border-t">
+        <footer className="pdf-page-section mt-4 p-4 border-t">
           <h4 className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2">
             Terms & Conditions
           </h4>

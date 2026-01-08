@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { getCurrentUserEmployeeAction } from '@/lib/actions';
+import { getEmployeeByEmail } from '@/lib/data';
 import type { Employee } from '@/lib/business-types';
 
 interface UseUserRoleReturn {
@@ -32,9 +32,9 @@ export function useUserRole(): UseUserRoleReturn {
       try {
         setLoading(true);
         setError(null);
-        
-        const employeeData = await getCurrentUserEmployeeAction(user.email);
-        
+
+        const employeeData = await getEmployeeByEmail(user.email);
+
         if (employeeData) {
           setEmployee(employeeData);
           setUserRole(employeeData.role);

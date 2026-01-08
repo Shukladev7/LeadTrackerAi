@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { MessageSquare, Mail, Send, FileText, Loader2 } from 'lucide-react';
-import { logCommunicationActivityAction } from '@/lib/actions';
+import { addActivityToLead } from '@/lib/data';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { PDFDocument } from 'pdf-lib';
@@ -62,6 +62,8 @@ export function QuotationCommunicationDialog({
         return null;
       }
 
+      element.classList.add('pdf-page-root');
+
       const quotationPdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = quotationPdf.internal.pageSize.getWidth();
       const pageHeight = quotationPdf.internal.pageSize.getHeight();
@@ -89,13 +91,19 @@ export function QuotationCommunicationDialog({
         headerHeightMm = (headerCanvas.height * contentWidth) / headerCanvas.width;
       }
 
-      const extraHeightPx = 100;
+      const extraHeightPx = 0;
       const bodyCanvas = await html2canvas(bodyElement, {
         scale: 2,
         useCORS: true,
         height: bodyElement.scrollHeight + extraHeightPx,
         windowHeight: bodyElement.scrollHeight + extraHeightPx,
       });
+
+      // protective: if html2canvas failed to render height 0, bail early
+      if (!bodyCanvas || bodyCanvas.height === 0 || bodyCanvas.width === 0) {
+        throw new Error('html2canvas produced empty canvas for quotation body');
+      }
+
       const bodyData = bodyCanvas.toDataURL('image/png');
 
       const bodyContentHeight = (bodyCanvas.height * contentWidth) / bodyCanvas.width;
@@ -108,9 +116,9 @@ export function QuotationCommunicationDialog({
       const extraTopGapMm = 3;
 
       // Convert between mm (PDF space) and pixels (canvas space)
-      const pxPerMm = bodyCanvas.height / bodyContentHeight;
+      const pxPerMm = bodyContentHeight > 0 ? (bodyCanvas.height / bodyContentHeight) : 1;
 
-      // Usable body height on the page after header and margins
+      // Usable body height on the page after header and margins (mm)
       const maxUsableBodyMm = pageHeight - marginTop - marginBottom - effectiveHeaderMm - extraTopGapMm;
 
       // Keep roughly 5 products per page as a baseline estimate
@@ -123,69 +131,111 @@ export function QuotationCommunicationDialog({
       // Also constrain the bottom whitespace to be around 20mm on full pages
       const desiredBodyHeightMmByBottom = Math.max(0, maxUsableBodyMm - 16);
 
-      // Final per-page body height:
-      // - cannot exceed max usable area
-      // - at least large enough to reduce bottom whitespace to ~70mm
-      // - at least the 5-row estimate so we don't accidentally go smaller
+      // Final per-page body height (mm):
       const pageBodyHeightMm = Math.min(
         maxUsableBodyMm,
         Math.max(targetBodyHeightMm, desiredBodyHeightMmByBottom)
       );
-      const pageBodyHeightPx = pageBodyHeightMm * pxPerMm;
+      const pageBodyHeightPx = Math.max(1, pageBodyHeightMm * pxPerMm);
 
       // Add header + body content across multiple pages by slicing the body image
-      let currentYpx = 0;
-      let firstPage = true;
+      const canvasWidth = bodyCanvas.width;
+      const canvasHeight = bodyCanvas.height;
 
-      while (currentYpx < bodyCanvas.height) {
-        if (!firstPage) {
-          quotationPdf.addPage();
-        }
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvasWidth;
+      const sliceContext = sliceCanvas.getContext('2d');
 
-        // Draw repeating letterhead at the top of each page
+      let usedPages = 0;
+
+      if (!sliceContext) {
+        // Fallback: single-page render if canvas context is unavailable
         if (headerDataUrl && headerHeightMm > 0) {
           quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
         }
-
-        const sliceHeightPx = Math.min(pageBodyHeightPx, bodyCanvas.height - currentYpx);
-        const sliceHeightMm = sliceHeightPx / pxPerMm;
-
-        // Create a temporary canvas for this page slice
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = bodyCanvas.width;
-        pageCanvas.height = sliceHeightPx;
-        const pageCtx = pageCanvas.getContext('2d');
-
-        if (!pageCtx) {
-          break;
-        }
-
-        pageCtx.drawImage(
-          bodyCanvas,
-          0,
-          currentYpx,
-          bodyCanvas.width,
-          sliceHeightPx,
-          0,
-          0,
-          bodyCanvas.width,
-          sliceHeightPx
-        );
-
-        const pageData = pageCanvas.toDataURL('image/png');
-
-        // Draw this slice just below the header area
         quotationPdf.addImage(
-          pageData,
+          bodyData,
           'PNG',
           marginLeft,
           marginTop + effectiveHeaderMm + extraTopGapMm,
           contentWidth,
-          sliceHeightMm
+          bodyContentHeight
         );
+        usedPages = 1;
+      } else {
+        let currentYpx = 0;
+        let firstSlice = true;
+        const minRemainingSlicePx = 4;
 
-        currentYpx += sliceHeightPx;
-        firstPage = false;
+        while (currentYpx < canvasHeight) {
+          const remainingPx = canvasHeight - currentYpx;
+          if (remainingPx <= minRemainingSlicePx) break;
+
+          // For pages after first, create a new PDF page before drawing content
+          if (!firstSlice) {
+            quotationPdf.addPage();
+            if (headerDataUrl && headerHeightMm > 0) {
+              // draw header on each new page
+              quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+            }
+          } else {
+            // first page: draw header (if available) on the already existing first page
+            if (headerDataUrl && headerHeightMm > 0) {
+              quotationPdf.addImage(headerDataUrl, 'PNG', marginLeft, marginTop, contentWidth, headerHeightMm);
+            }
+          }
+
+          const sliceHeightPx = Math.min(pageBodyHeightPx, remainingPx);
+// Skip extremely small trailing slices to avoid blank last page
+if ((sliceHeightPx / pxPerMm) < 8) {
+    break;
+}
+          if (sliceHeightPx <= 0) break;
+          const sliceHeightMm = sliceHeightPx / pxPerMm;
+
+          sliceCanvas.height = sliceHeightPx;
+          sliceContext.clearRect(0, 0, canvasWidth, sliceHeightPx);
+          sliceContext.drawImage(
+            bodyCanvas,
+            0,
+            currentYpx,
+            canvasWidth,
+            sliceHeightPx,
+            0,
+            0,
+            canvasWidth,
+            sliceHeightPx
+          );
+
+          const sliceDataUrl = sliceCanvas.toDataURL('image/png');
+          const yPos = marginTop + effectiveHeaderMm + extraTopGapMm;
+
+          // Draw this slice at yPos
+          quotationPdf.addImage(
+            sliceDataUrl,
+            'PNG',
+            marginLeft,
+            yPos,
+            contentWidth,
+            sliceHeightMm
+          );
+
+          // We placed content on a page — count it
+          
+          if (sliceHeightPx / pxPerMm < 8) {
+    break;
+}usedPages += 1;
+
+          currentYpx += sliceHeightPx;
+          firstSlice = false;
+        }
+      }
+
+      // Ensure we don't keep extra empty pages at the end
+      let totalPages = quotationPdf.getNumberOfPages();
+      while (totalPages > usedPages && totalPages > 0) {
+        quotationPdf.deletePage(totalPages);
+        totalPages = quotationPdf.getNumberOfPages();
       }
 
       // Get the quotation PDF as array buffer
@@ -201,42 +251,25 @@ export function QuotationCommunicationDialog({
 
       // Get products with catalog PDFs
       const productsWithCatalogs = products.filter(p => p.product.cataloguePdf?.url);
-      
-      // Add catalog PDFs if available
+
+      // Add catalog PDFs if available (Option B — pre-existing PDF files)
       for (const productItem of productsWithCatalogs) {
         const catalogPdf = productItem.product.cataloguePdf;
         if (catalogPdf?.url) {
           try {
-            // Fetch PDF from Firebase Storage URL
             const response = await fetch(catalogPdf.url);
             const arrayBuffer = await response.arrayBuffer();
-
-            // Load the catalog PDF
             const catalogPdfDoc = await PDFDocument.load(arrayBuffer);
-            
-            // Add a separator page with product name
-            const separatorPage = mergedPdf.addPage();
-const productTitle = `Product Catalog: ${productItem.product.name}`;
-            separatorPage.drawText(productTitle, {
-              x: 50,
-              y: separatorPage.getHeight() - 100,
-              size: 20,
-            });
-            
-            // Copy and add catalog pages
             const catalogPages = await mergedPdf.copyPages(catalogPdfDoc, catalogPdfDoc.getPageIndices());
-            catalogPages.forEach((page) => {
-              mergedPdf.addPage(page);
-            });
-          } catch (error) {
-            console.error(`Error processing catalog for ${productItem.product.name}:`, error);
+            catalogPages.forEach((page) => mergedPdf.addPage(page));
+          } catch (err) {
+            console.error(`Error processing catalog for ${productItem.product.name}:`, err);
           }
         }
       }
 
       // Generate the merged PDF blob
       const mergedPdfBytes = await mergedPdf.save();
-      // Use underlying ArrayBuffer (casted) to avoid TS issues with Uint8Array-as-BlobPart
       const blob = new Blob([mergedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       
       return blob;
@@ -249,6 +282,10 @@ const productTitle = `Product Catalog: ${productItem.product.name}`;
       });
       return null;
     } finally {
+      const element = quotationRef.current;
+      if (element) {
+        element.classList.remove('pdf-page-root');
+      }
       setIsGeneratingPDF(false);
     }
   };
@@ -271,14 +308,17 @@ const productTitle = `Product Catalog: ${productItem.product.name}`;
 
     // Log the communication activity
     try {
-      const formData = new FormData();
-      formData.append('leadId', lead.id || '');
-      formData.append('type', type === 'whatsapp' ? 'WhatsApp' : 'Email');
-      formData.append('message', `${message}\n\n📎 Quotation ${quotation.quotationNumber} with product catalogs attached.`);
-      formData.append('contact', type === 'whatsapp' ? (lead.whatsappNumber || lead.phone) : lead.email);
-      formData.append('sentBy', user?.displayName || user?.email || 'Unknown User');
-      
-      await logCommunicationActivityAction(formData);
+      const contact = type === 'whatsapp' ? (lead.whatsappNumber || lead.phone) : lead.email;
+      const sentBy = user?.displayName || user?.email || 'Unknown User';
+      const channel = type === 'whatsapp' ? 'WhatsApp' : 'Email';
+      const activityNotes = `${channel} message sent to ${contact} by ${sentBy}:\n\n"${message}\n\n📎 Quotation ${quotation.quotationNumber} with product catalogs attached."`;
+
+      if (lead.id) {
+        await addActivityToLead(lead.id, {
+          type: channel as any,
+          notes: activityNotes,
+        } as any);
+      }
     } catch (error) {
       console.error('Error logging communication activity:', error);
       // Continue with sending even if logging fails
@@ -306,7 +346,7 @@ const productTitle = `Product Catalog: ${productItem.product.name}`;
     URL.revokeObjectURL(url);
 
     // Clean the phone number (remove any non-digit characters except +)
-    const contact = lead.whatsappNumber || lead.phone;
+    const contact = lead.whatsappNumber || lead.phone || '';
     const cleanNumber = contact.replace(/[^\d+]/g, '');
     
     // Create message with PDF reference

@@ -1,7 +1,5 @@
 {
   "projects": {
-    "leadai": "studio-5063047183-aa053"
-  },
-  "targets": {},
-  "etags": {}
+    "default": "studio-5063047183-aa053"
+  }
 }

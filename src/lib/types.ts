@@ -47,6 +47,13 @@ export type Product = {
     filePath: string;
     uploadedAt: string;
   };
+  thumbnailImage?: {
+    url: string; // Firebase Storage download URL
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
+  };
+  manufacturingCompany?: string;
 };
 
 export type NewProduct = Omit<Product, 'id'>;
@@ -78,6 +85,7 @@ export type Lead = {
   activities: Activity[];
   products: LeadProduct[];
   createdBy?: string; // Name or email of the user who created the lead
+  manufacturingCompany?: string;
 };
 
 export type UpdatableLeadData = Omit<Lead, 'id' | 'createdAt' | 'activities'>;
@@ -104,6 +112,9 @@ export type Quotation = {
   id: string;
   quotationNumber: string;
   leadId: string;
+  // Denormalized lead fields (may be absent on older documents)
+  leadName?: string;
+  leadCompany?: string;
   date: string;
   validUntil: string;
   products: QuotationProduct[];
@@ -131,6 +142,13 @@ export type Quotation = {
   currencyCode?: string; // Selected currency code (default: INR)
   currencySymbol?: string; // Currency symbol for display
   conversionRate?: number; // Conversion rate at time of quotation creation
+  manufacturingCompany?: string;
+  // Unified lowercase search index (optional, used only for querying)
+  searchIndex?: string;
+  searchTokens?: string[];
+  // Sequential numbering metadata (may be absent on older documents)
+  prefix?: string;
+  number?: number;
 };
 
 export type QuotationTemplate = {
@@ -142,6 +160,7 @@ export type QuotationTemplate = {
     companyAddress: string;
     companyGst?: string;
     termsAndConditions: string;
+    manufacturingCompany?: string;
 };
 
 export type NewQuotationTemplate = Omit<QuotationTemplate, 'id'>;

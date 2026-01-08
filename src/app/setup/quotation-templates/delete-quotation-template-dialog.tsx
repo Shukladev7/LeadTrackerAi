@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { QuotationTemplate } from '@/lib/types';
-import { deleteQuotationTemplateAction } from '@/lib/actions';
+import { deleteQuotationTemplate } from '@/lib/data';
 
 type DeleteTemplateDialogProps = {
   template: QuotationTemplate;
@@ -28,21 +28,24 @@ export function DeleteQuotationTemplateDialog({ template, open, onOpenChange }: 
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    const result = await deleteQuotationTemplateAction(template.id);
-    if (result.message === 'Successfully deleted quotation template.') {
+    try {
+      await deleteQuotationTemplate(template.id);
       toast({
         title: 'Template Deleted',
         description: `"${template.name}" has been deleted.`,
       });
       onOpenChange(false);
-    } else {
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to delete quotation template.';
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.message,
+        description: message,
       });
+    } finally {
+      setIsDeleting(false);
     }
-    setIsDeleting(false);
   };
 
   return (

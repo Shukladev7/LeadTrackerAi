@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { MessageSquare, Mail, Send } from 'lucide-react';
-import { logCommunicationActivityAction } from '@/lib/actions';
+import { addActivityToLead } from '@/lib/data';
 
 interface CommunicationDialogProps {
   open: boolean;
@@ -50,16 +50,15 @@ export function CommunicationDialog({
       return;
     }
 
-    // Log the communication activity
+    // Log the communication activity as a lead activity
     try {
-      const formData = new FormData();
-      formData.append('leadId', leadId);
-      formData.append('type', type === 'whatsapp' ? 'WhatsApp' : 'Email');
-      formData.append('message', message);
-      formData.append('contact', contact);
-      formData.append('sentBy', user?.displayName || user?.email || 'Unknown User');
-      
-      await logCommunicationActivityAction(formData);
+      const activityNotes = `${type === 'whatsapp' ? 'WhatsApp' : 'Email'} to ${contact}:
+${message}`;
+
+      await addActivityToLead(leadId, {
+        type: type === 'whatsapp' ? 'WhatsApp' : 'Email',
+        notes: activityNotes,
+      } as any);
     } catch (error) {
       console.error('Error logging communication activity:', error);
       // Continue with sending even if logging fails

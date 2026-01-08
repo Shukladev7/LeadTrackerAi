@@ -30,6 +30,24 @@ import { FirestoreDocument, QueryOptions, PaginationResult } from "./firestore-t
 /**
  * Generic Firestore service class for CRUD operations
  */
+// Recursively remove undefined values from an object/array structure so
+// Firestore never receives unsupported undefined values at any depth.
+function deepClean<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => deepClean(item)) as any;
+  }
+  if (value && typeof value === 'object') {
+    const result: any = {};
+    Object.entries(value as any).forEach(([key, v]) => {
+      if (v !== undefined) {
+        result[key] = deepClean(v as any);
+      }
+    });
+    return result;
+  }
+  return value;
+}
+
 export class FirestoreService<T extends FirestoreDocument> {
   private collectionName: string;
 
@@ -172,24 +190,54 @@ export class FirestoreService<T extends FirestoreDocument> {
   /**
    * Get paginated results
    */
-  async getPaginated(options: QueryOptions & { pageSize: number }): Promise<PaginationResult<T>> {
-    try {
-      const queryOptions = { ...options, limit: options.pageSize };
-      const documents = await this.getWithQuery(queryOptions);
-      
-      const hasMore = documents.length === options.pageSize;
-      const lastDoc = documents.length > 0 ? documents[documents.length - 1] : undefined;
+async getPaginated(
+  options: QueryOptions & { pageSize: number }
+): Promise<PaginationResult<T>> {
+  try {
+    let q = collection(db, this.collectionName) as Query;
 
-      return {
-        data: documents,
-        hasMore,
-        lastDoc,
-      };
-    } catch (error) {
-      console.error(`Error getting paginated documents from ${this.collectionName}:`, error);
-      throw error;
+    // where
+    if (options.where) {
+      options.where.forEach(cond => {
+        q = query(q, where(cond.field, cond.operator as any, cond.value));
+      });
     }
+
+    // orderBy
+    if (options.orderBy) {
+      q = query(q, orderBy(options.orderBy.field, options.orderBy.direction));
+    }
+
+    // cursor
+    if (options.startAfter) {
+      q = query(q, startAfter(options.startAfter));
+    }
+
+    // limit
+    q = query(q, limit(options.pageSize));
+
+    const snapshot = await getDocs(q);
+
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as T[];
+
+    return {
+      data,
+      hasMore: snapshot.docs.length === options.pageSize,
+      lastDoc:
+        snapshot.docs.length > 0
+          ? snapshot.docs[snapshot.docs.length - 1] // ✅ DocumentSnapshot
+          : null,
+    };
+  } catch (e) {
+    console.error("Pagination error:", e);
+    throw e;
   }
+}
+
+
 
   /**
    * Update a document
@@ -198,16 +246,12 @@ export class FirestoreService<T extends FirestoreDocument> {
     try {
       const docRef = doc(db, this.collectionName, id);
       
-      // Remove undefined values as Firestore doesn't accept them
-      const cleanData: any = {};
-      for (const [key, value] of Object.entries(data)) {
-        if (value !== undefined) {
-          cleanData[key] = value;
-        }
-      }
-      
+      // Remove undefined values as Firestore doesn't accept them, including
+      // nested undefined fields inside objects/arrays.
+      const cleaned = deepClean(data) as any;
+
       const updateData = {
-        ...cleanData,
+        ...cleaned,
         updatedAt: serverTimestamp(),
       };
       

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Employee, EmployeeRole } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
-import { deleteEmployeeAction } from '@/lib/actions';
+import { deleteEmployee } from '@/lib/data';
 import { EditEmployeeDialog } from './edit-employee-dialog';
 
 function FormattedDate({ dateString }: { dateString: string }) {
@@ -43,17 +43,29 @@ const roleStyles: Record<EmployeeRole, string> = {
     'CEO': 'bg-purple-100 text-purple-800 border-purple-200',
   };
 
-function EmployeeActions({ employee }: { employee: Employee }) {
+function EmployeeActions({ employee, onChange }: { employee: Employee; onChange?: () => void }) {
   const [editOpen, setEditOpen] = useState(false);
   const handleDelete = async () => {
     if (confirm(`Are you sure you want to delete employee "${employee.name}"? This action cannot be undone.`)) {
-      await deleteEmployeeAction(employee.id);
+      try {
+        await deleteEmployee(employee.id);
+        if (onChange) {
+          onChange();
+        }
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+      }
     }
   };
 
   return (
     <div className="text-right">
-      <EditEmployeeDialog open={editOpen} onOpenChange={setEditOpen} employee={employee} />
+      <EditEmployeeDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        employee={employee}
+        onEmployeeUpdated={onChange}
+      />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -131,6 +143,59 @@ export const columns: ColumnDef<Employee>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => <EmployeeActions employee={row.original} />,
+    cell: ({ row }) => <EmployeeActions employee={row.original} onChange={undefined} />,
+  },
+];
+
+export const createColumns = (onChange?: () => void): ColumnDef<Employee>[] => [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => {
+      const employee = row.original;
+      return (
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <User className="h-5 w-5" />
+          </div>
+          <div className="grid gap-0.5">
+            <span className="font-medium">{employee.name}</span>
+            <span className="text-xs text-muted-foreground">{employee.email}</span>
+            <span className="text-xs text-muted-foreground">{employee.department} Department</span>
+          </div>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'phone',
+    header: 'Phone',
+  },
+  {
+    accessorKey: 'role',
+    header: 'Role',
+    cell: ({ row }) => <Badge variant="outline" className={roleStyles[row.original.role] || ''}>{row.original.role}</Badge>,
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Joined At
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+        const date = row.getValue('createdAt') as string;
+        return <FormattedDate dateString={date} />
+    }
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => <EmployeeActions employee={row.original} onChange={onChange} />,
   },
 ];

@@ -1,4 +1,7 @@
 import { FirestoreService } from './firestore-service';
+import { doc, runTransaction } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 import {
   Employee,
   Department,
@@ -19,6 +22,7 @@ import {
   ActivityLog,
   QuotationStatusConfig,
   UnitOfMeasurement,
+  ManufacturingCompany,
   COLLECTIONS
 } from './business-types';
 
@@ -42,6 +46,7 @@ export const tasksService = new FirestoreService<Task>(COLLECTIONS.TASKS);
 export const companySettingsService = new FirestoreService<CompanySettings>(COLLECTIONS.COMPANY_SETTINGS);
 export const notificationsService = new FirestoreService<Notification>(COLLECTIONS.NOTIFICATIONS);
 export const activityLogsService = new FirestoreService<ActivityLog>(COLLECTIONS.ACTIVITY_LOGS);
+export const manufacturingCompaniesService = new FirestoreService<ManufacturingCompany>(COLLECTIONS.MANUFACTURING_COMPANIES);
 
 // Extended service classes with business logic
 export class EmployeeService extends FirestoreService<Employee> {
@@ -186,24 +191,6 @@ export class QuotationService extends FirestoreService<Quotation> {
       limit
     });
   }
-
-  async generateQuotationNumber(prefix: string): Promise<string> {
-    const quotations = await this.getAll();
-    const regex = new RegExp(`^${prefix}-\\d{4}$`);
-    const numberRegex = new RegExp(`^${prefix}-(\\d+)$`);
-    const maxNumber = quotations.reduce((max, quotation) => {
-      if (!quotation.quotationNumber) return max;
-      if (!regex.test(quotation.quotationNumber)) return max;
-      const match = quotation.quotationNumber.match(numberRegex);
-      if (match) {
-        const num = parseInt(match[1], 10);
-        return num > max ? num : max;
-      }
-      return max;
-    }, 0);
-    return `${prefix}-${String(maxNumber + 1).padStart(4, '0')}`;
-  }
-
   async markAsSent(quotationId: string): Promise<void> {
     await this.update(quotationId, {
       status: 'Sent',
@@ -321,8 +308,7 @@ export class TaskService extends FirestoreService<Task> {
 
   async getTasksByAssignee(assignedTo: string): Promise<Task[]> {
     return this.getWithQuery({
-      where: [{ field: 'assignedTo', operator: '==', value: assignedTo }],
-      orderBy: { field: 'dueDate', direction: 'asc' }
+      where: [{ field: 'assignedTo', operator: '==', value: assignedTo }]
     });
   }
 

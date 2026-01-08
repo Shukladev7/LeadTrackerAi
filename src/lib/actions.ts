@@ -129,7 +129,7 @@ const UpdateLeadSchema = z.object({
   products: z.array(LeadProductSchema).optional(),
 });
 
-function generateChangeNotes(oldLead: Lead, newLeadData: UpdatableLeadData, allProducts: Product[]): string {
+function generateChangeNotes(oldLead: Lead, newLeadData: UpdatableLeadData): string {
     const changes: string[] = [];
 
     if (oldLead.name !== newLeadData.name) {
@@ -163,14 +163,11 @@ function generateChangeNotes(oldLead: Lead, newLeadData: UpdatableLeadData, allP
     const oldProducts = oldLead.products || [];
     const newProducts = newLeadData.products || [];
     if (JSON.stringify(oldProducts) !== JSON.stringify(newProducts)) {
-        const getProductName = (productId: string) => allProducts.find(p => p.id === productId)?.name || productId;
-        
-        const formatProduct = (p: LeadProduct) => `${getProductName(p.productId)} (Qty: ${p.quantity}, Rate: ${p.rate}, SKU: ${p.selectedSku || 'N/A'})`;
-
-        const oldProductStr = oldProducts.map(formatProduct).join(', ') || 'None';
-        const newProductStr = newProducts.map(formatProduct).join(', ') || 'None';
-
-        changes.push(`Interested products updated.\n- Old: ${oldProductStr}\n- New: ${newProductStr}`);
+        const oldCount = oldProducts.length;
+        const newCount = newProducts.length;
+        changes.push(
+          `Interested products updated (was ${oldCount} item(s), now ${newCount} item(s)).`
+        );
     }
 
     if (changes.length === 0) {
@@ -181,10 +178,7 @@ function generateChangeNotes(oldLead: Lead, newLeadData: UpdatableLeadData, allP
 }
 
 export async function updateLead(leadId: string, formData: FormData) {
-    const [oldLead, allProducts] = await Promise.all([
-        dbGetLeadById(leadId),
-        getProducts()
-    ]);
+    const oldLead = await dbGetLeadById(leadId);
 
     if (!oldLead) {
         return { message: 'Error: Lead not found.' };
@@ -214,7 +208,7 @@ export async function updateLead(leadId: string, formData: FormData) {
     }
 
     const newLeadData = validatedFields.data as UpdatableLeadData;
-    const changeNotes = generateChangeNotes(oldLead, newLeadData, allProducts);
+    const changeNotes = generateChangeNotes(oldLead, newLeadData);
   
     try {
         await dbUpdateLead(leadId, newLeadData);
@@ -256,6 +250,12 @@ const ProductSchema = z.object({
         filePath: z.string(),
         uploadedAt: z.string(),
     }).optional(),
+    thumbnailImage: z.object({
+        url: z.string(),
+        fileName: z.string(),
+        filePath: z.string(),
+        uploadedAt: z.string(),
+    }).optional(),
 });
 
 export async function addProduct(formData: FormData) {
@@ -270,6 +270,9 @@ export async function addProduct(formData: FormData) {
   const productImage = productImageJSON ? JSON.parse(productImageJSON as string) : undefined;
   console.log('Product Image parsed:', productImage);
   
+  const thumbnailImageJSON = formData.get('thumbnailImage');
+  const thumbnailImage = thumbnailImageJSON ? JSON.parse(thumbnailImageJSON as string) : undefined;
+  
   const validatedFields = ProductSchema.safeParse({
     name: formData.get('name'),
     price: formData.get('price'),
@@ -281,6 +284,7 @@ export async function addProduct(formData: FormData) {
     catalogueUrl: formData.get('catalogueUrl') || '',
     cataloguePdf: catalogPdf,
     productImage: productImage,
+    thumbnailImage: thumbnailImage,
   });
 
   if (!validatedFields.success) {
@@ -347,6 +351,31 @@ export async function updateProduct(id: string, formData: FormData) {
 
     // Debug logs removed
     
+    const thumbnailImageJSON = formData.get('thumbnailImage');
+    const existingThumbnailImageJSON = formData.get('existingThumbnailImage');
+    const removeThumbnailImage = String(formData.get('removeThumbnailImage') || '').toLowerCase() === 'true';
+    
+    let thumbnailImage: any = undefined;
+    
+    // If there's a new file upload, handle it
+    if (thumbnailImageJSON instanceof File) {
+      try {
+        const uploadResult = await uploadImageToStorage(thumbnailImageJSON, 'products');
+        thumbnailImage = {
+          url: uploadResult.url,
+          fileName: uploadResult.fileName,
+          filePath: uploadResult.path,
+          uploadedAt: new Date().toISOString(),
+        };
+      } catch (error) {
+        console.error('Failed to upload thumbnail image:', error);
+        return { message: 'Failed to upload thumbnail image.' };
+      }
+    } else if (existingThumbnailImageJSON && !removeThumbnailImage) {
+      // Keep existing image metadata
+      thumbnailImage = JSON.parse(existingThumbnailImageJSON as string);
+    }
+
     const validatedFields = ProductSchema.safeParse({
       name: formData.get('name'),
       price: formData.get('price'),
@@ -358,6 +387,17 @@ export async function updateProduct(id: string, formData: FormData) {
       catalogueUrl: formData.get('catalogueUrl') || '',
       cataloguePdf: catalogPdf,
       productImage: productImage,
+      // For thumbnails, we expect pre-generated metadata (JSON) if present in the form data
+      thumbnailImage: (() => {
+        const thumbJson = formData.get('thumbnailImage');
+        if (!thumbJson) return undefined;
+        try {
+          return JSON.parse(thumbJson as string);
+        } catch (e) {
+          console.error('Failed to parse thumbnailImage JSON in updateProduct:', e);
+          return undefined;
+        }
+      })(),
     });
 
     if (!validatedFields.success) {
@@ -825,7 +865,10 @@ export async function addQuotation(formData: FormData) {
         const prefix = (data.quotationPrefix?.trim() || 'QUO');
         console.log('Using prefix:', prefix);
         const { quotationPrefix: _omitPrefix, logoUrl, ...rest } = data as any;
-        
+
+        // Fetch lead once to denormalize leadName and leadCompany
+        const lead = await dbGetLeadById(data.leadId as string);
+
         // Clean up null values - convert to undefined for Firestore
         const payload: any = {
           ...rest,
@@ -837,6 +880,9 @@ export async function addQuotation(formData: FormData) {
           courierCharges: rest.courierCharges || undefined,
           showFreight: rest.showFreight === true || rest.showFreight === 'true',
           showCourier: rest.showCourier === true || rest.showCourier === 'true',
+          // Denormalized lead fields for fast listing/search
+          leadName: lead?.name,
+          leadCompany: lead?.company,
         };
         if (logoUrl) payload.logoUrl = logoUrl;
         newQuotation = await dbAddQuotation(payload, prefix);
@@ -898,6 +944,9 @@ export async function updateQuotation(id: string, formData: FormData) {
     const data = validatedFields.data;
     const parsedProducts = JSON.parse(data.products);
 
+    // Fetch lead to keep denormalized fields in sync (in case leadId changed)
+    const lead = await dbGetLeadById(data.leadId as string);
+
     // Clean up null values - convert to undefined for Firestore
     await dbUpdateQuotation(id, {
       ...data,
@@ -910,6 +959,9 @@ export async function updateQuotation(id: string, formData: FormData) {
       showFreight: data.showFreight === true || data.showFreight === 'true',
       showCourier: data.showCourier === true || data.showCourier === 'true',
       products: parsedProducts,
+      // Denormalized lead fields for fast listing/search
+      leadName: lead?.name,
+      leadCompany: lead?.company,
     });
 
     // Log activity on the lead

@@ -6,6 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PlusCircle } from 'lucide-react';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -26,11 +27,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { addEmployeeAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { EmployeeRole, Department } from '@/lib/business-types';
 import { getEmployeeRoles, getDepartments } from '@/lib/data';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/lib/auth-context';
+import { auth } from '@/lib/firebase';
 
 const employeeSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -47,11 +49,16 @@ const employeeSchema = z.object({
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
 
-export function AddEmployeeDialog() {
+interface AddEmployeeDialogProps {
+  onEmployeeAdded?: () => void;
+}
+
+export function AddEmployeeDialog({ onEmployeeAdded }: AddEmployeeDialogProps) {
   const [open, setOpen] = useState(false);
   const [employeeRoles, setEmployeeRoles] = useState<EmployeeRole[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
@@ -72,42 +79,60 @@ export function AddEmployeeDialog() {
   }, [open]);
 
   const onSubmit = async (data: EmployeeFormData) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-        formData.append(key, value as string);
-    });
-
-    const result = await addEmployeeAction(formData);
-
-    if (result.message.includes('Successfully added employee')) {
-      toast({
-        title: 'Employee Added',
-        description: result.message,
-        duration: 8000, // Show longer to read the message
-      });
-      
-      // Show reset link in development
-      if (result.resetLink) {
-        console.log('🔗 Password reset link for', data.name, ':', result.resetLink);
-        
-        // Also show a follow-up toast with instructions
-        setTimeout(() => {
-          toast({
-            title: 'Development Mode',
-            description: `Password reset link for ${data.name} is available in the browser console. In production, this would be sent via email.`,
-            duration: 10000,
-          });
-        }, 2000);
+    try {
+      if (!user) {
+        throw new Error('You must be signed in to create employees.');
       }
-      
+
+      const idToken = await user.getIdToken();
+
+      const res = await fetch('/api/admin/employees', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          phone: data.phone,
+          department: data.department,
+          address: data.address,
+        }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message = payload?.error || 'Failed to create employee. Please try again.';
+        throw new Error(message);
+      }
+
+      // Trigger Firebase's built-in password reset email so the new user can set a password.
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      await sendPasswordResetEmail(auth, data.email, {
+        url: `${appUrl}/auth/reset-complete`,
+        handleCodeInApp: false,
+      });
+
+      toast({
+        title: 'Employee Created',
+        description: 'Employee created. A password setup email has been sent.',
+      });
+
       reset();
       setOpen(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: result.message,
-        });
+      if (onEmployeeAdded) {
+        onEmployeeAdded();
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to add employee. Please try again.';
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: message,
+      });
     }
   };
 

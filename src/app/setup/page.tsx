@@ -1,301 +1,108 @@
+"use client";
+
+import { SetupCard } from "./setupCard";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-    CardFooter,
-  } from "@/components/ui/card";
-  import { Button } from "@/components/ui/button";
-  import { Input } from "@/components/ui/input";
-  import { PlusCircle, Trash2, FileText, Building2, Box, DollarSign, Ruler } from "lucide-react";
-import { ALL_STATUSES } from "@/lib/types";
-import { StatusBadge } from "@/components/status-badge";
-import { getLeadSources, getEmployeeRoles, getDepartments, getProductCategories, getQuotationStatuses } from "@/lib/data";
-import { addLeadSourceAction, deleteLeadSourceAction, addProductCategoryAction, deleteProductCategoryAction, addEmployeeRoleAction, deleteEmployeeRoleAction, addDepartmentAction, deleteDepartmentAction, addQuotationStatusAction, deleteQuotationStatusAction } from "@/lib/actions";
-import { revalidatePath } from "next/cache";
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-  
-export default async function SetupPage() {
-    const [leadSources, employeeRoles, departments, productCategories, quotationStatuses] = await Promise.all([
-        getLeadSources(),
-        getEmployeeRoles(),
-        getDepartments(),
-        getProductCategories(),
-        getQuotationStatuses(),
-    ]);
-  
-    return (
-      <>
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Setup</h2>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Currency Management Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
-                        Currencies
-                    </CardTitle>
-                    <CardDescription>Manage currencies for quotations. INR is the base currency.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                        Configure currency codes, symbols, and conversion rates for multi-currency quotations.
-                    </p>
-                    <Link href="/setup/currencies">
-                        <Button className="w-full">
-                            <DollarSign className="mr-2 h-4 w-4" />
-                            Manage Currencies
-                        </Button>
-                    </Link>
-                </CardContent>
-            </Card>
+  DollarSign,
+  Ruler,
+  FileText,
+  Building2,
+  Box,
+  Users,
+  Layers,
+  ClipboardList,
+} from "lucide-react";
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Ruler className="h-5 w-5" />
-                        Units of Measurement
-                    </CardTitle>
-                    <CardDescription>Define units like pcs, kg, meter and use them in products.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Link href="/setup/units">
-                        <Button className="w-full">
-                            <Ruler className="mr-2 h-4 w-4" />
-                            Manage Units
-                        </Button>
-                    </Link>
-                </CardContent>
-            </Card>
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Lead Statuses</CardTitle>
-                    <CardDescription>Manage the statuses that can be assigned to a lead.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        {ALL_STATUSES.map((status) => (
-                            <div key={status} className="flex items-center justify-between p-2 rounded-md bg-secondary">
-                                <StatusBadge status={status} />
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-                <CardFooter className="border-t pt-6">
-                    <form className="flex w-full items-center gap-2">
-                        <Input placeholder="Add new status" />
-                        <Button type="submit">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Status
-                        </Button>
-                    </form>
-                </CardFooter>
-            </Card>
+export default function SetupPage() {
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold tracking-tight">Setup</h2>
+      </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Quotation Statuses</CardTitle>
-                    <CardDescription>Manage the statuses available for quotations. These are used in quotation creation, editing, and filters.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        {quotationStatuses.map((status) => (
-                            <div key={status.id} className="flex items-center justify-between p-2 rounded-md bg-secondary">
-                                <Badge variant="secondary">{status.name}</Badge>
-                                <form
-                                    action={async () => {
-                                        "use server";
-                                        if (!status.id) return;
-                                        await deleteQuotationStatusAction(status.id);
-                                    }}
-                                >
-                                    <Button
-                                        type="submit"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </form>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-                <CardFooter className="border-t pt-6">
-                    <form action={addQuotationStatusAction} className="flex w-full items-center gap-2">
-                        <Input name="name" placeholder="Add new quotation status" />
-                        <Button type="submit">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Status
-                        </Button>
-                    </form>
-                </CardFooter>
-            </Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <SetupCard
+          title="Currencies"
+          description="Manage currencies for quotations. INR is the base currency."
+          href="/setup/currencies"
+          buttonText="Manage Currencies"
+          Icon={DollarSign}
+        />
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Lead Sources</CardTitle>
-                    <CardDescription>Manage the sources where your leads come from.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        {leadSources.map((source) => (
-                            <div key={source.id} className="flex items-center justify-between p-2 rounded-md bg-secondary">
-                                <span className="text-sm font-medium">{source.name}</span>
-                                <form action={async () => {
-                                    "use server";
-                                    await deleteLeadSourceAction(source.id);
-                                    revalidatePath('/setup');
-                                }}>
-                                    <Button type="submit" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </form>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-                <CardFooter className="border-t pt-6">
-                    <form action={addLeadSourceAction} className="flex w-full flex-col sm:flex-row items-center gap-2">
-                        <Input name="name" placeholder="Add new source" />
-                        <Button type="submit" className="w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Source
-                        </Button>
-                    </form>
-                </CardFooter>
-            </Card>
+        <SetupCard
+          title="Units of Measurement"
+          description="Define units like pcs, kg, meter and use them in products."
+          href="/setup/units"
+          buttonText="Manage Units"
+          Icon={Ruler}
+        />
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Quotation Templates</CardTitle>
-                    <CardDescription>Create and manage templates for your quotations.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-center h-40">
-                    <Button asChild>
-                        <Link href="/setup/quotation-templates">
-                            <FileText className="mr-2 h-4 w-4" />
-                            Manage Templates
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
+        <SetupCard
+          title="Lead Statuses"
+          description="View the fixed statuses that can be assigned to a lead."
+          href="/setup/lead-statuses"
+          buttonText="View Lead Statuses"
+          Icon={ClipboardList}
+        />
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Employee Roles</CardTitle>
-                    <CardDescription>Manage the available roles that can be assigned to an employee.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                     {employeeRoles.map((role) => (
-                        <div key={role.id} className="flex items-center justify-between p-2 rounded-md bg-secondary">
-                            <Badge variant="secondary">{role.name}</Badge>
-                            <form action={async () => {
-                                "use server";
-                                await deleteEmployeeRoleAction(role.id);
-                                revalidatePath('/setup');
-                            }}>
-                                <Button type="submit" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </form>
-                        </div>
-                    ))}
-                </CardContent>
-                 <CardFooter className="border-t pt-6">
-                    <form action={addEmployeeRoleAction} className="flex w-full flex-col sm:flex-row items-center gap-2">
-                        <Input name="name" placeholder="Add new role" />
-                        <Button type="submit" className="w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Role
-                        </Button>
-                    </form>
-                </CardFooter>
-            </Card>
+        <SetupCard
+          title="Quotation Statuses"
+          description="Manage the statuses available for quotations."
+          href="/setup/quotation-statuses"
+          buttonText="Manage Quotation Statuses"
+          Icon={FileText}
+        />
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Departments</CardTitle>
-                    <CardDescription>Manage the departments within your organization.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                     {departments.map((dept) => (
-                        <div key={dept.id} className="flex items-center justify-between p-2 rounded-md bg-secondary">
-                            <span className="text-sm font-medium flex items-center gap-2">
-                                <Building2 className="h-4 w-4 text-muted-foreground" />
-                                {dept.name}
-                            </span>
-                            <form action={async () => {
-                                "use server";
-                                await deleteDepartmentAction(dept.id);
-                                revalidatePath('/setup');
-                            }}>
-                                <Button type="submit" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </form>
-                        </div>
-                    ))}
-                </CardContent>
-                 <CardFooter className="border-t pt-6">
-                    <form action={addDepartmentAction} className="flex w-full flex-col sm:flex-row items-center gap-2">
-                        <Input name="name" placeholder="Add new department" />
-                        <Button type="submit" className="w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Department
-                        </Button>
-                    </form>
-                </CardFooter>
-            </Card>
+        <SetupCard
+          title="Lead Sources"
+          description="Manage the sources from where your leads originate."
+          href="/setup/lead-sources"
+          buttonText="Manage Lead Sources"
+          Icon={Users}
+        />
 
-            <Card>
-                <CardHeader>
-<CardTitle>Product Categories</CardTitle>
-<CardDescription>Manage product categories for your inventory.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-{productCategories.map((category) => (
-                        <div key={category.id} className="p-3 rounded-md bg-secondary">
-                          <div className="flex items-start justify-between gap-2">
-                            <span className="text-sm font-medium flex items-center gap-2">
-                                <Box className="h-4 w-4 text-muted-foreground" />
-                                {category.name}
-                            </span>
-                            <form action={async () => {
-                                "use server";
-                                await deleteProductCategoryAction(category.id);
-                                revalidatePath('/setup');
-                            }}>
-                                <Button type="submit" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </form>
-                          </div>
-                        </div>
-                    ))}
-                </CardContent>
-                 <CardFooter className="border-t pt-6">
-<form action={addProductCategoryAction} className="flex w-full flex-col gap-2">
-                        <div className="flex w-full flex-col sm:flex-row items-center gap-2">
-                          <Input name="name" placeholder="Add new category" />
-                          <Button type="submit" className="w-full sm:w-auto">
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Add Category
-                          </Button>
-                        </div>
-                    </form>
-                </CardFooter>
-            </Card>
-        </div>
-      </>
-    );
-  }
+        <SetupCard
+          title="Quotation Templates"
+          description="Create and manage reusable quotation templates."
+          href="/setup/quotation-templates"
+          buttonText="Manage Templates"
+          Icon={FileText}
+        />
+
+        <SetupCard
+          title="Employee Roles"
+          description="Define roles that can be assigned to employees."
+          href="/setup/employee-roles"
+          buttonText="Manage Employee Roles"
+          Icon={Layers}
+        />
+
+        <SetupCard
+          title="Departments"
+          description="Manage departments within your organization."
+          href="/setup/departments"
+          buttonText="Manage Departments"
+          Icon={Building2}
+        />
+
+        <SetupCard
+          title="Product Categories"
+          description="Organize products using categories."
+          href="/setup/product-categories"
+          buttonText="Manage Product Categories"
+          Icon={Box}
+        />
+
+        <SetupCard
+          title="Manufacturing Companies"
+          description="Manage manufacturing companies linked to products."
+          href="/setup/manufacturing-companies"
+          buttonText="Manage Manufacturing Companies"
+          Icon={Building2}
+        />
+      </div>
+    </>
+  );
+}

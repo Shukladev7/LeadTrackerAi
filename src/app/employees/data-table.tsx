@@ -30,11 +30,13 @@ import { useUserRole } from '@/hooks/use-user-role';
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onChange?: () => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  onChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
@@ -67,7 +69,7 @@ export function DataTable<TData, TValue>({
                     className="pl-10 w-full"
                 />
             </div>
-            {!roleLoading && isAdmin && <AddEmployeeDialog />}
+            {!roleLoading && isAdmin && <AddEmployeeDialog onEmployeeAdded={onChange} />}
         </div>
       <div className="rounded-md border">
         <Table>

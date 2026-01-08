@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,9 +42,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Product, QuotationTemplate, Quotation, ProductCategory, Currency } from '@/lib/business-types';
 import { ALL_QUOTATION_STATUSES } from '@/lib/types';
-import { getLeads, getProducts, getQuotationTemplates, getProductCategories } from '@/lib/data';
+import { getLeads, getProducts, getQuotationTemplates, getProductCategories, updateQuotation, getManufacturingCompanies } from '@/lib/data';
 import { getActiveCurrencies } from '@/lib/firestore-service';
-import { updateQuotation } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Combobox } from '@/components/ui/combobox';
@@ -85,6 +84,7 @@ const quotationSchema = z.object({
   currencyCode: z.string().nullish(),
   currencySymbol: z.string().nullish(),
   conversionRate: z.coerce.number().nullish(),
+  manufacturingCompany: z.string().optional(),
 });
 
 type QuotationFormData = z.infer<typeof quotationSchema>;
@@ -122,8 +122,10 @@ export function EditQuotationDialog({
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<QuotationTemplate[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [rowCategoryFilters, setRowCategoryFilters] = useState<(string | 'ALL')[]>([]);
   const { toast } = useToast();
+  const [manufacturingCompanies, setManufacturingCompanies] = useState<any[]>([]);
 
   const availableStatuses = (quotationStatuses && quotationStatuses.length ? quotationStatuses : ALL_QUOTATION_STATUSES);
 
@@ -147,9 +149,12 @@ export function EditQuotationDialog({
       courierCharges: quotation.courierCharges && !isNaN(Number(quotation.courierCharges)) ? Number(quotation.courierCharges) : '',
       showFreight: quotation.showFreight === true,
       showCourier: quotation.showCourier === true,
+      // Preserve GST visibility exactly as stored; default to true only if never set
+      showGst: quotation.showGst === false ? false : true,
       currencyCode: quotation.currencyCode || undefined,
       currencySymbol: quotation.currencySymbol || undefined,
       conversionRate: quotation.conversionRate || undefined,
+      manufacturingCompany: quotation.manufacturingCompany || '',
     },
   });
 
@@ -165,6 +170,8 @@ export function EditQuotationDialog({
   const watchedShowFreight = watch('showFreight');
   const watchedShowCourier = watch('showCourier');
   const watchedShowGst = watch('showGst');
+   const watchedManufacturingCompany = watch('manufacturingCompany');
+   const prevManufacturingCompanyRef = useRef(watchedManufacturingCompany);
 
   const productTotals = watchedProducts?.map(p => {
     const baseAmount = p.quantity * p.rate;
@@ -194,16 +201,20 @@ export function EditQuotationDialog({
     async function fetchData() {
         if (open) {
             try {
-                const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedCategories] = await Promise.all([
+                const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedCategories, fetchedCurrencies, fetchedCompanies] = await Promise.all([
                     getLeads(),
                     getProducts(),
                     getQuotationTemplates(),
                     getProductCategories(),
+                    getActiveCurrencies(),
+                    getManufacturingCompanies(),
                 ]);
                 setLeads(fetchedLeads);
                 setAvailableProducts(fetchedProducts);
                 setTemplates(fetchedTemplates);
                 setCategories(fetchedCategories);
+                setCurrencies(fetchedCurrencies);
+                setManufacturingCompanies(fetchedCompanies as any);
             } catch (error) {
                 console.error('Error fetching data:', error);
                 toast({
@@ -226,6 +237,25 @@ export function EditQuotationDialog({
       return next;
     });
   }, [fields.length]);
+
+  // Reset products when manufacturing company changes
+  useEffect(() => {
+    if (!open) return;
+
+    // Avoid clearing products on initial open; only react to actual changes
+    if (prevManufacturingCompanyRef.current === watchedManufacturingCompany) {
+      return;
+    }
+
+    prevManufacturingCompanyRef.current = watchedManufacturingCompany;
+
+    if (fields.length > 0) {
+      for (let i = fields.length - 1; i >= 0; i--) {
+        remove(i);
+      }
+    }
+    setRowCategoryFilters([]);
+  }, [watchedManufacturingCompany, open]);
 
   useEffect(() => {
     async function populateFromTemplate() {
@@ -256,48 +286,63 @@ export function EditQuotationDialog({
     }
 
     try {
-      const formData = new FormData();
-      const payload = {
-          ...data,
-          date: format(data.date, 'yyyy-MM-dd'),
-          validUntil: format(data.validUntil, 'yyyy-MM-dd'),
-          subTotal,
-          totalGst,
-          grandTotal,
-      };
-      
-      Object.entries(payload).forEach(([key, value]) => {
-          if (key === 'products') {
-              formData.append(key, JSON.stringify(value));
-          } else if (value !== undefined && value !== null) {
-              formData.append(key, String(value));
+      // Deep-clean products to strip out any undefined fields from nested
+      // objects before sending to Firestore.
+      const sanitizedProducts = (data.products || []).map((p) => {
+        const clean: any = {};
+        Object.entries(p).forEach(([key, value]) => {
+          if (value !== undefined) {
+            clean[key] = value;
           }
+        });
+        return clean;
       });
 
-      const result = await updateQuotation(quotation.id, formData);
+      const payload: Partial<Quotation> = {
+        leadId: data.leadId,
+        templateId: data.templateId,
+        date: format(data.date, 'yyyy-MM-dd'),
+        validUntil: format(data.validUntil, 'yyyy-MM-dd'),
+        status: data.status,
+        products: sanitizedProducts,
+        subTotal,
+        totalGst,
+        grandTotal,
+        companyName: data.companyName,
+        companyAddress: data.companyAddress,
+        companyGst: data.companyGst || undefined,
+        client_address: data.client_address || undefined,
+        client_gst_no: data.client_gst_no || undefined,
+        termsAndConditions: data.termsAndConditions,
+        logoUrl: data.logoUrl || undefined,
+        freightCharges: data.freightCharges === '' ? undefined : data.freightCharges,
+        courierCharges: data.courierCharges === '' ? undefined : data.courierCharges,
+        showFreight: data.showFreight ?? false,
+        showCourier: data.showCourier ?? false,
+        // Persist GST flag exactly as user set it in the form
+        showGst: data.showGst,
+        currencyCode: data.currencyCode || quotation.currencyCode,
+        currencySymbol: data.currencySymbol || quotation.currencySymbol,
+        conversionRate: data.conversionRate ?? quotation.conversionRate,
+        manufacturingCompany: data.manufacturingCompany || undefined,
+      };
 
-      if (result.message === 'Successfully updated quotation.') {
-        toast({
-          title: 'Quotation Updated',
-          description: `The quotation has been successfully updated.`,
-        });
-        setOpen(false);
-        if (onQuotationUpdated) {
-          onQuotationUpdated();
-        }
-      } else {
-          toast({
-              variant: 'destructive',
-              title: 'Error updating quotation',
-              description: result.message,
-          });
+      await updateQuotation(quotation.id, payload as any);
+
+      toast({
+        title: 'Quotation Updated',
+        description: `The quotation has been successfully updated.`,
+      });
+      setOpen(false);
+      if (onQuotationUpdated) {
+        onQuotationUpdated();
       }
     } catch (error) {
-      console.error('Error in onSubmit:', error);
+      console.error('Error updating quotation:', error);
       toast({
-          variant: 'destructive',
-          title: 'Error updating quotation',
-          description: 'An unexpected error occurred',
+        variant: 'destructive',
+        title: 'Error updating quotation',
+        description: 'An unexpected error occurred',
       });
     }
   };
@@ -313,8 +358,19 @@ export function EditQuotationDialog({
 
   const getFilteredProductsForRow = (rowIndex: number) => {
     const filterValue = rowCategoryFilters[rowIndex] || 'ALL';
-    if (filterValue === 'ALL') return availableProducts;
-    return availableProducts.filter(p => p.categoryId === filterValue);
+    let filtered = availableProducts as Product[];
+
+    if (watchedManufacturingCompany) {
+      filtered = filtered.filter(
+        (p) => p.manufacturingCompany === watchedManufacturingCompany
+      );
+    }
+
+    if (filterValue !== 'ALL') {
+      filtered = filtered.filter(p => p.categoryId === filterValue);
+    }
+
+    return filtered;
   };
 
   return (
@@ -332,15 +388,15 @@ export function EditQuotationDialog({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="w-fit max-w-full">
+      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Quotation #{quotation.quotationNumber}</DialogTitle>
           <DialogDescription>
             Update the quotation details below.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+            <div className="grid gap-6 py-4 flex-1 overflow-y-auto pr-6 min-h-0">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="leadId">Lead</Label>
@@ -435,16 +491,101 @@ export function EditQuotationDialog({
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="Set status" /></SelectTrigger>
                                     <SelectContent>
-                                    {availableStatuses.map((s) => (
-                                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                                    ))}
-                                </SelectContent>
+                                        {availableStatuses.map((s) => (
+                                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                                        ))}
+                                    </SelectContent>
                                 </Select>
                             )}
                         />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="manufacturingCompany">Manufacturing Company</Label>
+                        <Controller
+                          control={control}
+                          name="manufacturingCompany"
+                          render={({ field }) => (
+                            (() => {
+                              const ALL_COMPANIES_VALUE = '__ALL_COMPANIES__';
+                              const currentValue = field.value ?? ALL_COMPANIES_VALUE;
+
+                              return (
+                                <Select
+                                  onValueChange={(val) => {
+                                    if (val === ALL_COMPANIES_VALUE) {
+                                      field.onChange(undefined);
+                                    } else {
+                                      field.onChange(val);
+                                    }
+                                  }}
+                                  value={currentValue}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="All companies" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value={ALL_COMPANIES_VALUE}>All companies</SelectItem>
+                                    {manufacturingCompanies.map((company) => (
+                                      <SelectItem key={company.id} value={company.name}>
+                                        {company.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              );
+                            })()
+                          )}
+                        />
+                    </div>
                 </div>
-                
+
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="currencyCode">Currency</Label>
+                        <Controller
+                            control={control}
+                            name="currencyCode"
+                            render={({ field }) => (
+                                <Select
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        if (value === 'INR') {
+                                            setValue('currencySymbol', '₹' as any);
+                                            setValue('conversionRate', 1 as any);
+                                            return;
+                                        }
+                                        const selectedCurrency = currencies.find(c => c.code === value);
+                                        if (selectedCurrency) {
+                                            setValue('currencySymbol', selectedCurrency.symbol as any);
+                                            setValue('conversionRate', selectedCurrency.conversionRate as any);
+                                        }
+                                    }}
+                                    value={field.value ?? undefined}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select currency" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="INR">
+                                            ₹ INR - Indian Rupee
+                                        </SelectItem>
+                                        {currencies
+                                            .filter(currency => currency.code !== 'INR')
+                                            .map(currency => (
+                                                <SelectItem key={currency.id!} value={currency.code}>
+                                                    {currency.symbol} {currency.code} - {currency.name}
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Enter all amounts in INR. Preview will show converted amounts in selected currency.
+                        </p>
+                    </div>
+                </div>
+
                 <Separator />
                 <h3 className="text-lg font-medium">Company & Terms</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -573,11 +714,11 @@ export function EditQuotationDialog({
                 <div className="space-y-2">
                     <Label>Products</Label>
                     <div className="border rounded-lg">
-                        <Table>
+                        <Table className="table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[18%]">Category</TableHead>
-                                    <TableHead className="w-[20%]">Product Name</TableHead>
+                                    <TableHead className="w-[12%]">Category</TableHead>
+                                    <TableHead className="w-[14%]">Product Name</TableHead>
                                     <TableHead className="w-[25%]">Description</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
@@ -596,48 +737,57 @@ export function EditQuotationDialog({
                                       : undefined;
                                     return (
                                     <TableRow key={field.id}>
-                                        <TableCell>
-                                            <Select
-                                              value={rowCategoryFilters[index] || 'ALL'}
-                                              onValueChange={(v) => {
-                                                setRowCategoryFilters((prev) => {
-                                                  const next = [...prev];
-                                                  next[index] = v as any;
-                                                  return next;
-                                                });
-                                              }}
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="All" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="ALL">All</SelectItem>
-                                                {categories.map(c => (
-                                                  <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
+                                        <TableCell className="w-[12%] overflow-hidden">
+                                            <div className="w-full max-w-full">
+                                                <Combobox
+                                                  options={[
+                                                    { value: 'ALL', label: 'All categories' },
+                                                    ...categories
+                                                      .filter((c) => c.id)
+                                                      .map((c) => ({ value: c.id as string, label: c.name })),
+                                                  ]}
+                                                  value={rowCategoryFilters[index] || 'ALL'}
+                                                  onValueChange={(v) => {
+                                                    setRowCategoryFilters((prev) => {
+                                                      const next = [...prev];
+                                                      next[index] = v as any;
+                                                      return next;
+                                                    });
+                                                  }}
+                                                  placeholder="All categories"
+                                                  searchPlaceholder="Search categories..."
+                                                  emptyText="No categories found."
+                                                />
+                                            </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <Controller
-                                                control={control}
-                                                name={`products.${index}.productId`}
-                                                render={({ field }) => (
-                                                    <Select onValueChange={(value) => { field.onChange(value); handleProductChange(value, index); }} value={field.value}>
-                                                        <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {getFilteredProductsForRow(index).filter(p => p.id).map(p => {
-                                                              const catName = categories.find(c => c.id === p.categoryId)?.name;
-                                                              return (
-                                                                <SelectItem key={p.id} value={p.id!}>
-                                                                  {p.name}{catName ? ` — ${catName}` : ''}
-                                                                </SelectItem>
-                                                              );
+                                        <TableCell className="w-[14%] overflow-hidden">
+                                            <div className="w-full max-w-full">
+                                                <Controller
+                                                    control={control}
+                                                    name={`products.${index}.productId`}
+                                                    render={({ field }) => (
+                                                        <Combobox
+                                                          options={getFilteredProductsForRow(index)
+                                                            .filter((p) => p.id)
+                                                            .map((p) => {
+                                                              const catName = categories.find((c) => c.id === p.categoryId)?.name;
+                                                              return {
+                                                                value: p.id as string,
+                                                                label: catName ? `${p.name} — ${catName}` : p.name,
+                                                              };
                                                             })}
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            />
+                                                          value={field.value}
+                                                          onValueChange={(value) => {
+                                                            field.onChange(value);
+                                                            handleProductChange(value, index);
+                                                          }}
+                                                          placeholder="Select product"
+                                                          searchPlaceholder="Search products..."
+                                                          emptyText="No products found."
+                                                        />
+                                                    )}
+                                                />
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             <Textarea

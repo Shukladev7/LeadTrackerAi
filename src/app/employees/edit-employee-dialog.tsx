@@ -10,9 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Employee } from '@/lib/types';
-import type { Department, EmployeeRole } from '@/lib/business-types';
-import { getDepartments, getEmployeeRoles } from '@/lib/data';
-import { updateEmployeeAction } from '@/lib/actions';
+import type { Department } from '@/lib/business-types';
+import { getDepartments, getEmployeeRoles, updateEmployee } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -27,9 +26,16 @@ const employeeSchema = z.object({
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
 
-export function EditEmployeeDialog({ open, onOpenChange, employee }: { open: boolean; onOpenChange: (o: boolean) => void; employee: Employee; }) {
+interface EditEmployeeDialogProps {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  employee: Employee;
+  onEmployeeUpdated?: () => void;
+}
+
+export function EditEmployeeDialog({ open, onOpenChange, employee, onEmployeeUpdated }: EditEmployeeDialogProps) {
   const { toast } = useToast();
-  const [roles, setRoles] = useState<EmployeeRole[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
 
   const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
@@ -48,7 +54,7 @@ export function EditEmployeeDialog({ open, onOpenChange, employee }: { open: boo
     if (!open) return;
     async function loadMeta() {
       const [r, d] = await Promise.all([getEmployeeRoles(), getDepartments()]);
-      setRoles(r.map(x => x.name as EmployeeRole));
+      setRoles(r.map(x => x.name));
       setDepartments(d);
     }
     loadMeta();
@@ -66,14 +72,32 @@ export function EditEmployeeDialog({ open, onOpenChange, employee }: { open: boo
   }, [employee, reset]);
 
   const onSubmit = async (data: EmployeeFormData) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([k, v]) => formData.append(k, String(v)));
-    const result = await updateEmployeeAction(employee.id, formData);
-    if (result?.message?.includes('Successfully updated employee')) {
-      toast({ title: 'Employee Updated', description: result.message });
+    try {
+      await updateEmployee(employee.id, {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        role: data.role,
+        department: data.department,
+        address: data.address,
+      } as any);
+
+      toast({
+        title: 'Employee Updated',
+        description: 'Employee details have been successfully updated.',
+      });
       onOpenChange(false);
-    } else {
-      toast({ variant: 'destructive', title: 'Error', description: result?.message || 'Failed to update employee.' });
+      if (onEmployeeUpdated) {
+        onEmployeeUpdated();
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to update employee. Please try again.';
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: message,
+      });
     }
   };
 

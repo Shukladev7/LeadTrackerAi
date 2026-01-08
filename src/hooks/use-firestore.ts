@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback,useRef } from 'react';
 import { Unsubscribe } from 'firebase/firestore';
 import { FirestoreService } from '../lib/firestore-service';
 import { FirestoreDocument, QueryOptions, PaginationResult } from '../lib/firestore-types';
@@ -97,64 +97,66 @@ export function useCollection<T extends FirestoreDocument>(
   return { documents, loading, error };
 }
 
-// Hook for paginated data
-export function usePaginatedCollection<T extends FirestoreDocument>(
-  service: FirestoreService<T>,
+
+export function usePaginatedCollection<T>(
+  service: any,
   pageSize: number,
-  options: QueryOptions = {}
+  options: any
 ) {
   const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
+  const pageCursors = useRef<Map<number, any>>(new Map());
 
-    try {
+  const loadPage = useCallback(
+    async (page: number) => {
+      if (loading) return;
+
       setLoading(true);
-      setError(null);
+      try {
+        const cursor = page === 1 ? null : pageCursors.current.get(page - 1);
 
-      const queryOptions = {
-        ...options,
-        startAfter: lastDoc,
-      };
+        const res = await service.getPaginated({
+          ...options,
+          pageSize,
+          startAfter: cursor ?? undefined,
+        });
 
-      const result = await service.getPaginated({ ...queryOptions, pageSize });
-      
-      setData(prev => [...prev, ...result.data]);
-      setHasMore(result.hasMore);
-      setLastDoc(result.lastDoc);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [service, pageSize, options, lastDoc, loading, hasMore]);
+        setData(res.data);
+
+        if (res.lastDoc) {
+          pageCursors.current.set(page, res.lastDoc);
+        }
+
+        setHasMore(res.hasMore);
+      } catch (e) {
+        setError(e as Error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [service, pageSize, options, loading]
+  );
 
   const reset = useCallback(() => {
+    pageCursors.current.clear();
     setData([]);
-    setLastDoc(null);
     setHasMore(true);
-    setError(null);
   }, []);
-
-  // Load initial data
-  useEffect(() => {
-    reset();
-    loadMore();
-  }, [service, pageSize, JSON.stringify(options)]);
 
   return {
     data,
     loading,
     error,
     hasMore,
-    loadMore,
+    loadPage,
     reset,
   };
 }
+
+
 
 // Hook for CRUD operations
 export function useFirestoreCRUD<T extends FirestoreDocument>(

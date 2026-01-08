@@ -47,6 +47,14 @@ export function Combobox({
 
   const selectedOption = options.find((option) => option.value === value)
 
+  // Sort options to place selected item at the top
+  const sortedOptions = React.useMemo(() => {
+    if (!value) return options
+    const selected = options.find((option) => option.value === value)
+    const others = options.filter((option) => option.value !== value)
+    return selected ? [selected, ...others] : options
+  }, [options, value])
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -56,7 +64,7 @@ export function Combobox({
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
         >
-          {selectedOption ? selectedOption.label : placeholder}
+          <span className="truncate flex-1 text-left">{selectedOption ? selectedOption.label : placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -66,24 +74,27 @@ export function Combobox({
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  onSelect={() => {
-                    onValueChange(option.value)
-                    setOpen(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
+              {sortedOptions.map((option) => {
+                const isSelected = value === option.value
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={option.label}
+                    onSelect={() => {
+                      onValueChange(option.value)
+                      setOpen(false)
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        isSelected ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span>{option.label}</span>
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

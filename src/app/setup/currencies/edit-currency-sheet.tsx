@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -6,36 +6,63 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Pencil } from 'lucide-react';
-import { updateCurrencyAction } from '@/lib/actions';
+import { updateCurrency } from '@/lib/firestore-service';
 import { useToast } from '@/hooks/use-toast';
 import { Currency } from '@/lib/business-types';
 
 type EditCurrencySheetProps = {
   currency: Currency;
+  onCurrencyUpdated?: () => void;
 };
 
-export function EditCurrencySheet({ currency }: EditCurrencySheetProps) {
+export function EditCurrencySheet({ currency, onCurrencyUpdated }: EditCurrencySheetProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: any) {
+    event.preventDefault();
     setIsSubmitting(true);
-    const result = await updateCurrencyAction(currency.id!, formData);
-    setIsSubmitting(false);
 
-    if (result.message.includes('Successfully')) {
+    try {
+      const formData = new FormData(event.currentTarget);
+      const code = String(formData.get('code') || '').trim().toUpperCase();
+      const name = String(formData.get('name') || '').trim();
+      const symbol = String(formData.get('symbol') || '').trim();
+      const conversionRateRaw = String(formData.get('conversionRate') || '').trim();
+      const conversionRate = parseFloat(conversionRateRaw || '0');
+
+      if (!code || !name || !symbol || !conversionRate || Number.isNaN(conversionRate)) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid data',
+          description: 'Please fill in all required fields with valid values.',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      await updateCurrency(currency.id!, { code, name, symbol, conversionRate });
+
       toast({
         title: 'Currency Updated',
-        description: result.message,
+        description: `Successfully updated '${code}'.`,
       });
+
+      if (onCurrencyUpdated) {
+        await onCurrencyUpdated();
+      }
+
       setOpen(false);
-    } else {
+    } catch (error) {
+      console.error('Error updating currency', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.message,
+        description: 'Failed to update currency. Please try again.',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -53,7 +80,7 @@ export function EditCurrencySheet({ currency }: EditCurrencySheetProps) {
             Update currency details and conversion rate.
           </SheetDescription>
         </SheetHeader>
-        <form action={handleSubmit} className="space-y-4 mt-6">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
           <div className="space-y-2">
             <Label htmlFor="code">Currency Code *</Label>
             <Input

@@ -20,7 +20,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { QuotationTemplate } from '@/lib/types';
-import { updateQuotationTemplateAction } from '@/lib/actions';
+import { updateQuotationTemplate, getManufacturingCompanies } from '@/lib/data';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const templateSchema = z.object({
   name: z.string().min(3, 'Template name must be at least 3 characters.'),
@@ -30,6 +37,7 @@ const templateSchema = z.object({
   companyGst: z.string().optional(),
   termsAndConditions: z.string().min(20, 'Terms and conditions are required.'),
   logoUrl: z.string().url('Please enter a valid URL for the logo.').optional().or(z.literal('')),
+  manufacturingCompany: z.string().optional(),
 });
 
 type TemplateFormData = z.infer<typeof templateSchema>;
@@ -42,6 +50,7 @@ type EditTemplateSheetProps = {
 
 export function EditQuotationTemplateSheet({ template, open, onOpenChange }: EditTemplateSheetProps) {
   const { toast } = useToast();
+  const [manufacturingCompanies, setManufacturingCompanies] = useState<any[]>([]);
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
     defaultValues: template,
@@ -55,6 +64,28 @@ export function EditQuotationTemplateSheet({ template, open, onOpenChange }: Edi
     }
   }, [template, open, reset]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCompanies() {
+      try {
+        const companies = await getManufacturingCompanies();
+        if (isMounted) {
+          setManufacturingCompanies(companies || []);
+        }
+      } catch (error) {
+        // Silently ignore errors; manufacturing company selection is optional
+        console.error('Failed to load manufacturing companies for templates', error);
+      }
+    }
+
+    loadCompanies();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -67,28 +98,30 @@ export function EditQuotationTemplateSheet({ template, open, onOpenChange }: Edi
   };
 
   const onSubmit = async (data: TemplateFormData) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      formData.append(key, value || '');
-    });
+    try {
+      const updatedTemplate: QuotationTemplate = {
+        ...template,
+        ...data,
+        companyGst: data.companyGst || undefined,
+        logoUrl: data.logoUrl || undefined,
+        manufacturingCompany: data.manufacturingCompany || undefined,
+      } as any;
 
-    const result = await updateQuotationTemplateAction(template.id, formData);
+      await updateQuotationTemplate(template.id, updatedTemplate as any);
 
-    if (result.message === 'Successfully updated quotation template.') {
       toast({
         title: 'Template Updated',
         description: `"${data.name}" has been successfully updated.`,
       });
       onOpenChange(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: result.message,
-            ...result.errors && {
-                description: Object.values(result.errors).flat().join('\n'),
-            }
-        });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to update quotation template.';
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: message,
+      });
     }
   };
 
@@ -134,6 +167,26 @@ export function EditQuotationTemplateSheet({ template, open, onOpenChange }: Edi
             <Label htmlFor="companyGst">Company GSTIN</Label>
             <Input id="companyGst" {...register('companyGst')} className={errors.companyGst ? 'border-destructive' : ''} />
             {errors.companyGst && <p className="text-xs text-destructive mt-1">{errors.companyGst.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="manufacturingCompany">Default Manufacturing Company</Label>
+            <Select
+              value={watch('manufacturingCompany') || undefined}
+              onValueChange={(value) => {
+                setValue('manufacturingCompany', value || undefined, { shouldValidate: true });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="No default manufacturing company" />
+              </SelectTrigger>
+              <SelectContent>
+                {manufacturingCompanies.map((company) => (
+                  <SelectItem key={company.id} value={company.name}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="termsAndConditions">Terms & Conditions</Label>

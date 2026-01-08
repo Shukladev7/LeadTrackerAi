@@ -100,4 +100,117 @@ body {
     margin-top: 0.1rem;
     margin-bottom: 0.1rem;
   }
+
+  .pdf-page-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .pdf-page-section table,
+  .pdf-page-section tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .pdf-page-root {
+    page-break-after: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    break-before: auto !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .pdf-page-root * {
+    page-break-after: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    break-before: auto !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    overflow: visible !important;
+  }
+
+  /* Print-specific helpers for Puppeteer-generated PDFs */
+  @media print {
+    @page {
+      size: A4;
+      /* Match Puppeteer page.pdf margins on EVERY page */
+      margin-top: 30mm !important;
+      margin-right: 8mm !important;
+      margin-bottom: 10mm !important;
+      margin-left: 8mm !important;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+    }
+
+    .print-a4-page {
+      width: 210mm;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+
+    .print-avoid-break {
+      break-inside: auto;
+      page-break-inside: auto;
+    }
+
+    /* Strong no-break helper for blocks like Terms & Conditions */
+    .print-avoid-break-block {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .print-a4-page .overflow-x-auto {
+      overflow: visible !important;
+    }
+
+    .print-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .print-table thead {
+      display: table-header-group;
+    }
+
+    .print-table tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .print-table td,
+    .print-table th {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .quotation-print-root {
+      width: 210mm;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+
+    .print-header {
+      /* Puppeteer now handles repeating headers via headerTemplate.
+         Keep this class neutral to avoid interfering with layout. */
+      position: static;
+      background: transparent;
+    }
+
+    .print-body {
+      margin-top: 0;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+  }
 }

@@ -28,6 +28,7 @@ const navItems = [
     { href: '/leads', label: 'Leads', icon: Users },
     { href: '/quotations', label: 'Quotations', icon: FileText },
     { href: '/employees', label: 'Employees', icon: UserPlus },
+    { href: '/tasks', label: 'Tasks', icon: Briefcase },
     { href: '/products', label: 'Products', icon: Package },
     { href: '/setup', label: 'Setup', icon: Settings },
 ];
@@ -83,18 +84,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Check if this is an auth page (login, signup, etc.) where we don't want the navbar
   const isAuthPage = pathname.startsWith('/auth/');
 
-  // If this is a protected route, wrap children with ProtectedRoute
-  const shouldProtect = isProtectedRoute(pathname);
+  // Special-case: allow quotation print pages to be accessed without auth
+  // and without the app chrome (navbar/sidebar), so the print view and
+  // generated PDF contain only the quotation content.
+  const isQuotationPrintPage =
+    pathname.startsWith('/quotations/') && pathname.endsWith('/print');
+
+  // If this is a protected route (except print pages), wrap children with ProtectedRoute
+  const shouldProtect = isProtectedRoute(pathname) && !isQuotationPrintPage;
   const content = shouldProtect ? (
     <ProtectedRoute>{children}</ProtectedRoute>
   ) : (
     children
   );
 
-  // For auth pages, render without navbar and with full screen
-  if (isAuthPage) {
+  // For auth pages and print-only quotation pages, render without navbar
+  // and with a simple full-screen container.
+  if (isAuthPage || isQuotationPrintPage) {
     return (
-      <div className="min-h-screen w-full">
+      <div className="min-h-screen w-full bg-white">
         {content}
       </div>
     );

@@ -34,12 +34,21 @@ type SourceChartData = {
 export default function SourceDistributionChart({ data }: { data: SourceChartData[] }) {
   const router = useRouter();
 
-  const handleBarClick = (data: any) => {
-    if (data && data.activePayload && data.activePayload.length > 0) {
-      const sourceName = data.activePayload[0].payload.name;
-      // Navigate to leads page with source filter
-      router.push(`/leads?source=${encodeURIComponent(sourceName)}`);
+  const handleBarClick = (barData: any) => {
+    const sourceName = barData?.payload?.name;
+    if (!sourceName) return;
+
+    // Store selected source for client-side filtering on the leads page
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.setItem('leadsSourceFilter', sourceName);
+      } catch {
+        // Ignore storage errors and just navigate
+      }
     }
+
+    // Navigate to leads page without URL query filters
+    router.push('/leads');
   };
 
   const getSourceColor = (index: number) => {
@@ -57,7 +66,7 @@ export default function SourceDistributionChart({ data }: { data: SourceChartDat
 
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={data} onClick={handleBarClick} style={{ cursor: 'pointer' }}>
+      <BarChart data={data} style={{ cursor: 'pointer' }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="name"
@@ -83,7 +92,7 @@ export default function SourceDistributionChart({ data }: { data: SourceChartDat
             border: '1px solid hsl(var(--border))',
           }}
         />
-        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="count" radius={[4, 4, 0, 0]} onClick={handleBarClick}>
           {data.map((entry, index) => (
             <Cell
               key={`cell-${index}`}

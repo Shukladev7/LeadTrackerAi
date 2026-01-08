@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -6,31 +6,62 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { PlusCircle } from 'lucide-react';
-import { addCurrencyAction } from '@/lib/actions';
+import { addCurrency } from '@/lib/firestore-service';
 import { useToast } from '@/hooks/use-toast';
 
-export function AddCurrencySheet() {
+type AddCurrencySheetProps = {
+  onCurrencyAdded?: () => void;
+};
+
+export function AddCurrencySheet({ onCurrencyAdded }: AddCurrencySheetProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: any) {
+    event.preventDefault();
     setIsSubmitting(true);
-    const result = await addCurrencyAction(formData);
-    setIsSubmitting(false);
 
-    if (result.message.includes('Successfully')) {
+    try {
+      const formData = new FormData(event.currentTarget);
+      const code = String(formData.get('code') || '').trim().toUpperCase();
+      const name = String(formData.get('name') || '').trim();
+      const symbol = String(formData.get('symbol') || '').trim();
+      const conversionRateRaw = String(formData.get('conversionRate') || '').trim();
+      const conversionRate = parseFloat(conversionRateRaw || '0');
+
+      if (!code || !name || !symbol || !conversionRate || Number.isNaN(conversionRate)) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid data',
+          description: 'Please fill in all required fields with valid values.',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      await addCurrency({ code, name, symbol, conversionRate });
+
       toast({
         title: 'Currency Added',
-        description: result.message,
+        description: `Successfully added '${code}'.`,
       });
+
+      if (onCurrencyAdded) {
+        await onCurrencyAdded();
+      }
+
+      event.currentTarget.reset();
       setOpen(false);
-    } else {
+    } catch (error) {
+      console.error('Error adding currency', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.message,
+        description: 'Failed to add currency. Please try again.',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -49,7 +80,7 @@ export function AddCurrencySheet() {
             Add a new currency for use in quotations. INR is the base currency.
           </SheetDescription>
         </SheetHeader>
-        <form action={handleSubmit} className="space-y-4 mt-6">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
           <div className="space-y-2">
             <Label htmlFor="code">Currency Code *</Label>
             <Input

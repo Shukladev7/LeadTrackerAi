@@ -18,16 +18,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { updateProduct } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Product, UnitOfMeasurement } from '@/lib/business-types';
+import { Product, UnitOfMeasurement, ManufacturingCompany } from '@/lib/business-types';
 import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getProductCategoriesAction, getUnitsOfMeasurementAction } from '@/lib/actions';
-import { ProductCategory } from '@/lib/types';
+import { updateProduct, getProductCategories, getUnitsOfMeasurement, getManufacturingCompanies, NewProduct } from '@/lib/data';
+import type { ProductCategory } from '@/lib/business-types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
@@ -37,6 +36,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   uom: z.string().optional(),
   skus: z.array(z.object({ value: z.string().min(1, "SKU cannot be empty.") })).optional(),
+  manufacturingCompany: z.string().min(1, { message: 'Manufacturing company is required.' }),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -52,11 +52,13 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
   const [availableCategories, setAvailableCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [availableUnits, setAvailableUnits] = useState<UnitOfMeasurement[]>([]);
+  const [manufacturingCompanies, setManufacturingCompanies] = useState<ManufacturingCompany[]>([]);
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   // Track if user explicitly removed the existing PDF (when editing an item that already had a catalogue)
   const [removedExistingPdf, setRemovedExistingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string>('');
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
+  const [productThumbnail, setProductThumbnail] = useState<UploadResult | null>(null);
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
   const [removedExistingImage, setRemovedExistingImage] = useState(false);
   const [imageError, setImageError] = useState<string>('');
@@ -79,6 +81,7 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
         categoryId: product.categoryId,
         description: (product as any).description || '',
         uom: (product as any).uom || 'units',
+        manufacturingCompany: (product as any).manufacturingCompany || '',
       });
       setSelectedCategoryId(product.categoryId);
       // Reset local PDF and image state flags whenever the sheet is (re)opened
@@ -86,20 +89,23 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       setRemovedExistingPdf(false);
       setPdfError('');
       setProductImage(null);
+      setProductThumbnail(null);
       setProductImageFile(null);
       setRemovedExistingImage(false);
       setImageError('');
       setIsImageUploading(false);
-      
+
       // Fetch available categories and units
       const fetchMasterData = async () => {
         try {
-          const [categories, units] = await Promise.all([
-            getProductCategoriesAction(),
-            getUnitsOfMeasurementAction(),
+          const [categories, units, companies] = await Promise.all([
+            getProductCategories(),
+            getUnitsOfMeasurement(),
+            getManufacturingCompanies(),
           ]);
           setAvailableCategories(categories);
           setAvailableUnits(units);
+          setManufacturingCompanies(companies);
         } catch (error) {
           console.error('Error fetching product setup data:', error);
         }
@@ -116,50 +122,6 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
   };
 
   const onSubmit = async (data: ProductFormData) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (key === 'skus') {
-        formData.append(key, JSON.stringify((value as {value: string}[]).map(s => s.value)));
-      } else if (key === 'categoryId') {
-        if (selectedCategoryId) formData.append('categoryId', selectedCategoryId);
-      } else if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
-
-    // Add catalog PDF data if available (only send URL + metadata)
-    if (catalogPdf) {
-      formData.append('catalogPdf', JSON.stringify({
-        url: catalogPdf.url,
-        fileName: catalogPdf.fileName,
-        filePath: catalogPdf.path,
-        uploadedAt: new Date().toISOString()
-      }));
-    }
-
-    // If user removed the existing PDF and did not upload a new one, inform backend to clear it
-    if (!catalogPdf && removedExistingPdf) {
-      formData.append('removeCatalogPdf', 'true');
-    }
-
-    // Add new image file if user uploaded one
-    if (productImageFile) {
-      formData.append('productImage', productImageFile);
-    } else if (!removedExistingImage && product.productImage) {
-      // Keep existing image metadata (send as JSON for backend to preserve)
-      formData.append('existingProductImage', JSON.stringify({
-        url: product.productImage.url,
-        fileName: product.productImage.fileName,
-        filePath: product.productImage.filePath,
-        uploadedAt: product.productImage.uploadedAt || new Date().toISOString(),
-      }));
-    }
-
-    // If user removed the existing image and did not upload a new one, inform backend to clear it
-    if (!productImageFile && removedExistingImage) {
-      formData.append('removeProductImage', 'true');
-    }
-
     if (!product.id) {
       toast({
         variant: 'destructive',
@@ -169,19 +131,108 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
       return;
     }
 
-    const result = await updateProduct(product.id, formData);
+    const skus = (data.skus || []).map((s) => s.value);
 
-    if (result?.message === 'Successfully updated product.') {
+    const payload: Partial<NewProduct> = {
+      name: data.name,
+      price: data.price,
+      gstRate: data.gstRate,
+      categoryId: selectedCategoryId,
+      description: data.description || undefined,
+      uom: data.uom || undefined,
+      skus: skus.length > 0 ? skus : undefined,
+      manufacturingCompany: data.manufacturingCompany,
+    };
+
+    // Handle catalog PDF
+    if (catalogPdf) {
+      payload.cataloguePdf = {
+        url: catalogPdf.url,
+        fileName: catalogPdf.fileName,
+        filePath: catalogPdf.path,
+        uploadedAt: new Date().toISOString(),
+      };
+    } else if (removedExistingPdf) {
+      // Clear existing PDF reference
+      (payload as any).cataloguePdf = null;
+      if (product.cataloguePdf?.filePath) {
+        try {
+          await deletePDF(product.cataloguePdf.filePath);
+        } catch (error) {
+          console.error('Failed to delete existing PDF from storage:', error);
+        }
+      }
+    }
+
+    // Handle product image & thumbnail metadata
+    if (productImage) {
+      payload.productImage = {
+        url: productImage.url,
+        fileName: productImage.fileName,
+        filePath: productImage.path,
+        uploadedAt: new Date().toISOString(),
+      };
+      if (productThumbnail) {
+        (payload as any).thumbnailImage = {
+          url: productThumbnail.url,
+          fileName: productThumbnail.fileName,
+          filePath: productThumbnail.path,
+          uploadedAt: new Date().toISOString(),
+        };
+      }
+
+      // If a new image was uploaded, clean up old originals/thumbnails from storage
+      if (product.productImage?.filePath) {
+        try {
+          await deleteImageFromStorage(product.productImage.filePath);
+        } catch (error) {
+          console.error('Failed to delete existing product image from storage:', error);
+        }
+      }
+      const existingThumbPath = (product as any).thumbnailImage?.filePath as string | undefined;
+      if (existingThumbPath) {
+        try {
+          await deleteImageFromStorage(existingThumbPath);
+        } catch (error) {
+          console.error('Failed to delete existing product thumbnail from storage:', error);
+        }
+      }
+    } else if (removedExistingImage) {
+      (payload as any).productImage = null;
+      (payload as any).thumbnailImage = null;
+      if (product.productImage?.filePath) {
+        try {
+          await deleteImageFromStorage(product.productImage.filePath);
+        } catch (error) {
+          console.error('Failed to delete existing product image from storage:', error);
+        }
+      }
+      const existingThumbPath = (product as any).thumbnailImage?.filePath as string | undefined;
+      if (existingThumbPath) {
+        try {
+          await deleteImageFromStorage(existingThumbPath);
+        } catch (error) {
+          console.error('Failed to delete existing product thumbnail from storage:', error);
+        }
+      }
+    }
+
+    try {
+      await updateProduct(product.id, payload as any);
+
       toast({
         title: 'Product Updated',
         description: `"${data.name}" has been successfully updated.`,
       });
       onOpenChange(false);
-    } else {
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'An error occurred while updating the product.';
+
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result?.message || 'An error occurred while updating the product.',
+        description: message,
       });
     }
   };
@@ -220,6 +271,30 @@ export function EditProductSheet({ product, open, onOpenChange }: EditProductShe
               )}
             />
             {errors.categoryId && <p className="text-xs text-destructive mt-1">{errors.categoryId.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label>Manufacturing Company</Label>
+            <Controller
+              control={control}
+              name="manufacturingCompany"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a manufacturing company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {manufacturingCompanies.map((company) => (
+                      <SelectItem key={company.id} value={company.name}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.manufacturingCompany && (
+              <p className="text-xs text-destructive mt-1">{errors.manufacturingCompany.message}</p>
+            )}
           </div>
         <div>
           <Label htmlFor="description">Description</Label>

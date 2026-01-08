@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,8 +19,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { addQuotationTemplateAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { addQuotationTemplate, getManufacturingCompanies } from '@/lib/data';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const templateSchema = z.object({
   name: z.string().min(3, 'Template name must be at least 3 characters.'),
@@ -30,18 +37,42 @@ const templateSchema = z.object({
   companyGst: z.string().optional(),
   termsAndConditions: z.string().min(20, 'Terms and conditions are required.'),
   logoUrl: z.string().url('Please enter a valid URL for the logo.').optional().or(z.literal('')),
+  manufacturingCompany: z.string().optional(),
 });
 
 type TemplateFormData = z.infer<typeof templateSchema>;
 
 export function AddQuotationTemplateSheet() {
   const [open, setOpen] = useState(false);
+  const [manufacturingCompanies, setManufacturingCompanies] = useState<any[]>([]);
   const { toast } = useToast();
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
   });
 
   const logoUrl = watch('logoUrl');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCompanies() {
+      try {
+        const companies = await getManufacturingCompanies();
+        if (isMounted) {
+          setManufacturingCompanies(companies || []);
+        }
+      } catch (error) {
+        // Silently ignore errors; manufacturing company selection is optional
+        console.error('Failed to load manufacturing companies for templates', error);
+      }
+    }
+
+    loadCompanies();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -55,29 +86,32 @@ export function AddQuotationTemplateSheet() {
   };
 
   const onSubmit = async (data: TemplateFormData) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      formData.append(key, value || '');
-    });
+    try {
+      await addQuotationTemplate({
+        name: data.name,
+        prefix: data.prefix,
+        companyName: data.companyName,
+        companyAddress: data.companyAddress,
+        companyGst: data.companyGst || undefined,
+        termsAndConditions: data.termsAndConditions,
+        logoUrl: data.logoUrl || undefined,
+        manufacturingCompany: data.manufacturingCompany || undefined,
+      } as any);
 
-    const result = await addQuotationTemplateAction(formData);
-
-    if (result.message === 'Successfully created quotation template.') {
       toast({
         title: 'Template Created',
         description: `"${data.name}" has been successfully created.`,
       });
       reset();
       setOpen(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: result.message,
-            ...result.errors && {
-                description: Object.values(result.errors).flat().join('\n'),
-            }
-        });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to create quotation template.';
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: message,
+      });
     }
   };
 
@@ -129,6 +163,27 @@ export function AddQuotationTemplateSheet() {
             <Label htmlFor="companyGst">Company GSTIN</Label>
             <Input id="companyGst" {...register('companyGst')} className={errors.companyGst ? 'border-destructive' : ''} />
             {errors.companyGst && <p className="text-xs text-destructive mt-1">{errors.companyGst.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="manufacturingCompany">Default Manufacturing Company</Label>
+            <Select
+              value={watch('manufacturingCompany') || undefined}
+              onValueChange={(value) => {
+                setValue('manufacturingCompany', value || undefined, { shouldValidate: true });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="No default manufacturing company" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No default manufacturing company</SelectItem>
+                {manufacturingCompanies.map((company) => (
+                  <SelectItem key={company.id} value={company.name}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="termsAndConditions">Terms & Conditions</Label>

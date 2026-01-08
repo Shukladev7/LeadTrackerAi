@@ -19,16 +19,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { addProduct } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { PDFUpload } from '@/components/pdf-upload';
 import { ImageUpload } from '@/components/image-upload';
 import { UploadResult, deletePDF, deleteImageFromStorage } from '@/lib/storage-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getProductCategoriesAction, getUnitsOfMeasurementAction } from '@/lib/actions';
-import { ProductCategory } from '@/lib/types';
-import { UnitOfMeasurement } from '@/lib/business-types';
+import { addProduct, getProductCategories, getUnitsOfMeasurement, getManufacturingCompanies, NewProduct } from '@/lib/data';
+import type { ProductCategory, UnitOfMeasurement, ManufacturingCompany } from '@/lib/business-types';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'Product name must be at least 3 characters.' }),
@@ -38,6 +36,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   uom: z.string().optional(),
   skus: z.array(z.object({ value: z.string().min(1, "SKU cannot be empty.") })).optional(),
+  manufacturingCompany: z.string().min(1, { message: 'Manufacturing company is required.' }),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -48,9 +47,11 @@ export function AddProductSheet() {
   const [availableCategories, setAvailableCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const [availableUnits, setAvailableUnits] = useState<UnitOfMeasurement[]>([]);
+  const [manufacturingCompanies, setManufacturingCompanies] = useState<ManufacturingCompany[]>([]);
   const [catalogPdf, setCatalogPdf] = useState<UploadResult | null>(null);
   const [pdfError, setPdfError] = useState<string>('');
   const [productImage, setProductImage] = useState<UploadResult | null>(null);
+  const [productThumbnail, setProductThumbnail] = useState<UploadResult | null>(null);
   const [imageError, setImageError] = useState<string>('');
   const [isImageUploading, setIsImageUploading] = useState(false);
   const { toast } = useToast();
@@ -61,6 +62,7 @@ export function AddProductSheet() {
       categoryId: undefined,
       description: '',
       uom: 'units',
+      manufacturingCompany: '',
     },
   });
   
@@ -74,12 +76,14 @@ useEffect(() => {
   if (open) {
     const fetchMasterData = async () => {
       try {
-        const [categories, units] = await Promise.all([
-          getProductCategoriesAction(),
-          getUnitsOfMeasurementAction(),
+        const [categories, units, companies] = await Promise.all([
+          getProductCategories(),
+          getUnitsOfMeasurement(),
+          getManufacturingCompanies(),
         ]);
         setAvailableCategories(categories);
         setAvailableUnits(units);
+        setManufacturingCompanies(companies);
       } catch (error) {
         console.error('Error fetching product setup data:', error);
       }
@@ -100,45 +104,50 @@ useEffect(() => {
   const onSubmit = async (data: ProductFormData) => {
     console.log('Form submission - productImage state:', productImage);
     console.log('Form submission - catalogPdf state:', catalogPdf);
-    
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (key === 'skus') {
-        formData.append(key, JSON.stringify((value as {value: string}[]).map(s => s.value)));
-      } else if (key === 'categoryId') {
-        if (selectedCategoryId) formData.append('categoryId', selectedCategoryId);
-      } else if (value) {
-        formData.append(key, String(value));
-      }
-    });
 
-    // Add catalog PDF data if available (only send URL + metadata)
+    const skus = (data.skus || []).map((s) => s.value);
+
+    const productPayload: NewProduct = {
+      name: data.name,
+      price: data.price,
+      gstRate: data.gstRate,
+      categoryId: selectedCategoryId,
+      description: data.description || undefined,
+      uom: data.uom || undefined,
+      skus: skus.length > 0 ? skus : undefined,
+      manufacturingCompany: data.manufacturingCompany,
+    };
+
     if (catalogPdf) {
-      console.log('Adding catalogPdf to formData');
-      formData.append('catalogPdf', JSON.stringify({
+      productPayload.cataloguePdf = {
         url: catalogPdf.url,
         fileName: catalogPdf.fileName,
         filePath: catalogPdf.path,
-        uploadedAt: new Date().toISOString()
-      }));
+        uploadedAt: new Date().toISOString(),
+      };
     }
 
-    // Add product image data if available
     if (productImage) {
-      console.log('Adding productImage to formData');
-      formData.append('productImage', JSON.stringify({
+      productPayload.productImage = {
         url: productImage.url,
         fileName: productImage.fileName,
         filePath: productImage.path,
-        uploadedAt: new Date().toISOString()
-      }));
-    } else {
-      console.log('productImage is null/undefined, not adding to formData');
+        uploadedAt: new Date().toISOString(),
+      };
     }
 
-    const result = await addProduct(formData);
+    if (productThumbnail) {
+      (productPayload as any).thumbnailImage = {
+        url: productThumbnail.url,
+        fileName: productThumbnail.fileName,
+        filePath: productThumbnail.path,
+        uploadedAt: new Date().toISOString(),
+      };
+    }
 
-    if (result.message === 'Successfully added product.') {
+    try {
+      await addProduct(productPayload);
+
       toast({
         title: 'Product Added',
         description: `"${data.name}" has been successfully added.`,
@@ -149,29 +158,40 @@ useEffect(() => {
       setCatalogPdf(null);
       setPdfError('');
       setProductImage(null);
+      setProductThumbnail(null);
       setImageError('');
       setOpen(false);
-    } else {
-        // If product creation failed and we uploaded files, clean them up
-        if (catalogPdf) {
-          try {
-            await deletePDF(catalogPdf.path);
-          } catch (error) {
-            console.error('Failed to cleanup uploaded PDF:', error);
-          }
+    } catch (error) {
+      if (catalogPdf) {
+        try {
+          await deletePDF(catalogPdf.path);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded PDF:', cleanupError);
         }
-        if (productImage) {
-          try {
-            await deleteImageFromStorage(productImage.path);
-          } catch (error) {
-            console.error('Failed to cleanup uploaded image:', error);
-          }
+      }
+      if (productImage) {
+        try {
+          await deleteImageFromStorage(productImage.path);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded image:', cleanupError);
         }
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: result.message,
-        });
+      }
+      if (productThumbnail) {
+        try {
+          await deleteImageFromStorage(productThumbnail.path);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded thumbnail image:', cleanupError);
+        }
+      }
+
+      const message =
+        error instanceof Error ? error.message : 'Failed to add product. Please try again.';
+
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: message,
+      });
     }
   };
 
@@ -231,19 +251,43 @@ useEffect(() => {
               control={control}
               name="categoryId"
               render={({ field }) => (
-                <Select onValueChange={(val) => { field.onChange(val); setSelectedCategoryId(val); }} value={field.value}>
+                <Select onValueChange={(val) => { field.onChange(val); setSelectedCategoryId(val); }} value={field.value || ''}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category..." />
                   </SelectTrigger>
                   <SelectContent>
                     {availableCategories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      <SelectItem key={cat.id ?? cat.name} value={cat.id ?? cat.name}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
             />
             {errors.categoryId && <p className="text-xs text-destructive mt-1">{errors.categoryId.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label>Manufacturing Company</Label>
+            <Controller
+              control={control}
+              name="manufacturingCompany"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a manufacturing company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {manufacturingCompanies.map((company) => (
+                      <SelectItem key={company.id} value={company.name}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.manufacturingCompany && (
+              <p className="text-xs text-destructive mt-1">{errors.manufacturingCompany.message}</p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -290,37 +334,51 @@ useEffect(() => {
           </div>
           <div>
             <ImageUpload
-              onUploadComplete={(result) => {
-                console.log('ImageUpload onUploadComplete called with:', result);
-                setProductImage(result);
+              onUploadComplete={(original, thumbnail) => {
+                console.log('ImageUpload onUploadComplete called with:', { original, thumbnail });
+                setProductImage(original);
+                setProductThumbnail(thumbnail || null);
                 setIsImageUploading(false);
-                console.log('productImage state should now be:', result);
+                console.log('productImage state should now be:', original);
                 setImageError('');
               }}
               onUploadError={(error) => {
                 console.log('ImageUpload onUploadError called with:', error);
                 setImageError(error);
                 setProductImage(null);
+                setProductThumbnail(null);
                 setIsImageUploading(false);
               }}
-              onFileSelect={() => {
+              onFileSelect={(_file) => {
                 console.log('Image upload started');
                 setIsImageUploading(true);
               }}
-              currentImage={productImage ? {
-                url: productImage.url,
-                fileName: productImage.fileName,
-                filePath: productImage.path
-              } : null}
-              onRemove={async () => {
-                if (productImage) {
-                  try {
-                    await deleteImageFromStorage(productImage.path);
-                    setProductImage(null);
-                    setImageError('');
-                  } catch (error) {
-                    setImageError('Failed to remove image');
+              currentImage={productThumbnail
+                ? {
+                    url: productThumbnail.url,
+                    fileName: productThumbnail.fileName,
+                    filePath: productThumbnail.path,
                   }
+                : productImage
+                ? {
+                    url: productImage.url,
+                    fileName: productImage.fileName,
+                    filePath: productImage.path,
+                  }
+                : null}
+              onRemove={async () => {
+                try {
+                  if (productImage) {
+                    await deleteImageFromStorage(productImage.path);
+                  }
+                  if (productThumbnail) {
+                    await deleteImageFromStorage(productThumbnail.path);
+                  }
+                  setProductImage(null);
+                  setProductThumbnail(null);
+                  setImageError('');
+                } catch (error) {
+                  setImageError('Failed to remove image');
                 }
               }}
               label="Product Image"

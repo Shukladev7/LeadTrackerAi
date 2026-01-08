@@ -43,9 +43,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Product, QuotationTemplate, ProductCategory, Currency } from '@/lib/business-types';
 import { ALL_QUOTATION_STATUSES } from '@/lib/types';
-import { getLeads, getProducts, getQuotationTemplates, getLeadById, getProductCategories } from '@/lib/data';
+import { getLeads, getProducts, getQuotationTemplates, getLeadById, getProductCategories, addQuotation, addActivityToLead, getManufacturingCompanies } from '@/lib/data';
 import { getActiveCurrencies } from '@/lib/firestore-service';
-import { addQuotation } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Combobox } from '@/components/ui/combobox';
@@ -89,9 +88,16 @@ const quotationSchema = z.object({
   currencyCode: z.string().nullish(),
   currencySymbol: z.string().nullish(),
   conversionRate: z.coerce.number().nullish(),
+  manufacturingCompany: z.string().optional(),
 });
 
 type QuotationFormData = z.infer<typeof quotationSchema>;
+
+interface CreateQuotationDialogProps {
+  leadId?: string;
+  quotationStatuses?: string[];
+  onQuotationCreated?: () => void;
+}
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -100,7 +106,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 };
 
-export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses }: { leadId?: string; quotationStatuses?: string[] }) {
+export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses, onQuotationCreated }: CreateQuotationDialogProps) {
   const [open, setOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
@@ -108,6 +114,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [rowCategoryFilters, setRowCategoryFilters] = useState<(string | 'ALL')[]>([]);
+  const [manufacturingCompanies, setManufacturingCompanies] = useState<any[]>([]);
   const { toast } = useToast();
 
   const availableStatuses = (quotationStatuses && quotationStatuses.length ? quotationStatuses : ALL_QUOTATION_STATUSES);
@@ -152,6 +159,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
   const watchedShowFreight = watch('showFreight');
   const watchedShowCourier = watch('showCourier');
   const watchedShowGst = watch('showGst');
+  const watchedManufacturingCompany = watch('manufacturingCompany');
 
   const productTotals = watchedProducts?.map(p => {
     const baseAmount = p.quantity * p.rate;
@@ -180,18 +188,20 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
   useEffect(() => {
     async function fetchData() {
         if (open) {
-            const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedCategories, fetchedCurrencies] = await Promise.all([
+            const [fetchedLeads, fetchedProducts, fetchedTemplates, fetchedCategories, fetchedCurrencies, fetchedCompanies] = await Promise.all([
                 getLeads(),
                 getProducts(),
                 getQuotationTemplates(),
                 getProductCategories(),
                 getActiveCurrencies(),
+                getManufacturingCompanies(),
             ]);
             setLeads(fetchedLeads);
             setAvailableProducts(fetchedProducts);
             setTemplates(fetchedTemplates);
             setCategories(fetchedCategories);
             setCurrencies(fetchedCurrencies);
+            setManufacturingCompanies(fetchedCompanies as any);
         }
     }
     fetchData();
@@ -213,6 +223,17 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
     });
   }, [fields.length, watchedLeadId]);
 
+  // Reset products when manufacturing company changes
+  useEffect(() => {
+    if (!open) return;
+    if (fields.length > 0) {
+      for (let i = fields.length - 1; i >= 0; i--) {
+        remove(i);
+      }
+    }
+    setRowCategoryFilters([]);
+  }, [watchedManufacturingCompany, open]);
+
   useEffect(() => {
     async function populateFromTemplate() {
         if (watchedTemplateId) {
@@ -225,6 +246,9 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
                 setValue('logoUrl', template.logoUrl || '');
                 // Also set hidden prefix field for server processing
                 setValue('quotationPrefix', template.prefix as any);
+                if (template.manufacturingCompany) {
+                  setValue('manufacturingCompany', template.manufacturingCompany as any);
+                }
             }
         }
     }
@@ -287,42 +311,66 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
 
 
   const onSubmit = async (data: QuotationFormData) => {
-    const formData = new FormData();
-    const payload = {
-        ...data,
+    try {
+      const prefixValue = (data as any).quotationPrefix?.toString().toUpperCase() || '';
+
+      const quotationData: any = {
+        leadId: data.leadId,
+        templateId: data.templateId,
         date: format(data.date, 'yyyy-MM-dd'),
         validUntil: format(data.validUntil, 'yyyy-MM-dd'),
+        status: data.status,
+        products: data.products,
         subTotal,
         totalGst,
         grandTotal,
-    };
-    
-    Object.entries(payload).forEach(([key, value]) => {
-        if (key === 'products') {
-            formData.append(key, JSON.stringify(value));
-        } else if (value !== undefined && value !== null) {
-            formData.append(key, String(value));
-        }
-    });
-    // Prefix comes from selected template; already set via populateFromTemplate
-    const prefixValue = (data as any).quotationPrefix?.toString().toUpperCase() || '';
-    formData.append('quotationPrefix', prefixValue);
+        companyName: data.companyName,
+        companyAddress: data.companyAddress,
+        companyGst: data.companyGst || undefined,
+        client_address: data.client_address || undefined,
+        client_gst_no: data.client_gst_no || undefined,
+        termsAndConditions: data.termsAndConditions,
+        logoUrl: data.logoUrl || undefined,
+        freightCharges: data.freightCharges === '' ? undefined : data.freightCharges,
+        courierCharges: data.courierCharges === '' ? undefined : data.courierCharges,
+        showFreight: data.showFreight ?? false,
+        showCourier: data.showCourier ?? false,
+        showGst: data.showGst ?? true,
+        currencyCode: data.currencyCode || 'INR',
+        currencySymbol: data.currencySymbol || '₹',
+        conversionRate: data.conversionRate ?? 1.0,
+        manufacturingCompany: data.manufacturingCompany || undefined,
+      };
 
-    const result = await addQuotation(formData);
+      const newQuotation = await addQuotation(quotationData, prefixValue);
 
-    if (result.message === 'Successfully created quotation.') {
+      // Log activity on the lead in the background so the UI
+      // does not wait for this secondary write to complete.
+      addActivityToLead(data.leadId, {
+        type: 'Proposal Sent',
+        notes: `A quotation was created and sent.`,
+      } as any).catch((activityError) => {
+        console.error('Failed to log quotation activity on lead:', activityError);
+      });
+
       toast({
         title: 'Quotation Created',
         description: `A new quotation has been successfully created.`,
       });
       reset();
       setOpen(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error creating quotation',
-            description: result.message,
-        });
+      if (onQuotationCreated) {
+        onQuotationCreated();
+      }
+    } catch (error) {
+      console.error('Error creating quotation:', error);
+      const message =
+        error instanceof Error ? error.message : 'Failed to create quotation. Please try again.';
+      toast({
+        variant: 'destructive',
+        title: 'Error creating quotation',
+        description: message,
+      });
     }
   };
 
@@ -337,8 +385,19 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
 
   const getFilteredProductsForRow = (rowIndex: number) => {
     const filterValue = rowCategoryFilters[rowIndex] || 'ALL';
-    if (filterValue === 'ALL') return availableProducts;
-    return availableProducts.filter(p => p.categoryId === filterValue);
+    let filtered = availableProducts as Product[];
+
+    if (watchedManufacturingCompany) {
+      filtered = filtered.filter(
+        (p) => p.manufacturingCompany === watchedManufacturingCompany
+      );
+    }
+
+    if (filterValue !== 'ALL') {
+      filtered = filtered.filter(p => p.categoryId === filterValue);
+    }
+
+    return filtered;
   };
 
   return (
@@ -356,7 +415,7 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
             </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="w-fit max-w-full">
+      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] flex flex-col">
 
         <DialogHeader>
           <DialogTitle>Create New Quotation</DialogTitle>
@@ -364,9 +423,9 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
             Fill in the details to generate a new quotation.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-6">
-                <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+            <div className="grid gap-6 py-4 flex-1 overflow-y-auto pr-6 min-h-0">
+                <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="leadId">Lead</Label>
                         <Controller
@@ -439,6 +498,44 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
                         />
                     </div>
                     <div className="space-y-2">
+                        <Label htmlFor="manufacturingCompany">Manufacturing Company</Label>
+                        <Controller
+                          control={control}
+                          name="manufacturingCompany"
+                          render={({ field }) => (
+                            (() => {
+                              const ALL_COMPANIES_VALUE = '__ALL_COMPANIES__';
+                              const currentValue = field.value ?? ALL_COMPANIES_VALUE;
+
+                              return (
+                                <Select
+                                  onValueChange={(val) => {
+                                    if (val === ALL_COMPANIES_VALUE) {
+                                      field.onChange(undefined);
+                                    } else {
+                                      field.onChange(val);
+                                    }
+                                  }}
+                                  value={currentValue}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="All companies" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value={ALL_COMPANIES_VALUE}>All companies</SelectItem>
+                                    {manufacturingCompanies.map((company) => (
+                                      <SelectItem key={company.id} value={company.name}>
+                                        {company.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              );
+                            })()
+                          )}
+                        />
+                    </div>
+                    <div className="space-y-2">
                         <Label htmlFor="validUntil">Valid Until</Label>
                         <Controller
                             control={control}
@@ -484,21 +581,31 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
                                 <Select 
                                     onValueChange={(value) => {
                                         field.onChange(value);
+                                        if (value === 'INR') {
+                                            setValue('currencySymbol', '₹' as any);
+                                            setValue('conversionRate', 1 as any);
+                                            return;
+                                        }
                                         const selectedCurrency = currencies.find(c => c.code === value);
                                         if (selectedCurrency) {
-                                            setValue('currencySymbol', selectedCurrency.symbol);
-                                            setValue('conversionRate', selectedCurrency.conversionRate);
+                                            setValue('currencySymbol', selectedCurrency.symbol as any);
+                                            setValue('conversionRate', selectedCurrency.conversionRate as any);
                                         }
                                     }} 
                                     value={field.value ?? undefined}
                                 >
                                     <SelectTrigger><SelectValue placeholder="Select currency" /></SelectTrigger>
                                     <SelectContent>
-                                        {currencies.map(currency => (
-                                            <SelectItem key={currency.id!} value={currency.code}>
-                                                {currency.symbol} {currency.code} - {currency.name}
-                                            </SelectItem>
-                                        ))}
+                                        <SelectItem value="INR">
+                                            ₹ INR - Indian Rupee
+                                        </SelectItem>
+                                        {currencies
+                                            .filter(currency => currency.code !== 'INR')
+                                            .map(currency => (
+                                                <SelectItem key={currency.id!} value={currency.code}>
+                                                    {currency.symbol} {currency.code} - {currency.name}
+                                                </SelectItem>
+                                            ))}
                                     </SelectContent>
                                 </Select>
                             )}
@@ -637,11 +744,11 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
                 <div className="space-y-2">
                     <Label>Products</Label>
                     <div className="border rounded-lg">
-                        <Table>
+                        <Table className="table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[18%]">Category</TableHead>
-                                    <TableHead className="w-[20%]">Product Name</TableHead>
+                                    <TableHead className="w-[12%]">Category</TableHead>
+                                    <TableHead className="w-[14%]">Product Name</TableHead>
                                     <TableHead className="w-[25%]">Description</TableHead>
                                     <TableHead>Qty</TableHead>
                                     <TableHead>Rate</TableHead>
@@ -660,48 +767,57 @@ export function CreateQuotationDialog({ leadId: initialLeadId, quotationStatuses
       : undefined;
     return (
       <TableRow key={field.id}>
-        <TableCell>
-          <Select
-            value={rowCategoryFilters[index] || 'ALL'}
-            onValueChange={(v) => {
-              setRowCategoryFilters((prev) => {
-                const next = [...prev];
-                next[index] = v as any;
-                return next;
-              });
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All</SelectItem>
-              {categories.filter(c => c.id).map(c => (
-                <SelectItem key={c.id!} value={c.id!}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <TableCell className="w-[12%] overflow-hidden">
+          <div className="w-full max-w-full">
+            <Combobox
+              options={[
+                { value: 'ALL', label: 'All categories' },
+                ...categories
+                  .filter((c) => c.id)
+                  .map((c) => ({ value: c.id as string, label: c.name })),
+              ]}
+              value={rowCategoryFilters[index] || 'ALL'}
+              onValueChange={(v) => {
+                setRowCategoryFilters((prev) => {
+                  const next = [...prev];
+                  next[index] = v as any;
+                  return next;
+                });
+              }}
+              placeholder="All categories"
+              searchPlaceholder="Search categories..."
+              emptyText="No categories found."
+            />
+          </div>
         </TableCell>
-        <TableCell>
-          <Controller
-            control={control}
-            name={`products.${index}.productId`}
-            render={({ field }) => (
-              <Select onValueChange={(value) => { field.onChange(value); handleProductChange(value, index); }} value={field.value}>
-                <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                <SelectContent>
-                  {getFilteredProductsForRow(index).filter(p => p.id).map(p => {
-                    const catName = categories.find(c => c.id === p.categoryId)?.name;
-                    return (
-                      <SelectItem key={p.id!} value={p.id!}>
-                        {p.name}{catName ? ` — ${catName}` : ''}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            )}
-          />
+        <TableCell className="w-[14%] overflow-hidden">
+          <div className="w-full max-w-full">
+            <Controller
+              control={control}
+              name={`products.${index}.productId`}
+              render={({ field }) => (
+                <Combobox
+                  options={getFilteredProductsForRow(index)
+                    .filter((p) => p.id)
+                    .map((p) => {
+                      const catName = categories.find((c) => c.id === p.categoryId)?.name;
+                      return {
+                        value: p.id as string,
+                        label: catName ? `${p.name} — ${catName}` : p.name,
+                      };
+                    })}
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    handleProductChange(value, index);
+                  }}
+                  placeholder="Select product"
+                  searchPlaceholder="Search products..."
+                  emptyText="No products found."
+                />
+              )}
+            />
+          </div>
         </TableCell>
 
         {/* Description */}

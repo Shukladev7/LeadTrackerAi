@@ -8,7 +8,7 @@ import { Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { logActivity, getSummaryForNotes } from '@/lib/actions';
+import { addActivityToLead } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -36,47 +36,41 @@ export default function LogActivityForm({ leadId }: { leadId: string }) {
   const notes = watch('notes');
   const summary = watch('summary');
 
-  const handleSummarize = async () => {
+  const handleSummarize = () => {
     if (!notes) return;
     setIsSummarizing(true);
-    const result = await getSummaryForNotes(notes);
-    if (result.summary) {
-      setValue('summary', result.summary);
+    try {
+      const trimmed = notes.length > 300 ? `${notes.slice(0, 300)}...` : notes;
+      setValue('summary', trimmed);
       toast({
-        title: 'Summary Generated',
-        description: 'AI-powered summary has been added to the activity.',
+        title: 'Summary Added',
+        description: 'A short summary has been added based on your notes.',
       });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Summarization Failed',
-        description: result.error || 'An unknown error occurred.',
-      });
+    } finally {
+      setIsSummarizing(false);
     }
-    setIsSummarizing(false);
   };
 
   const onSubmit = async (data: ActivityFormData) => {
-    const formData = new FormData();
-    formData.append('leadId', leadId);
-    Object.entries(data).forEach(([key, value]) => {
-      // Always append the field, even if empty (for optional fields like notes)
-      formData.append(key, value as string || '');
-    });
+    try {
+      const notesToSave = data.summary || data.notes || '';
+      await addActivityToLead(leadId, {
+        type: data.type,
+        notes: notesToSave,
+      } as any);
 
-    const result = await logActivity(formData);
-    if (result.message === 'Successfully logged activity.') {
       toast({
         title: 'Activity Logged',
         description: `Your ${data.type} activity has been saved.`,
       });
       reset({ notes: '', summary: '', type: 'Meeting' });
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: result.message,
-        });
+    } catch (error: any) {
+      console.error('Error logging activity', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error?.message || 'Failed to log activity. Please try again.',
+      });
     }
   };
 
@@ -121,7 +115,7 @@ export default function LogActivityForm({ leadId }: { leadId: string }) {
           variant="outline"
           size="sm"
           onClick={handleSummarize}
-          disabled={isSummarizing || !notes || notes.length < 50}
+          disabled={isSummarizing || !notes || notes.length < 10}
         >
           {isSummarizing ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

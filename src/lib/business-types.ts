@@ -51,6 +51,12 @@ export interface LeadSource extends BusinessDocument {
   conversionRate?: number;
 }
 
+// Manufacturing Company interface
+export interface ManufacturingCompany extends BusinessDocument {
+  name: string;
+  isActive?: boolean;
+}
+
 // Quotation Status configuration (for custom statuses managed from Setup)
 export interface QuotationStatusConfig extends BusinessDocument {
   name: string;
@@ -81,6 +87,8 @@ export interface Product extends BusinessDocument {
   description?: string;
   uom?: string;
   skus?: string[];
+  // Name of the manufacturing company associated with this product
+  manufacturingCompany?: string;
   catalogueUrl?: string; // Legacy field - will be deprecated
   cataloguePdf?: {
     url: string; // Firebase Storage download URL
@@ -89,6 +97,12 @@ export interface Product extends BusinessDocument {
     uploadedAt: string;
   };
   productImage?: {
+    url: string; // Firebase Storage download URL
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
+  };
+  thumbnailImage?: {
     url: string; // Firebase Storage download URL
     fileName: string;
     filePath: string;
@@ -145,6 +159,8 @@ export interface Lead extends BusinessDocument {
   tags?: string[];
   customFields?: Record<string, any>;
   createdBy?: string; // Name or email of the user who created the lead
+  // Name of the manufacturing company associated with this lead
+  manufacturingCompany?: string;
 }
 
 // Quotation Product interface
@@ -177,6 +193,7 @@ export interface QuotationTemplate extends BusinessDocument {
   isDefault?: boolean;
   emailTemplate?: string;
   footerText?: string;
+  manufacturingCompany?: string;
 }
 
 // Quotation interface
@@ -184,6 +201,9 @@ export interface Quotation extends BusinessDocument {
   leadId: string;
   templateId: string;
   quotationNumber: string;
+  // Sequential numbering metadata
+  prefix?: string;
+  number?: number;
   date: string;
   validUntil: string;
   status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected' | 'Expired';
@@ -192,6 +212,9 @@ export interface Quotation extends BusinessDocument {
   totalGst: number;
   grandTotal: number;
   discount?: number;
+  // Denormalized lead fields for fast listing/search (avoid client-side joins)
+  leadName?: string;
+  leadCompany?: string;
   // Company fields (seller)
   companyName?: string;
   companyAddress?: string;
@@ -217,6 +240,11 @@ export interface Quotation extends BusinessDocument {
   currencyCode?: string; // Selected currency code (default: INR)
   currencySymbol?: string; // Currency symbol for display
   conversionRate?: number; // Conversion rate at time of quotation creation
+  // Name of the manufacturing company associated with this quotation
+  manufacturingCompany?: string;
+  // Unified lowercase search index for multi-field text search
+  searchIndex?: string;
+  searchTokens?: string[];
 }
 
 // Customer interface (derived from successful leads)
@@ -398,6 +426,7 @@ export const COLLECTIONS = {
   DEPARTMENTS: 'departments',
   EMPLOYEE_ROLES: 'employeeRoles',
   LEAD_SOURCES: 'leadSources',
+  MANUFACTURING_COMPANIES: 'manufacturingCompanies',
   PRODUCT_CATEGORIES: 'productModels',
   PRODUCTS: 'products',
   LEADS: 'leads',

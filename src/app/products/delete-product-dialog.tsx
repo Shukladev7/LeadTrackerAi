@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { deleteProduct } from '@/lib/actions';
+import { deleteProduct } from '@/lib/data';
 import { Product } from '@/lib/business-types';
 
 type DeleteProductDialogProps = {
@@ -37,21 +37,24 @@ export function DeleteProductDialog({ product, open, onOpenChange }: DeleteProdu
     }
 
     setIsDeleting(true);
-    const result = await deleteProduct(product.id);
-    if (result.message === 'Successfully deleted product.') {
+    try {
+      await deleteProduct(product.id);
       toast({
         title: 'Product Deleted',
         description: `"${product.name}" has been deleted.`,
       });
       onOpenChange(false);
-    } else {
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to delete product. Please try again.';
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.message,
+        description: message,
       });
+    } finally {
+      setIsDeleting(false);
     }
-    setIsDeleting(false);
   };
 
   return (
